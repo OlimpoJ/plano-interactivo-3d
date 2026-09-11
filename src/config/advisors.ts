@@ -167,12 +167,12 @@ export const ADVISORS_REGISTRY: Record<string, Advisor> = {
     role: "Asesora Comercial",
     active: true,
   },
-  "marilyn-norena": {
-    slug: "marilyn-norena",
-    name: "Marilyn Noreña",
+  "marlyn-norena": {
+    slug: "marlyn-norena",
+    name: "Marlyn Noreña",
     agency: "Chichaus",
     whatsapp: "573013477197",
-    aliases: ["marilyn", "marilynnorena", "marilyn-norena"],
+    aliases: ["marlyn", "marlynnorena", "marlyn-norena", "marilyn", "marilynnorena", "marilyn-norena"],
     role: "Asesora Comercial",
     active: true,
   },

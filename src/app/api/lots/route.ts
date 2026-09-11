@@ -3,10 +3,11 @@ import { google } from 'googleapis';
 
 export const revalidate = 10; // Auto-sincronización en tiempo real cada 10 segundos desde Google Sheets
 
-async function fetchGoogleSheetViaCsv(spreadsheetId: string): Promise<string[][] | null> {
+async function fetchGoogleSheetViaCsv(spreadsheetId: string, gid?: string): Promise<string[][] | null> {
+  const gidParam = gid ? `&gid=${gid}` : '';
   const urls = [
-    `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv`,
-    `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`
+    `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv${gidParam}`,
+    `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv${gidParam}`
   ];
 
   for (const url of urls) {
@@ -77,10 +78,13 @@ export async function GET(request: Request) {
     const project = searchParams.get('project') || 'luwana';
 
     let spreadsheetId = '';
-    const targetSheetName = '';
+    let targetSheetName = '';
+    let targetGid = '';
 
     if (project === 'loom') {
       spreadsheetId = (process.env.GOOGLE_SHEET_ID_LOOM || '1IDsSyLELPYdV6eZFTt6d0Q5C5iWl3bm1ukUgbE-rJoA').replace(/^"|"$/g, '');
+      targetSheetName = (process.env.GOOGLE_SHEET_NAME_LOOM || 'LISTA DE PRECIO Ver2.').replace(/^"|"$/g, '');
+      targetGid = (process.env.GOOGLE_SHEET_GID_LOOM || '1415488116').replace(/^"|"$/g, '');
     } else {
       spreadsheetId = (process.env.GOOGLE_SHEET_ID_LUWANA || process.env.GOOGLE_SHEET_ID || '1e_dxwIK6cjfLmMQqzzlt56-NomUDLX8NZe2WaLnOmto').replace(/^"|"$/g, '');
     }
@@ -105,7 +109,15 @@ export async function GET(request: Request) {
         let sheetName = targetSheetName;
         if (!sheetName) {
           const info = await sheets.spreadsheets.get({ spreadsheetId });
-          sheetName = info.data.sheets?.[0]?.properties?.title || 'Hoja 1';
+          if (targetGid) {
+            const matched = info.data.sheets?.find(s => String(s.properties?.sheetId) === String(targetGid));
+            if (matched?.properties?.title) {
+              sheetName = matched.properties.title;
+            }
+          }
+          if (!sheetName) {
+            sheetName = info.data.sheets?.[0]?.properties?.title || 'Hoja 1';
+          }
         }
         const response = await sheets.spreadsheets.values.get({
           spreadsheetId,
@@ -119,7 +131,7 @@ export async function GET(request: Request) {
 
     // Fallback a exportación CSV directa (Ultra-rápido y 100% público)
     if (!rows || rows.length < 2) {
-      rows = await fetchGoogleSheetViaCsv(spreadsheetId);
+      rows = await fetchGoogleSheetViaCsv(spreadsheetId, targetGid);
     }
 
     if (!rows || rows.length < 2) {
