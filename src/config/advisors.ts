@@ -19,7 +19,7 @@ export const ADVISORS_REGISTRY: Record<string, Advisor> = {
     slug: "patrimofy",
     name: "Patrimofy Real Estate",
     agency: "Patrimofy",
-    whatsapp: "573053117404",
+    whatsapp: "573332393784",
     aliases: ["oficina", "general", "patrimofy-real-estate"],
     role: "Línea Comercial Directa",
     active: true,

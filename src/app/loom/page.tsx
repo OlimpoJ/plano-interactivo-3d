@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import styles from "./Loom.module.css";
 import LoomMasterplanSelector from "@/components/LoomMasterplanSelector";
 import LoomStageViewer from "@/components/LoomStageViewer";
@@ -11,13 +11,14 @@ import LoomLocationModal from "@/components/LoomLocationModal";
 import LoomReferralModal from "@/components/LoomReferralModal";
 import { AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Menu, Maximize2, Minimize2, ArrowLeft, MessageCircle } from "lucide-react";
+import { Menu, Maximize2, Minimize2, ArrowLeft, MessageCircle, Globe, Eye, EyeOff } from "lucide-react";
 import { 
   initReferralTracking, 
   getActiveAdvisor, 
   buildGeneralProjectWhatsAppUrl, 
   Advisor 
 } from "@/lib/referralTracking";
+import { LoomLanguageProvider, useLoomLang, LoomLang } from "@/lib/loomI18n";
 
 interface Lot {
   id: string;
@@ -62,16 +63,44 @@ function AnimatedCounter({ endValue, duration = 2000 }: { endValue: number; dura
   return <>{count}</>;
 }
 
-export default function LoomShowroom() {
+// Intervalo exacto en milisegundos donde el video nativo muestra su propio logo en la toma aérea (5,080 ms a 9,960 ms)
+// Iniciamos el fade-out a los 4,750 ms para que a los 5,080 ms ya esté limpio, y reaparece con fade progresivo a los 9,970 ms.
+const VIDEO_LOGO_FADE_OUT_MS = 4750;
+const VIDEO_LOGO_END_MS = 9970;
+
+function LoomShowroomInner() {
+  const { lang, setLang, isEn } = useLoomLang();
   const [view, setView] = useState<"hero" | "map" | "stage" | "showroom">("hero");
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
   const [lots, setLots] = useState<Lot[]>([]);
   const [stats, setStats] = useState({
-    total: 326,
+    total: 318,
     sold: 26,
-    available: 300
+    available: 292
   });
+  const heroVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [hideHeroOverlayForVideoLogo, setHideHeroOverlayForVideoLogo] = useState(false);
+  const [isCleanVideoView, setIsCleanVideoView] = useState(false);
+
+  // Monitoreo a 60fps del currentTime del video en la Hero para ocultar logo y contadores entre 4,750 ms y 9,970 ms
+  useEffect(() => {
+    if (view !== "hero") return;
+    let rafId: number;
+
+    const checkVideoTime = () => {
+      const video = heroVideoRef.current;
+      if (video && !video.paused) {
+        const currentMs = video.currentTime * 1000;
+        const shouldHide = currentMs >= VIDEO_LOGO_FADE_OUT_MS && currentMs < VIDEO_LOGO_END_MS;
+        setHideHeroOverlayForVideoLogo((prev) => (prev !== shouldHide ? shouldHide : prev));
+      }
+      rafId = requestAnimationFrame(checkVideoTime);
+    };
+
+    rafId = requestAnimationFrame(checkVideoTime);
+    return () => cancelAnimationFrame(rafId);
+  }, [view]);
 
   // Check embed & deep linking parameters from URL
   useEffect(() => {
@@ -90,7 +119,15 @@ export default function LoomShowroom() {
           setView("stage");
         });
       } else if (lotParam) {
+        const block = lotParam.trim().charAt(0).toUpperCase();
+        const inferredStage =
+          ["A", "B", "C"].includes(block) ? "etapa_1" :
+          ["D", "E"].includes(block) ? "etapa_2" :
+          ["F", "G"].includes(block) ? "etapa_3" :
+          ["H", "I"].includes(block) ? "etapa_4" :
+          ["J", "K", "L"].includes(block) ? "etapa_5" : "etapa_1";
         queueMicrotask(() => {
+          setSelectedStage(inferredStage);
           setView("stage");
         });
       } else if (params.get("embed") === "true" || params.get("view") === "map") {
@@ -178,9 +215,9 @@ export default function LoomShowroom() {
           const sold = data.lots.filter((l: { status: string }) => l.status === 'sold').length;
 
           setStats({
-            total: total > 0 ? total : 326,
+            total: total > 0 ? total : 318,
             sold: total > 0 ? sold : 26,
-            available: total > 0 ? available : 300
+            available: total > 0 ? available : 292
           });
         }
       } catch (error) {
@@ -252,7 +289,7 @@ export default function LoomShowroom() {
         <button
           onClick={() => setIsMenuOpen(true)}
           className="p-2.5 sm:p-3 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] transition-all duration-300 group cursor-pointer"
-          title="Menú de Navegación"
+          title={isEn ? "Navigation Menu" : "Menú de Navegación"}
         >
           <Menu className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform" />
         </button>
@@ -263,35 +300,109 @@ export default function LoomShowroom() {
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-lg"
           >
             <ArrowLeft size={14} />
-            <span>Regresar al Master Plan</span>
+            <span>{isEn ? "Back to Master Plan" : "Regresar al Master Plan"}</span>
           </Link>
         )}
       </div>
 
-      <div className="fixed top-4 right-4 z-40 flex items-center gap-2 pointer-events-auto">
-        {assignedAdvisor && (
-          <button
-            onClick={handleOpenContact}
-            className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#EDE7E0]/95 text-[#0A0D0B] border border-[#B35F27]/35 shadow-xl backdrop-blur-md text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 cursor-pointer"
-            title={`Contactar a tu asesor ${assignedAdvisor.name} por WhatsApp`}
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <span>Asesor: <strong className="text-[#B35F27]">{assignedAdvisor.name.split(" ")[0]}</strong></span>
-            <MessageCircle size={14} className="text-[#25D366] shrink-0" />
-          </button>
-        )}
-        <button
-          onClick={toggleFullscreen}
-          className="p-2.5 sm:p-3 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] transition-all duration-300 group cursor-pointer"
-          title={isFullscreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
-        >
-          {isFullscreen ? (
-            <Minimize2 className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform" />
-          ) : (
-            <Maximize2 className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform" />
+      {view !== "showroom" && !(view === "stage" && selectedLot) && (
+        <div className="fixed top-4 right-4 z-40 flex items-center gap-2 pointer-events-auto">
+          {/* Botón Elegante de Vista Limpia (Solo en la Hero para apreciar el video) */}
+          {view === "hero" && (
+            <button
+              onClick={() => setIsCleanVideoView((prev) => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full border shadow-xl backdrop-blur-md text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                isCleanVideoView
+                  ? "bg-[#B35F27] text-[#EDE7E0] border-[#B35F27] hover:bg-[#964d1d]"
+                  : "bg-[#EDE7E0]/92 text-[#0A0D0B] border-[#0A0D0B]/15 hover:bg-[#EDE7E0] hover:text-[#B35F27]"
+              }`}
+              title={
+                isCleanVideoView
+                  ? isEn
+                    ? "Show Logo & Lot Counters"
+                    : "Mostrar Logo y Contadores"
+                  : isEn
+                  ? "Clean Video View (Hide Logo & Counters)"
+                  : "Vista Limpia (Ocultar Logo y Contadores)"
+              }
+            >
+              {isCleanVideoView ? (
+                <>
+                  <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span>{isEn ? "Show Info" : "Mostrar Info"}</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#B35F27] shrink-0" />
+                  <span className="hidden xs:inline sm:inline">{isEn ? "Clean View" : "Vista Limpia"}</span>
+                </>
+              )}
+            </button>
           )}
-        </button>
-      </div>
+
+          {/* Language Toggle Pill ES | EN */}
+          <div
+            className="flex items-center rounded-full bg-[#EDE7E0]/92 border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md p-0.5"
+            title={isEn ? "Switch Language (ES / EN)" : "Cambiar Idioma (ES / EN)"}
+          >
+            <Globe className="w-3.5 h-3.5 text-[#0A0D0B]/55 ml-2 mr-1 hidden sm:block" />
+            <button
+              onClick={() => setLang("es")}
+              className={`px-2 py-1 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                lang === "es"
+                  ? "bg-[#B35F27] text-white shadow-sm"
+                  : "text-[#0A0D0B]/70 hover:text-[#0A0D0B]"
+              }`}
+            >
+              ES
+            </button>
+            <button
+              onClick={() => setLang("en")}
+              className={`px-2 py-1 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                lang === "en"
+                  ? "bg-[#B35F27] text-white shadow-sm"
+                  : "text-[#0A0D0B]/70 hover:text-[#0A0D0B]"
+              }`}
+            >
+              EN
+            </button>
+          </div>
+
+          {assignedAdvisor && (
+            <button
+              onClick={handleOpenContact}
+              className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#EDE7E0]/95 text-[#0A0D0B] border border-[#B35F27]/35 shadow-xl backdrop-blur-md text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 cursor-pointer"
+              title={
+                isEn
+                  ? `Contact your advisor ${assignedAdvisor.name} via WhatsApp`
+                  : `Contactar a tu asesor ${assignedAdvisor.name} por WhatsApp`
+              }
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span>
+                {isEn ? "Advisor:" : "Asesor:"}{" "}
+                <strong className="text-[#B35F27]">{assignedAdvisor.name.split(" ")[0]}</strong>
+              </span>
+              <MessageCircle size={14} className="text-[#25D366] shrink-0" />
+            </button>
+          )}
+          <button
+            onClick={toggleFullscreen}
+            className="p-2.5 sm:p-3 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] transition-all duration-300 group cursor-pointer"
+            title={
+              isFullscreen
+                ? isEn ? "Exit Fullscreen" : "Salir de Pantalla Completa"
+                : isEn ? "Fullscreen" : "Pantalla Completa"
+            }
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform" />
+            ) : (
+              <Maximize2 className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform" />
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Menú Lateral Desplegable */}
       <LoomSideMenu
@@ -348,7 +459,7 @@ export default function LoomShowroom() {
               <LoomLotPanel
                 lot={selectedLot}
                 onClose={handleCloseLotPanel}
-                onEnterShowroom={(lot) => setView("showroom")}
+                onEnterShowroom={() => setView("showroom")}
               />
             )}
           </AnimatePresence>
@@ -369,59 +480,74 @@ export default function LoomShowroom() {
           <section className={styles.heroContainer}>
             {/* Video de Fondo de Loom */}
             <video
+              ref={heroVideoRef}
               autoPlay
               loop
               muted
               playsInline
+              preload="auto"
               poster="/loom/hero_poster_loom.webp"
               className={styles.backgroundVideo}
             >
-              <source src="https://pub-4740e3c376864a1b9b475fcaa0294417.r2.dev/VHEROLOOMV2.mp4" type="video/mp4" />
+              <source src="https://pub-4740e3c376864a1b9b475fcaa0294417.r2.dev/INICIO%20PAGINA.mp4" type="video/mp4" />
             </video>
 
-            {/* Overlay con Gradientes Premium */}
-            <div className={styles.gradientOverlay}></div>
+            {/* Overlay con Gradientes Premium (se atenúa en modo Vista Limpia) */}
+            <div
+              className={`${styles.gradientOverlay} transition-opacity duration-700 ${
+                isCleanVideoView ? "opacity-25" : "opacity-100"
+              }`}
+            ></div>
 
             <div className={styles.heroContentCentrado}>
-              {/* Logo de Loom en el Centro */}
-              <div className={styles.centerLogoContainer}>
-                <img 
-                  src="/loom/logo_loom.png" 
-                  alt="Loom Luxury Residence" 
-                  className={styles.logoCentrado}
-                />
-              </div>
-
-              {/* Estadísticas de Disponibilidad (Visibles en Celular Vertical / Ocultas en Celular Horizontal por Altura Reducida) */}
-              <div className={`flex gap-2 sm:gap-4 justify-center my-3 sm:my-6 text-center relative z-10 px-2 ${styles.heroStatsContainer}`}>
-                {/* Lotes Totales */}
-                <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-white/35 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[75px] sm:min-w-[125px]">
-                  <span className="text-[#F3E5AB] font-bold text-sm sm:text-2xl md:text-3xl block font-serif tracking-wider [text-shadow:_0_1.5px_6px_rgba(0,0,0,0.9)]">
-                    <AnimatedCounter endValue={stats.total} />
-                  </span>
-                  <span className="text-white font-bold text-[7px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
-                    Lotes Totales
-                  </span>
+              {/* Contenedor con Fade Progresivo (se oculta en modo Vista Limpia o entre 4,750 ms y 9,970 ms cuando aparece el logo nativo del video) */}
+              <div
+                className={`flex flex-col items-center transition-all ease-out ${
+                  isCleanVideoView || hideHeroOverlayForVideoLogo
+                    ? "opacity-0 scale-95 translate-y-2 duration-500 pointer-events-none"
+                    : "opacity-100 scale-100 translate-y-0 duration-1000"
+                }`}
+              >
+                {/* Logo de Loom en el Centro */}
+                <div className={styles.centerLogoContainer}>
+                  <img 
+                    src="/loom/logo_loom.png" 
+                    alt="Loom Luxury Residence" 
+                    className={styles.logoCentrado}
+                  />
                 </div>
 
-                {/* Disponibles */}
-                <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-[#7EF3D0]/60 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[75px] sm:min-w-[125px]">
-                  <span className="text-[#7EF3D0] font-bold text-sm sm:text-2xl md:text-3xl block font-serif tracking-wider [text-shadow:_0_1.5px_6px_rgba(0,0,0,0.9)]">
-                    <AnimatedCounter endValue={stats.available} />
-                  </span>
-                  <span className="text-[#7EF3D0] font-bold text-[7px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
-                    Disponibles
-                  </span>
-                </div>
+                {/* Estadísticas de Disponibilidad (Visibles en Celular Vertical / Ocultas en Celular Horizontal por Altura Reducida) */}
+                <div className={`flex gap-2 sm:gap-4 justify-center my-3 sm:my-6 text-center relative z-10 px-2 ${styles.heroStatsContainer}`}>
+                  {/* Lotes Totales */}
+                  <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-white/35 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[75px] sm:min-w-[125px]">
+                    <span className="text-[#F3E5AB] font-bold text-sm sm:text-2xl md:text-3xl block font-serif tracking-wider [text-shadow:_0_1.5px_6px_rgba(0,0,0,0.9)]">
+                      <AnimatedCounter endValue={stats.total} />
+                    </span>
+                    <span className="text-white font-bold text-[7px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
+                      {isEn ? "Total Lots" : "Lotes Totales"}
+                    </span>
+                  </div>
 
-                {/* Vendidos */}
-                <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-white/35 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[75px] sm:min-w-[125px]">
-                  <span className="text-white font-bold text-sm sm:text-2xl md:text-3xl block font-serif tracking-wider [text-shadow:_0_1.5px_6px_rgba(0,0,0,0.9)]">
-                    <AnimatedCounter endValue={stats.sold} />
-                  </span>
-                  <span className="text-white/90 font-bold text-[7px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
-                    Vendidos
-                  </span>
+                  {/* Disponibles */}
+                  <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-[#7EF3D0]/60 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[75px] sm:min-w-[125px]">
+                    <span className="text-[#7EF3D0] font-bold text-sm sm:text-2xl md:text-3xl block font-serif tracking-wider [text-shadow:_0_1.5px_6px_rgba(0,0,0,0.9)]">
+                      <AnimatedCounter endValue={stats.available} />
+                    </span>
+                    <span className="text-[#7EF3D0] font-bold text-[7px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
+                      {isEn ? "Available" : "Disponibles"}
+                    </span>
+                  </div>
+
+                  {/* Vendidos */}
+                  <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-white/35 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[75px] sm:min-w-[125px]">
+                    <span className="text-white font-bold text-sm sm:text-2xl md:text-3xl block font-serif tracking-wider [text-shadow:_0_1.5px_6px_rgba(0,0,0,0.9)]">
+                      <AnimatedCounter endValue={stats.sold} />
+                    </span>
+                    <span className="text-white/90 font-bold text-[7px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
+                      {isEn ? "Sold" : "Vendidos"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -430,7 +556,7 @@ export default function LoomShowroom() {
                 onClick={() => setView("map")}
                 className={styles.entrarBtn}
               >
-                Ingresar al Showroom
+                {isEn ? "Enter Showroom" : "Ingresar al Showroom"}
               </button>
             </div>
           </section>
@@ -439,3 +565,17 @@ export default function LoomShowroom() {
     </LoomOrientationWrapper>
   );
 }
+
+export function LoomShowroomApp({ defaultLang }: { defaultLang?: LoomLang }) {
+  return (
+    <LoomLanguageProvider defaultLang={defaultLang}>
+      <LoomShowroomInner />
+    </LoomLanguageProvider>
+  );
+}
+
+export default function LoomShowroom() {
+  return <LoomShowroomApp defaultLang="es" />;
+}
+
+

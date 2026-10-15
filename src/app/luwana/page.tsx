@@ -84,9 +84,18 @@ export default function LuwanaPage() {
       }
 
       const stageParam = params.get('stage');
+      const lotParam = params.get('lot');
       if (stageParam) {
+        const normalizedStage = stageParam.startsWith('etapa-') ? stageParam : `etapa-${stageParam.replace(/\D/g, '') || '1'}`;
         queueMicrotask(() => {
-          setSelectedStage(stageParam);
+          setSelectedStage(normalizedStage);
+          setView("stage");
+        });
+      } else if (lotParam) {
+        const lotNum = parseInt(lotParam.replace(/\D/g, ''), 10);
+        const inferredStage = lotNum >= 61 ? "etapa-2" : "etapa-1";
+        queueMicrotask(() => {
+          setSelectedStage(inferredStage);
           setView("stage");
         });
       } else if (params.get('embed') === 'true' || params.get('view') === 'map') {
@@ -103,7 +112,14 @@ export default function LuwanaPage() {
       else if (selectedStage === "etapa-2") setSelectedStage("etapa-3");
       else if (selectedStage === "etapa-3") setSelectedStage("etapa-1");
     };
-    return <StageView stageId={selectedStage} onBack={() => setView("map")} onNext={handleNext} />;
+    return (
+      <StageView
+        stageId={selectedStage}
+        onBack={() => setView("map")}
+        onNext={handleNext}
+        onChangeStage={(newStageId) => setSelectedStage(newStageId)}
+      />
+    );
   }
 
   if (view === "map") {
@@ -149,10 +165,10 @@ export default function LuwanaPage() {
         <div className={styles.heroContent}>
           <div className={styles.leftColumn}>
             <h1 className={styles.heroTitle}>
-              Exclusividad Inmobiliaria Frente al Mar Caribe
+              Exclusividad Inmobiliaria con Salida Directa al Mar Caribe
             </h1>
             <p className={styles.heroSubtitle}>
-              Adquiere tu lote frente al mar en la zona con más desarrollo de Cartagena y construye tu Residencia Boutique con nuestros diseños de autor. Lujo para tu hogar y alta rentabilidad para tu negocio de rentas cortas.
+              Adquiere tu lote con salida directa al mar en la zona con más desarrollo de Cartagena y construye tu Residencia Boutique con nuestros diseños de autor. Lujo para tu hogar y alta rentabilidad para tu negocio de rentas cortas.
             </p>
             
             <div className={styles.buttons}>

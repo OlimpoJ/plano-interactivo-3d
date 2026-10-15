@@ -2,8 +2,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RotateCw, Smartphone } from "lucide-react";
+import { useLoomLang } from "@/lib/loomI18n";
 
 export default function LoomOrientationWrapper({ children }: { children: React.ReactNode }) {
+  const { isEn } = useLoomLang();
   const [isPortrait, setIsPortrait] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [bypass, setBypass] = useState(false);
@@ -92,24 +94,26 @@ export default function LoomOrientationWrapper({ children }: { children: React.R
               {/* Textos descriptivos */}
               <div className="space-y-3">
                 <h3 className="text-xl font-serif text-white tracking-wider uppercase">
-                  EXPERIENCIA HORIZONTAL
+                  {isEn ? "LANDSCAPE EXPERIENCE" : "EXPERIENCIA HORIZONTAL"}
                 </h3>
                 <p className="text-xs text-white/70 leading-relaxed max-w-xs">
-                  Para poder explorar el Plano de Urbanismo e interactuar con los lotes vectoriales de forma precisa, te sugerimos girar tu dispositivo a modo horizontal.
+                  {isEn
+                    ? "To explore the Master Plan and interact with the vector lots with maximum precision, please rotate your device to landscape mode."
+                    : "Para poder explorar el Plano de Urbanismo e interactuar con los lotes vectoriales de forma precisa, te sugerimos girar tu dispositivo a modo horizontal."}
                 </p>
               </div>
 
               {/* Botones de acción */}
               <div className="pt-4 w-full flex flex-col space-y-3">
                 <div className="text-[9px] uppercase tracking-widest text-[#dbaa67] font-semibold animate-pulse">
-                  Gira tu pantalla para iniciar
+                  {isEn ? "Rotate your screen to start" : "Gira tu pantalla para iniciar"}
                 </div>
                 
                 <button
                   onClick={() => setBypass(true)}
                   className="text-[10px] uppercase tracking-[0.2em] text-white/40 hover:text-white/80 transition-colors pt-2 border-t border-white/5 w-full"
                 >
-                  Continuar en vertical
+                  {isEn ? "Continue in portrait" : "Continuar en vertical"}
                 </button>
               </div>
 

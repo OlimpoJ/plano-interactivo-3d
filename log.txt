@@ -1,8 +1,0 @@
-04af308 chore: Temporarily revert GHL tracking to debug map interaction
-097a601 feat(map): Rediseño de LotPanel con esquema financiero minimalista e integración de LotFullDetails con captura a GHL
-26ccad1 Implementar plano SVG hiper-inmersivo con Tooltips y animaciones Framer Motion
-8396131 Fix typescript error in zone interface
-a8907fb Update interactive plan features
-c9b5baf feat: Agregar Lote 072 con estado disponible
-bf36f35 feat: Implementar zonas interactivas (Escenario 1) y SVG de Lotes (Escenario 2)
-e6a0dac Initial commit from Create Next App

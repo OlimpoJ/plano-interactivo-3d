@@ -6,8 +6,8 @@ import { usePathname } from 'next/navigation';
 export default function LegalFooter() {
   const pathname = usePathname();
   
-  // Ocultar la barra de políticas en todas las rutas del Showroom de Loom
-  if (pathname && pathname.startsWith('/loom')) {
+  // Ocultar la barra de políticas en todas las rutas del Showroom de Loom (ES y EN)
+  if (pathname && (pathname.startsWith('/loom') || pathname.includes('/loom'))) {
     return null;
   }
   return (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useLoomLang, translateStatusRaw, translateAreaText } from "@/lib/loomI18n";
 
 interface Lot {
   id: string;
@@ -23,6 +24,7 @@ interface LoomLotZoomCanvasProps {
 }
 
 export default function LoomLotZoomCanvas({ stageId, selectedLot, className = "" }: LoomLotZoomCanvasProps) {
+  const { isEn } = useLoomLang();
   const [svgContent, setSvgContent] = useState<string>("");
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
@@ -33,12 +35,19 @@ export default function LoomLotZoomCanvas({ stageId, selectedLot, className = ""
   const stageImages: Record<string, string> = {
     etapa_1: "/loom/loom_stage_1_bg.webp",
     etapa_2: "/loom/loom_stage_2_bg.webp",
+    etapa_3: "/loom/loom_stage_3_bg.webp",
+    etapa_4: "/loom/loom_stage_4_bg.webp",
+    etapa_5: "/loom/loom_stage_5_bg.webp",
     etapa_6: "/loom/loom_stage_6_bg.webp",
   };
 
   const svgUrls: Record<string, string> = {
     etapa_1: "/loom/loom_stage_1.svg",
     etapa_2: "/loom/loom_stage_2.svg",
+    etapa_3: "/loom/loom_stage_3.svg",
+    etapa_4: "/loom/loom_stage_4.svg",
+    etapa_5: "/loom/loom_stage_5.svg",
+    etapa_6: "/loom/loom_stage_6.svg",
   };
 
   const bgImage = stageImages[stageId] || "/loom/loom_stage_1_bg.webp";
@@ -61,39 +70,30 @@ export default function LoomLotZoomCanvas({ stageId, selectedLot, className = ""
           let targetCy = (vbH || 2160) / 2;
           let foundTarget = false;
 
-          // Search circles to find exact lot centroid
+          // Search circles to find exact lot centroid across blocks A-L and amenities
           circleElements.forEach((c) => {
-            let parent = c.parentElement;
-            let manzana = "";
-            while (parent) {
-              const id = parent.getAttribute("id") || "";
-              if (id.includes("MANZANA_A")) manzana = "A";
-              else if (id.includes("MANZANA_B")) manzana = "B";
-              else if (id.includes("MANZANA_C")) manzana = "C";
-              parent = parent.parentElement;
-            }
-
             const cx = parseFloat(c.getAttribute("cx") || "0");
             const cy = parseFloat(c.getAttribute("cy") || "0");
-            
-            // Check if circle is in the same area / matching lot ID
-            const textNumMatch = c.parentElement?.textContent?.replace(/\D/g, "");
-            if (manzana && textNumMatch) {
-              const checkId = `${manzana}-${textNumMatch}`.toUpperCase();
-              if (checkId === lotIdClean) {
-                targetCx = cx;
-                targetCy = cy;
-                foundTarget = true;
-              }
+            const dataLot = (
+              c.getAttribute("data-lot") ||
+              c.parentElement?.getAttribute("data-lot") ||
+              c.parentElement?.getAttribute("id")?.replace(/^LOTGROUP_/i, "") ||
+              ""
+            ).toUpperCase();
+
+            if (dataLot === lotIdClean) {
+              targetCx = cx;
+              targetCy = cy;
+              foundTarget = true;
             }
           });
 
           // Fallback centroid heuristic if exact circle match wasn't found
           if (!foundTarget) {
             const letter = selectedLot.id.charAt(0).toUpperCase();
-            if (letter === "A") { targetCx = 750; targetCy = 1500; }
-            else if (letter === "B") { targetCx = 1200; targetCy = 1400; }
-            else if (letter === "C") { targetCx = 1800; targetCy = 1400; }
+            if (["A", "D", "F", "H", "J"].includes(letter)) { targetCx = 900; targetCy = 1450; }
+            else if (["B", "E", "G", "I", "K"].includes(letter)) { targetCx = 1450; targetCy = 1400; }
+            else if (["C", "L"].includes(letter)) { targetCx = 1900; targetCy = 1400; }
           }
 
           // Calculate tight cropped box focused exclusively on the lot (~500x350 box)
@@ -107,13 +107,35 @@ export default function LoomLotZoomCanvas({ stageId, selectedLot, className = ""
           doc.documentElement.setAttribute("viewBox", `${newVbX} ${newVbY} ${zoomWidth} ${zoomHeight}`);
           doc.documentElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
-          // Clean up vector overlays: hide non-selected lot pins for a clean focused crop
-          const allLotGroups = Array.from(doc.querySelectorAll("[id*='MANZANA_']"));
+          // Highlight selected lot polygon and dim neighboring lots
+          const allLotGroups = Array.from(doc.querySelectorAll("g[id^='LOTGROUP_']"));
           allLotGroups.forEach((g) => {
-            const gId = g.getAttribute("id") || "";
-            // Keep current lot group visible, dim or hide others
-            if (!gId.toUpperCase().includes(lotIdClean.replace("-", ""))) {
-              g.setAttribute("opacity", "0.35");
+            const gLot = (g.getAttribute("data-lot") || g.getAttribute("id")?.replace(/^LOTGROUP_/i, "") || "").toUpperCase();
+            const poly = g.querySelector(".lot-polygon");
+            const circle = g.querySelector("circle");
+            if (gLot === lotIdClean) {
+              if (poly) {
+                poly.setAttribute("fill", "#10b981");
+                poly.setAttribute("fill-opacity", "0.35");
+                poly.setAttribute("stroke", "#10b981");
+                poly.setAttribute("stroke-width", "3.5");
+              }
+              if (circle) {
+                circle.setAttribute("fill", "#10b981");
+                circle.setAttribute("stroke", "#ffffff");
+                circle.setAttribute("stroke-width", "3");
+                circle.setAttribute("r", "10");
+              }
+            } else {
+              g.setAttribute("opacity", "0.25");
+              if (poly) {
+                poly.setAttribute("fill", "transparent");
+                poly.setAttribute("stroke", "#ffffff");
+                poly.setAttribute("stroke-width", "1.2");
+              }
+              if (circle) {
+                circle.remove();
+              }
             }
           });
 
@@ -150,7 +172,7 @@ export default function LoomLotZoomCanvas({ stageId, selectedLot, className = ""
       >
         <img
           src={bgImage}
-          alt={`Recorte centrado ${selectedLot.rawId}`}
+          alt={isEn ? `Centered view ${selectedLot.rawId}` : `Recorte centrado ${selectedLot.rawId}`}
           className="absolute select-none pointer-events-none transition-all duration-500"
           style={{
             width: `${imgWidthPct}%`,
@@ -176,17 +198,17 @@ export default function LoomLotZoomCanvas({ stageId, selectedLot, className = ""
         <div className="flex items-center gap-3 px-4 py-2 bg-[#070c16]/80 border border-[#dbaa67]/30 rounded-full backdrop-blur-md shadow-lg">
           <span className="h-2 w-2 rounded-full bg-[#10b981] animate-ping" />
           <span className="text-xs font-bold uppercase tracking-wider text-white">
-            LOTE <span className="text-[#dbaa67]">{selectedLot.rawId}</span>
+            {isEn ? "LOT" : "LOTE"} <span className="text-[#dbaa67]">{selectedLot.rawId}</span>
           </span>
           <span className="h-3 w-[1px] bg-white/20" />
           <span className="text-[11px] font-semibold text-white/70">
-            {selectedLot.area} m²
+            {translateAreaText(selectedLot.area, isEn)}
           </span>
         </div>
 
         {/* Badge Disponibilidad */}
         <span className="hidden sm:inline-block px-3 py-1 bg-[#10b981]/20 border border-[#10b981]/40 text-[#10b981] text-[10px] font-bold uppercase tracking-widest rounded-full backdrop-blur-md">
-          {selectedLot.statusRaw || "DISPONIBLE"}
+          {translateStatusRaw(selectedLot.statusRaw, isEn, selectedLot.status)}
         </span>
       </div>
 
@@ -195,7 +217,7 @@ export default function LoomLotZoomCanvas({ stageId, selectedLot, className = ""
         <button
           onClick={handleZoomIn}
           className="p-2 hover:bg-white/10 active:scale-95 text-white/80 hover:text-white rounded-full transition-all"
-          title="Acercar (+)"
+          title={isEn ? "Zoom In (+)" : "Acercar (+)"}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -204,7 +226,7 @@ export default function LoomLotZoomCanvas({ stageId, selectedLot, className = ""
         <button
           onClick={handleZoomOut}
           className="p-2 hover:bg-white/10 active:scale-95 text-white/80 hover:text-white rounded-full transition-all"
-          title="Alejar (-)"
+          title={isEn ? "Zoom Out (-)" : "Alejar (-)"}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4" />
@@ -213,7 +235,7 @@ export default function LoomLotZoomCanvas({ stageId, selectedLot, className = ""
         <button
           onClick={handleResetZoom}
           className="px-2.5 py-1 text-[10px] font-semibold tracking-wider text-[#dbaa67] hover:bg-white/10 rounded-full transition-all"
-          title="Restablecer vista"
+          title={isEn ? "Reset view" : "Restablecer vista"}
         >
           RESET
         </button>
@@ -221,7 +243,7 @@ export default function LoomLotZoomCanvas({ stageId, selectedLot, className = ""
         <button
           onClick={() => setIsMaximized(!isMaximized)}
           className="p-2 hover:bg-white/10 active:scale-95 text-white/80 hover:text-white rounded-full transition-all"
-          title={isMaximized ? "Restaurar tamaño" : "Pantalla completa"}
+          title={isMaximized ? (isEn ? "Restore size" : "Restaurar tamaño") : (isEn ? "Fullscreen" : "Pantalla completa")}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {isMaximized ? (

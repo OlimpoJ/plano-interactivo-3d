@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Home, Map, Layout, Download, MapPin, Phone, Sparkles, Compass } from "lucide-react";
+import { X, Home, Map, Download, MapPin, Phone, Sparkles, Compass, Globe } from "lucide-react";
 import Link from "next/link";
+import { useLoomLang } from "@/lib/loomI18n";
 
 interface LoomSideMenuProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export default function LoomSideMenu({
   onOpenLocation,
   onOpenContact,
 }: LoomSideMenuProps) {
+  const { lang, isEn, setLang } = useLoomLang();
   if (!isOpen) return null;
 
   const handleDownloadBrochure = () => {
@@ -56,10 +58,10 @@ export default function LoomSideMenu({
         >
           {/* Header del Menú */}
           <div>
-            <div className="flex justify-between items-center pb-6 border-b border-[#0A0D0B]/10">
+            <div className="flex justify-between items-center pb-5 border-b border-[#0A0D0B]/10">
               <div>
                 <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#B35F27] block">
-                  Navegación Showroom
+                  {isEn ? "Showroom Navigation" : "Navegación Showroom"}
                 </span>
                 <h2 className="text-xl sm:text-2xl font-serif font-semibold text-[#0A0D0B] mt-0.5">
                   LOOM Luxury Residence
@@ -73,8 +75,38 @@ export default function LoomSideMenu({
               </button>
             </div>
 
+            {/* Selector de Idioma ES / EN */}
+            <div className="mt-4 flex items-center justify-between bg-white/70 border border-[#0A0D0B]/10 rounded-xl px-3.5 py-2">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#0A0D0B]/70">
+                <Globe className="h-3.5 w-3.5 text-[#B35F27]" />
+                <span>{isEn ? "Language" : "Idioma"}</span>
+              </div>
+              <div className="flex items-center gap-1 bg-[#EDE7E0] p-0.5 rounded-lg border border-[#0A0D0B]/10">
+                <button
+                  onClick={() => setLang("es")}
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    lang === "es"
+                      ? "bg-[#B35F27] text-[#EDE7E0] shadow-sm"
+                      : "text-[#0A0D0B]/60 hover:text-[#0A0D0B]"
+                  }`}
+                >
+                  ES
+                </button>
+                <button
+                  onClick={() => setLang("en")}
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    lang === "en"
+                      ? "bg-[#B35F27] text-[#EDE7E0] shadow-sm"
+                      : "text-[#0A0D0B]/60 hover:text-[#0A0D0B]"
+                  }`}
+                >
+                  EN
+                </button>
+              </div>
+            </div>
+
             {/* Lista de Ítems del Menú */}
-            <nav className="mt-6 space-y-1.5">
+            <nav className="mt-5 space-y-1.5">
               <button
                 onClick={() => {
                   onNavigateToIntro();
@@ -83,7 +115,7 @@ export default function LoomSideMenu({
                 className="w-full px-4 py-3 rounded-xl hover:bg-white/80 border border-transparent hover:border-[#0A0D0B]/10 transition-all flex items-center gap-3.5 text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#0A0D0B] cursor-pointer group"
               >
                 <Home className="h-4 w-4 text-[#B35F27] group-hover:scale-110 transition-transform" />
-                <span>1. Intro / Inicio</span>
+                <span>{isEn ? "1. Intro / Home" : "1. Intro / Inicio"}</span>
               </button>
 
               <button
@@ -94,7 +126,7 @@ export default function LoomSideMenu({
                 className="w-full px-4 py-3 rounded-xl hover:bg-white/80 border border-transparent hover:border-[#0A0D0B]/10 transition-all flex items-center gap-3.5 text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#0A0D0B] cursor-pointer group"
               >
                 <Map className="h-4 w-4 text-[#B35F27] group-hover:scale-110 transition-transform" />
-                <span>2. Master Plan & Etapas</span>
+                <span>{isEn ? "2. Master Plan & Stages" : "2. Master Plan & Etapas"}</span>
               </button>
 
               <button
@@ -105,7 +137,7 @@ export default function LoomSideMenu({
                 className="w-full px-4 py-3 rounded-xl hover:bg-white/80 border border-transparent hover:border-[#0A0D0B]/10 transition-all flex items-center gap-3.5 text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#0A0D0B] cursor-pointer group"
               >
                 <Sparkles className="h-4 w-4 text-[#B35F27] group-hover:scale-110 transition-transform" />
-                <span>3. Renders 3D & Modelos de Villa</span>
+                <span>{isEn ? "3. 3D Renders & Villa Models" : "3. Renders 3D & Modelos de Villa"}</span>
               </button>
 
               <button
@@ -116,7 +148,7 @@ export default function LoomSideMenu({
                 className="w-full px-4 py-3 rounded-xl hover:bg-white/80 border border-transparent hover:border-[#0A0D0B]/10 transition-all flex items-center gap-3.5 text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#0A0D0B] cursor-pointer group"
               >
                 <MapPin className="h-4 w-4 text-[#B35F27] group-hover:scale-110 transition-transform" />
-                <span>4. Ubicación & Google Earth 3D</span>
+                <span>{isEn ? "4. Location & Google Earth 3D" : "4. Ubicación & Google Earth 3D"}</span>
               </button>
 
               <button
@@ -128,7 +160,7 @@ export default function LoomSideMenu({
               >
                 <div className="flex items-center gap-3.5">
                   <Download className="h-4 w-4 text-[#B35F27] group-hover:translate-y-0.5 transition-transform" />
-                  <span>5. Brochure Informativo</span>
+                  <span>{isEn ? "5. Official Brochure" : "5. Brochure Informativo"}</span>
                 </div>
                 <span className="text-[9px] bg-[#B35F27]/10 px-2 py-0.5 rounded font-mono font-bold">PDF</span>
               </button>
@@ -139,7 +171,7 @@ export default function LoomSideMenu({
                 className="w-full px-4 py-3 rounded-xl bg-[#B35F27]/10 hover:bg-[#B35F27]/20 border border-[#B35F27]/30 transition-all flex items-center gap-3.5 text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#B35F27] cursor-pointer group shadow-sm"
               >
                 <Compass className="h-4 w-4 text-[#B35F27] group-hover:rotate-45 transition-transform" />
-                <span>Cambiar de Proyecto</span>
+                <span>{isEn ? "Switch Project" : "Cambiar de Proyecto"}</span>
               </Link>
 
               <button
@@ -150,7 +182,7 @@ export default function LoomSideMenu({
                 className="w-full px-4 py-3 rounded-xl hover:bg-white/80 border border-transparent hover:border-[#0A0D0B]/10 transition-all flex items-center gap-3.5 text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#0A0D0B] cursor-pointer group"
               >
                 <Phone className="h-4 w-4 text-[#B35F27] group-hover:scale-110 transition-transform" />
-                <span>6. Contacto & Asesoría</span>
+                <span>{isEn ? "6. Contact & Advisory" : "6. Contacto & Asesoría"}</span>
               </button>
             </nav>
           </div>

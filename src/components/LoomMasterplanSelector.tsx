@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Compass } from "lucide-react";
+import { useLoomLang } from "@/lib/loomI18n";
 
 interface Lot {
   id: string;
@@ -20,7 +21,9 @@ interface Lot {
 const stagesData = [
   {
     id: "ZONA_1",
-    name: "Etapa 1",
+    stageKey: "etapa_1",
+    nameEs: "Etapa 1",
+    nameEn: "Stage 1",
     active: true,
     cx: 508,
     cy: 1146,
@@ -28,7 +31,9 @@ const stagesData = [
   },
   {
     id: "ZONA_2",
-    name: "Etapa 2",
+    stageKey: "etapa_2",
+    nameEs: "Etapa 2",
+    nameEn: "Stage 2",
     active: true,
     cx: 1003,
     cy: 1127,
@@ -36,7 +41,9 @@ const stagesData = [
   },
   {
     id: "ZONA_3",
-    name: "Etapa 3",
+    stageKey: "etapa_3",
+    nameEs: "Etapa 3",
+    nameEn: "Stage 3",
     active: true,
     cx: 1484,
     cy: 1116,
@@ -44,7 +51,9 @@ const stagesData = [
   },
   {
     id: "ZONA_4",
-    name: "Etapa 4",
+    stageKey: "etapa_4",
+    nameEs: "Etapa 4",
+    nameEn: "Stage 4",
     active: true,
     cx: 1941,
     cy: 1098,
@@ -52,7 +61,9 @@ const stagesData = [
   },
   {
     id: "ZONA_5",
-    name: "Etapa 5",
+    stageKey: "etapa_5",
+    nameEs: "Etapa 5",
+    nameEn: "Stage 5",
     active: true,
     cx: 2507,
     cy: 1081,
@@ -60,7 +71,9 @@ const stagesData = [
   },
   {
     id: "ZONA_6",
-    name: "Alma Beach",
+    stageKey: "etapa_6",
+    nameEs: "Alma Beach",
+    nameEn: "Alma Beach",
     active: true,
     cx: 3339,
     cy: 1040,
@@ -75,6 +88,7 @@ interface LoomMasterplanSelectorProps {
 }
 
 export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: LoomMasterplanSelectorProps) {
+  const { isEn } = useLoomLang();
   const [hoveredStage, setHoveredStage] = useState<{
     id: string;
     name: string;
@@ -88,11 +102,11 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
   // Estadísticas globales de las etapas calculadas dinámicamente desde el Sheet
   const stageStats = useMemo(() => {
     const stats: Record<string, { total: number; available: number; active: boolean; name: string }> = {
-      "ZONA_1": { total: 0, available: 0, active: true, name: "Etapa 1" },
-      "ZONA_2": { total: 0, available: 0, active: true, name: "Etapa 2" },
-      "ZONA_3": { total: 0, available: 0, active: true, name: "Etapa 3" },
-      "ZONA_4": { total: 0, available: 0, active: true, name: "Etapa 4" },
-      "ZONA_5": { total: 0, available: 0, active: true, name: "Etapa 5" },
+      "ZONA_1": { total: 0, available: 0, active: true, name: isEn ? "Stage 1" : "Etapa 1" },
+      "ZONA_2": { total: 0, available: 0, active: true, name: isEn ? "Stage 2" : "Etapa 2" },
+      "ZONA_3": { total: 0, available: 0, active: true, name: isEn ? "Stage 3" : "Etapa 3" },
+      "ZONA_4": { total: 0, available: 0, active: true, name: isEn ? "Stage 4" : "Etapa 4" },
+      "ZONA_5": { total: 0, available: 0, active: true, name: isEn ? "Stage 5" : "Etapa 5" },
       "ZONA_6": { total: 0, available: 0, active: true, name: "Alma Beach" },
     };
 
@@ -122,16 +136,16 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
     });
 
     // Fallbacks si el API aún no carga o está vacía
-    if (stats["ZONA_1"].total === 0) stats["ZONA_1"].total = 62;
-    if (stats["ZONA_2"].total === 0) stats["ZONA_2"].total = 58;
-    if (stats["ZONA_3"].total === 0) stats["ZONA_3"].total = 66;
-    if (stats["ZONA_4"].total === 0) stats["ZONA_4"].total = 73;
-    if (stats["ZONA_5"].total === 0) stats["ZONA_5"].total = 67;
+    if (stats["ZONA_1"].total === 0) { stats["ZONA_1"].total = 62; stats["ZONA_1"].available = 56; }
+    if (stats["ZONA_2"].total === 0) { stats["ZONA_2"].total = 54; stats["ZONA_2"].available = 48; }
+    if (stats["ZONA_3"].total === 0) { stats["ZONA_3"].total = 62; stats["ZONA_3"].available = 62; }
+    if (stats["ZONA_4"].total === 0) { stats["ZONA_4"].total = 73; stats["ZONA_4"].available = 73; }
+    if (stats["ZONA_5"].total === 0) { stats["ZONA_5"].total = 67; stats["ZONA_5"].available = 66; }
     if (stats["ZONA_6"].total === 0) stats["ZONA_6"].total = 7;
     stats["ZONA_6"].available = 7;
 
     return stats;
-  }, [lots]);
+  }, [lots, isEn]);
 
   // Trackear posición del cursor
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -160,13 +174,17 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
       </div>
 
       {/* Botón Flotante Volver al Inicio (Sobre la imagen, desplazado para no colisionar con el menú) */}
-      <div className="absolute top-4 left-16 sm:left-18 z-30 pointer-events-auto">
+      <div className="absolute top-4 left-16 sm:left-18 z-30 pointer-events-auto flex items-center gap-2.5">
         <button 
           onClick={onBack}
-          className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 active:scale-95 border border-white/20 rounded-full text-[9px] uppercase tracking-wider text-[#dbaa67] hover:text-white font-bold backdrop-blur-md transition-all duration-300 shadow-md cursor-pointer"
+          className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#0A0D0B]/80 hover:bg-[#0A0D0B] active:scale-95 border border-[#EDE7E0]/20 rounded-full text-[10px] uppercase tracking-wider text-[#EDE7E0] hover:text-[#B35F27] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer"
         >
-          ← Inicio
+          ← {isEn ? "Home" : "Inicio"}
         </button>
+        <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 bg-[#EDE7E0]/90 border border-[#0A0D0B]/15 rounded-full text-[10px] uppercase tracking-widest text-[#0A0D0B] font-bold backdrop-blur-md shadow-md">
+          <span className="h-2 w-2 rounded-full bg-[#10b981] animate-pulse" />
+          <span>{isEn ? "Master Plan • Select a Stage" : "Master Plan • Selecciona una Etapa"}</span>
+        </div>
       </div>
 
       <div 
@@ -182,11 +200,6 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
                 stroke: transparent !important;
                 cursor: pointer !important;
                 pointer-events: all !important;
-              }
-              svg polygon[id^="ZONA_3"],
-              svg polygon[id^="ZONA_4"],
-              svg polygon[id^="ZONA_5"] {
-                cursor: not-allowed !important;
               }
             `}} />
 
@@ -273,31 +286,40 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
                   preserveAspectRatio="xMidYMid meet"
                   className="w-full h-full object-contain pointer-events-auto"
                 >
-                {/* 1. Rótulos Nativos de Etapa (100% Escala Vectorial, Cero Solapes) */}
+                {/* 1. Rótulos Nativos de Etapa (100% Escala Vectorial, con Disponibilidad En Vivo) */}
                 <g id="ROTULOS" className="pointer-events-none">
                   {stagesData.map((stage) => {
                     const isHovered = hoveredStage?.id === stage.id;
                     const isActive = stage.active;
-                    
-                    // Ocultar etapas inactivas en móviles para evitar saturación
-                    const responsiveClass = isActive ? "" : "hidden md:block";
+                    const stats = stageStats[stage.id];
+                    const isAlma = stage.id === "ZONA_6";
+                    const stageLabel = isEn ? stage.nameEn : stage.nameEs;
+                    const subLabel = isAlma
+                      ? isEn
+                        ? "BEACH CLUB"
+                        : "CLUB DE PLAYA"
+                      : `${stats?.available ?? 0} ${isEn ? "AVAIL." : "DISP."} / ${stats?.total ?? 0}`;
+
+                    const pillWidth = isAlma ? 410 : 360;
+                    const pillHalf = pillWidth / 2;
+                    const dotX = stage.cx - pillHalf + 52;
+                    const textX = stage.cx - pillHalf + 84;
 
                     return (
                       <g 
                         key={`rotulo-${stage.id}`} 
-                        className={responsiveClass}
                         style={{ transition: "all 0.3s ease" }}
                       >
                         {/* Fondo del Rótulo (Glassmorphic Marfil) */}
                         <rect
-                          x={isActive ? stage.cx - 170 : stage.cx - 110}
-                          y={isActive ? stage.cy - 45 : stage.cy - 30}
-                          width={isActive ? 390 : 220}
-                          height={isActive ? 90 : 60}
-                          rx={isActive ? 45 : 30}
-                          fill={isHovered ? "rgba(237, 231, 224, 0.98)" : (isActive ? "rgba(237, 231, 224, 0.92)" : "rgba(237, 231, 224, 0.75)")}
-                          stroke={isHovered ? "#B35F27" : (isActive ? "rgba(179, 95, 39, 0.5)" : "rgba(10, 13, 11, 0.2)")}
-                          strokeWidth={isActive ? 4 : 2}
+                          x={stage.cx - pillHalf}
+                          y={stage.cy - 52}
+                          width={pillWidth}
+                          height={104}
+                          rx={52}
+                          fill={isHovered ? "rgba(237, 231, 224, 0.99)" : "rgba(237, 231, 224, 0.93)"}
+                          stroke={isHovered ? "#B35F27" : "rgba(179, 95, 39, 0.55)"}
+                          strokeWidth={isHovered ? 5 : 3.5}
                           style={{
                             transform: isHovered ? "scale(1.08)" : "scale(1)",
                             transformOrigin: `${stage.cx}px ${stage.cy}px`,
@@ -307,10 +329,10 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
 
                         {/* Indicador Circular de Disponibilidad */}
                         <circle
-                          cx={isActive ? stage.cx - 95 : stage.cx - 60}
+                          cx={dotX}
                           cy={stage.cy}
-                          r={isActive ? 12 : 6}
-                          fill={isActive ? "#699385" : "rgba(10, 13, 11, 0.3)"}
+                          r={12}
+                          fill={isAlma ? "#B35F27" : "#10b981"}
                           style={{
                             transform: isHovered ? "scale(1.08)" : "scale(1)",
                             transformOrigin: `${stage.cx}px ${stage.cy}px`,
@@ -319,11 +341,11 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
                         />
                         {isActive && (
                           <circle
-                            cx={stage.cx - 95}
+                            cx={dotX}
                             cy={stage.cy}
                             r="12"
                             fill="none"
-                            stroke="#699385"
+                            stroke={isAlma ? "#B35F27" : "#10b981"}
                             strokeWidth="3"
                             className="animate-ping"
                             style={{
@@ -332,14 +354,14 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
                           />
                         )}
 
-                        {/* Texto del Rótulo */}
+                        {/* Título Principal del Rótulo */}
                         <text
-                          x={isActive ? stage.cx - 50 : stage.cx - 30}
-                          y={stage.cy}
-                          fill={isActive ? "#0A0D0B" : "rgba(10, 13, 11, 0.55)"}
-                          fontSize={isActive ? 32 : 22}
-                          fontWeight={isActive ? "700" : "500"}
-                          letterSpacing={isActive ? "4" : "2"}
+                          x={textX}
+                          y={stage.cy - 12}
+                          fill="#0A0D0B"
+                          fontSize={isAlma ? 26 : 28}
+                          fontWeight="800"
+                          letterSpacing={isAlma ? "2.5" : "3.5"}
                           textAnchor="start"
                           dominantBaseline="central"
                           style={{
@@ -348,7 +370,26 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
                             transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
                           }}
                         >
-                          {stage.name.toUpperCase()}
+                          {stageLabel.toUpperCase()}
+                        </text>
+
+                        {/* Subtítulo con Disponibilidad en Vivo */}
+                        <text
+                          x={textX}
+                          y={stage.cy + 20}
+                          fill={isAlma ? "#B35F27" : "#0f766e"}
+                          fontSize={17}
+                          fontWeight="700"
+                          letterSpacing="2"
+                          textAnchor="start"
+                          dominantBaseline="central"
+                          style={{
+                            transform: isHovered ? "scale(1.08)" : "scale(1)",
+                            transformOrigin: `${stage.cx}px ${stage.cy}px`,
+                            transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+                          }}
+                        >
+                          {subLabel}
                         </text>
                       </g>
                     );
@@ -384,7 +425,7 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
                         }}
                         onClick={() => {
                           if (isActive) {
-                            onSelectStage(stage.id.toLowerCase().replace("zona_", "etapa_"));
+                            onSelectStage(stage.stageKey);
                           }
                         }}
                         onTouchStart={(e) => {
@@ -424,14 +465,14 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
                   initial={{ opacity: 0, scale: 0.95, y: 15 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                  className="absolute z-40 pointer-events-none p-3.5 rounded-lg border bg-[#0c1524]/90 border-[#dbaa67]/40 shadow-2xl backdrop-blur-md min-w-[200px]"
+                  className="hidden md:block absolute z-40 pointer-events-none p-3.5 rounded-xl border bg-[#0A0D0B]/92 border-[#B35F27]/50 shadow-2xl backdrop-blur-md min-w-[215px]"
                   style={{
-                    left: mousePos.isRightHalf ? mousePos.x - 220 : mousePos.x + 20,
-                    top: mousePos.y - 40,
+                    left: mousePos.isRightHalf ? mousePos.x - 230 : mousePos.x + 20,
+                    top: Math.max(20, mousePos.y - 50),
                   }}
                 >
                   <div className="flex justify-between items-center mb-1.5">
-                    <h3 className="font-serif text-white text-sm font-semibold tracking-wide">
+                    <h3 className="font-serif text-[#EDE7E0] text-sm font-semibold tracking-wide">
                       {hoveredStage.name}
                     </h3>
                     <span 
@@ -441,32 +482,36 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
                           : "bg-white/10 text-white/50 border border-white/20"
                       }`}
                     >
-                      {hoveredStage.active ? "Activo" : "Próximamente"}
+                      {hoveredStage.active ? (isEn ? "Active" : "Activo") : (isEn ? "Coming Soon" : "Próximamente")}
                     </span>
                   </div>
                   {hoveredStage.active ? (
-                    <div className="space-y-1 text-xs text-white/70">
+                    <div className="space-y-1 text-xs text-[#EDE7E0]/80">
                       {hoveredStage.id === "ZONA_6" ? (
                         <p className="flex justify-between">
-                          <span>Amenidades:</span>
-                          <span className="font-semibold text-white">{hoveredStage.total}</span>
+                          <span>{isEn ? "Amenities:" : "Amenidades:"}</span>
+                          <span className="font-semibold text-[#EDE7E0]">{hoveredStage.total}</span>
                         </p>
                       ) : (
                         <>
                           <p className="flex justify-between">
-                            <span>Lotes Totales:</span>
-                            <span className="font-semibold text-white">{hoveredStage.total}</span>
+                            <span>{isEn ? "Total Lots:" : "Lotes Totales:"}</span>
+                            <span className="font-semibold text-[#EDE7E0]">{hoveredStage.total}</span>
                           </p>
                           <p className="flex justify-between">
-                            <span>Disponibles:</span>
+                            <span>{isEn ? "Available:" : "Disponibles:"}</span>
                             <span className="font-semibold text-[#10b981]">{hoveredStage.available}</span>
                           </p>
                         </>
                       )}
+                      <div className="pt-1.5 mt-1.5 border-t border-white/10 text-[10px] text-[#B35F27] font-bold uppercase tracking-wider flex items-center justify-between">
+                        <span>{isEn ? "Click to explore stage" : "Clic para explorar etapa"}</span>
+                        <span>→</span>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-white/40 text-[10px] uppercase tracking-wider font-light mt-1">
-                      Esta etapa estará disponible pronto.
+                      {isEn ? "This stage will be available soon." : "Esta etapa estará disponible pronto."}
                     </p>
                   )}
                 </motion.div>
@@ -474,9 +519,9 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
             </AnimatePresence>
 
         {/* Leyenda de Brújula (Flotante a la Derecha) */}
-        <div className="absolute bottom-7 right-6 z-20 hidden md:flex items-center gap-2 text-[#0A0D0B]/70 text-[9px] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
+        <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/80 text-[9px] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
           <Compass className="h-3.5 w-3.5 text-[#B35F27] rotate-[45deg]" />
-          Norte orientado hacia el mar (Derecha / Playa)
+          {isEn ? "North oriented towards the sea (Right / Beach)" : "Norte orientado hacia el mar (Derecha / Playa)"}
         </div>
       </div>
     </div>

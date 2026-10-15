@@ -1,0 +1,67 @@
+================================================================================
+UPDATES & RELEASE NOTES — PLANO INTERACTIVO 3D LOOM LUXURY RESIDENCE
+Proyecto: PLANO INTERACTIVO 3D (plano-interactivo)
+Estado: LISTO PARA PRODUCCIÓN (Production-Ready)
+================================================================================
+
+1. IDENTIDAD, RUTAS Y ESTADOS COMERCIALES DE LOTES
+--------------------------------------------------------------------------------
+- Migración integral de rutas e identidad a Loom Luxury Residence (/loom, /loom/es, /loom/en) con redirecciones permanentes (308) para mantener compatibilidad con enlaces previos.
+- Estandarización de 3 estados comerciales únicos para los lotes:
+  1) Disponible (Available)
+  2) Vendido (Sold)
+  3) Bloqueado (Blocked) — Se reemplazó el estado "Reservado" por "Bloqueado" y se ajustó la terminología oficial a "bloqueado por la promotora" (en lugar de constructora).
+- Corrección de layout en las píldoras superiores e inferiores para evitar solapamientos en móvil y escritorio.
+- Eliminación de barras flotantes innecesarias y del banner de términos/condiciones (al no ser un formulario de captura de leads).
+
+2. MAPEO 3D INTERACTIVO, ZOOM DE PRECISIÓN Y MODO SHOWROOM
+--------------------------------------------------------------------------------
+- Mapeo vectorial SVG interactivo validado sobre el Masterplan general y las 4 etapas:
+  * Etapa 1: Alma
+  * Etapa 2: Brisa
+  * Etapa 3: Coral
+  * Etapa 4: Duna
+- Componente LoomLotZoomCanvas.tsx: Acercamiento de alta definición sobre el render 3D de la etapa con recorte dinámico, polígono resaltado y dimensiones perimetrales del lote seleccionado.
+- Componente LoomShowroomView.tsx: Modo Presentación / Showroom split-screen diseñado para asesores en sala de ventas y sesiones de Zoom/Meet.
+- Simulador Financiero a la Medida en LoomLotPanel.tsx: Cálculo interactivo de cuota inicial, financiación directa sin intereses y saldo contra entrega.
+
+3. GALERÍAS HD DE ZONAS COMUNES (AMENITIES INTERACTIVOS)
+--------------------------------------------------------------------------------
+- Organización y optimización de 16 renders en alta definición (.webp) dentro de public/loom/renders/amenities/:
+  * Club de Playa (Alma Beach Club): 8 renders HD (public/loom/renders/amenities/club-de-playa/01.webp a 08.webp).
+  * Club House Social & Wellness: 4 renders HD (public/loom/renders/amenities/club-house/01.webp a 04.webp).
+  * Portería Monumental & Acceso: 4 renders HD (public/loom/renders/amenities/porteria/01.webp a 04.webp).
+  * Parques Bioclimáticos de Etapa: Estructura lista en public/loom/renders/amenities/parques/ con estado informativo para próxima carga de renders.
+- Al hacer clic sobre cualquier pin o polígono de zona común en el plano, el panel lateral despliega el carrusel fotográfico con miniaturas y visor Lightbox a pantalla completa.
+
+4. VERSIÓN EN INGLÉS EN PIES CUADRADOS (SQ FT), DÓLARES (USD) Y TRM EN VIVO
+--------------------------------------------------------------------------------
+- Internacionalización bilingüe completa (Español / Inglés) mediante src/lib/loomI18n.tsx y rutas dedicadas /loom/es y /loom/en.
+- Nuevo endpoint backend src/app/api/trm/route.ts que consulta automáticamente la TRM oficial del día en Colombia (Datos Abiertos Superfinanciera datos.gov.co -> fallback co.dolarapi.com -> fallback open.er-api.com).
+- Conversión automática en la versión en inglés (/loom/en):
+  * Áreas convertidas de m² a pies cuadrados (sq ft) usando el factor exacto (1 m² = 10.7639 sq ft).
+  * Precios de lista, simulador de pagos y valores por unidad de área convertidos de COP a USD y USD/sq ft usando la TRM del día en tiempo real.
+  * Indicador visual de la tasa TRM del día aplicada en el panel de cotización.
+
+5. HERO VIDEO: SINCRONIZACIÓN MILIMÉTRICA DE LOGO Y BOTÓN "VISTA LIMPIA"
+--------------------------------------------------------------------------------
+- Sincronización automática por milisegundos en src/app/loom/page.tsx:
+  * El video de inicio incluye el logo nativo de LOOM entre el segundo 5.080 (5,080 ms) y el segundo 9.960 (9,960 ms).
+  * La interfaz oculta automáticamente el logo superpuesto y los contadores de lotes a los 4,750 ms (antes de que aparezca el logo del video) y los vuelve a mostrar con un fade progresivo a los 9,970 ms cuando cambia la toma.
+- Nuevo botón "Vista Limpia" / "Clean View" en la esquina superior derecha de la Hero para que el usuario pueda ocultar o encender manualmente el logo y los textos y apreciar el video a pantalla completa.
+
+6. INTEGRACIÓN DE PATRIMOFY EARTH 3D (VISTA A PANTALLA COMPLETA)
+--------------------------------------------------------------------------------
+- Build de producción de patrimofy-earth integrado directamente en public/earth/ (/earth/index.html) con rutas relativas (./assets/...) para despliegue directo en Vercel sin dependencias externas.
+- Actualización de src/components/LoomLocationModal.tsx (opción "4. Ubicación & Google Earth 3D" del menú lateral):
+  * Despliegue a pantalla completa (fixed inset-0 z-50 w-screen h-dvh bg-[#07090e]) cargando /earth/index.html?project=loom&embed=true&lang=${lang}.
+  * Incluye Loom preseleccionado, polígonos de Proyecto Alma Beach (Loom, Luwana, Pantai, Niwu), hito interactivo de Alma Beach Club, modo Sobrevuelo Dron 360°, selector de capa "Google Híbrido" y botón de "Ver Ruta GPS en Google Maps".
+  * Comunicación bidireccional vía postMessage: cierra el visor y regresa instantáneamente al Plano Interactivo 3D al pulsar "Volver al Plano Interactivo 3D" (PATRIMOFY_EARTH_RETURN_SHOWROOM), sincroniza cambios de idioma (PATRIMOFY_EARTH_SET_LANG) e incorpora cierre rápido con tecla Escape o botón flotante superior.
+
+================================================================================
+VERIFICACIÓN TÉCNica PRE-PRODUCCIÓN
+--------------------------------------------------------------------------------
+- TypeScript Check (npx tsc --noEmit): 0 errores.
+- Activos estáticos (Renders WebP, SVGs y Build de Patrimofy Earth): Verificados en public/.
+- API Routes (/api/loom-lots y /api/trm): Operativas con caché inteligente y fallbacks.
+================================================================================

@@ -29,6 +29,44 @@ import {
   buildLotWhatsAppUrl, 
   Advisor 
 } from "@/lib/referralTracking";
+import {
+  useLoomLang,
+  translateLocationType,
+  translateStatusRaw,
+  translateAreaText,
+  formatCopOrUsd,
+  SQM_TO_SQFT,
+  getStageDisplayName,
+} from "@/lib/loomI18n";
+
+function translateMediaTitle(title: string, isEn: boolean): string {
+  if (!isEn) return title;
+  return title
+    .replace(/GALERÍA/g, "GALLERY")
+    .replace(/FACHADA VISTA POSTERIOR/g, "REAR FACADE VIEW")
+    .replace(/FACHADA VISTA/g, "FACADE VIEW")
+    .replace(/HABITACIÓN VISTA/g, "BEDROOM VIEW")
+    .replace(/BAÑO VISTA/g, "BATHROOM VIEW")
+    .replace(/COCINA VISTA/g, "KITCHEN VIEW")
+    .replace(/PASILLO EXTERIOR VISTA/g, "EXTERIOR CORRIDOR VIEW")
+    .replace(/SALA EXTERIOR VISTA/g, "OUTDOOR LOUNGE VIEW")
+    .replace(/SALA INTERIOR VISTA/g, "INDOOR LIVING VIEW")
+    .replace(/ALTILLO VISTA/g, "ROOFTOP LOFT VIEW")
+    .replace(/Axonometría 3D - Isometría Nivel 1 & 2/g, "3D Axonometric - Level 1 & 2 Isometric")
+    .replace(/Axonometría 3D - Isometría Rooftop & Altillo/g, "3D Axonometric - Rooftop & Loft Isometric")
+    .replace(/Planta Arquitectónica - Nivel/g, "Architectural Floor Plan - Level")
+    .replace(/Jardín Biofílico/g, "Biophilic Garden")
+    .replace(/Altillo/g, "Loft")
+    .replace(/Planta de Cubierta/g, "Roof Plan")
+    .replace(/Alzado 01 - Fachada Principal \(Vista Calle\)/g, "Elevation 01 - Main Facade (Street View)")
+    .replace(/Alzado 02 - Fachada Posterior \(Vista Piscina\)/g, "Elevation 02 - Rear Facade (Pool View)")
+    .replace(/Alzado 03 - Corte Longitudinal L1/g, "Section 03 - Longitudinal Section L1")
+    .replace(/Alzado 04 - Corte Transversal L2/g, "Section 04 - Cross Section L2")
+    .replace(/(\d+(?:\.\d+)?)\s*m²/gi, (_, numStr) => {
+      const sqft = Math.round(parseFloat(numStr) * SQM_TO_SQFT);
+      return `${sqft.toLocaleString("en-US")} sq ft`;
+    });
+}
 
 interface Lot {
   id: string;
@@ -50,6 +88,7 @@ interface LoomShowroomViewProps {
 }
 
 export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomShowroomViewProps) {
+  const { isEn, trm } = useLoomLang();
   // Panel lateral expandido/colapsado
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(true);
 
@@ -101,112 +140,238 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
     }
   }, []);
 
-  // Galería de Fotos Compartida (15 Renders HD)
+  // Galería de Fotos Compartida (33 Renders HD Oficiales)
   const sharedGallery = [
     {
       num: "01",
-      title: "GALERIA 01 - FACHADA VISTA 1",
-      category: "Exterior",
+      title: "GALERÍA 01 - FACHADA VISTA 1",
+      category: "Exterior Fachada",
       src: "/loom/renders/luxury/galeria_01_fachada_vista_1.webp",
       description: "Vista frontal directa de dos residencias. Destaca el diseño modular con celosías de apariencia de madera en el nivel superior, que crean un sombreamiento natural; muros de acabado pétreo en la planta baja; vegetación abundante; y zonas de parqueo al frente.",
     },
     {
       num: "02",
-      title: "GALERIA 02 - FACHADA VISTA 2",
-      category: "Exterior",
+      title: "GALERÍA 02 - FACHADA VISTA 2",
+      category: "Exterior Fachada",
       src: "/loom/renders/luxury/galeria_02_fachada_vista_2.webp",
       description: "Perspectiva frontal simétrica de tres módulos residenciales alineados. Se aprecian las cajas de celosía superior con elementos efecto madera para filtrar la luz natural, una cubierta vegetal que cae por los bordes, vegetación integrada y vehículos estacionados a nivel de calle.",
     },
     {
       num: "03",
-      title: "GALERIA 03 - FACHADA VISTA 3",
-      category: "Exterior",
+      title: "GALERÍA 03 - FACHADA VISTA 3",
+      category: "Exterior Fachada",
       src: "/loom/renders/luxury/galeria_03_fachada_vista_3.webp",
       description: "Toma angular a nivel de peatón del conjunto residencial. Enfatiza la volumetría en voladizo, la textura de las celosías símil madera, que genera un sombreamiento natural, y la integración de la vegetación a lo largo del sendero vehicular.",
     },
     {
       num: "04",
-      title: "GALERIA 04 - FACHADA VISTA 4",
-      category: "Exterior",
+      title: "GALERÍA 04 - FACHADA VISTA 4",
+      category: "Exterior Fachada",
       src: "/loom/renders/luxury/galeria_04_fachada_vista_4.webp",
       description: "Vista dinámica en perspectiva que muestra la continuidad de la fachada a lo largo de la calle. Resalta el juego de luces y sombras creado por los paneles con acabado tipo madera perforada bajo luz natural y el marco de vegetación circundante.",
     },
     {
       num: "05",
-      title: "GALERIA 05 - FACHADA VISTA 5",
-      category: "Exterior",
+      title: "GALERÍA 05 - FACHADA VISTA 5",
+      category: "Exterior Fachada",
       src: "/loom/renders/luxury/galeria_05_fachada_vista_5.webp",
       description: "Enfoque desde un ángulo bajo que resalta la escala de las estructuras. Muestra en detalle la entrada peatonal con portones en estilo madera calada, los acabados pétreos y muros con cubierta vegetal integrados con la vegetación del entorno.",
     },
     {
       num: "06",
-      title: "GALERIA 06 - FACHADA VISTA 6",
-      category: "Detalle Celosía",
+      title: "GALERÍA 06 - FACHADA VISTA 6",
+      category: "Exterior Fachada",
       src: "/loom/renders/luxury/galeria_06_fachada_vista_6.webp",
       description: "Detalle en primer plano de los paneles de celosía con textura tipo madera. Muestra el diseño calado geométrico que genera un elegante sombreamiento natural al filtrar la luz, complementado con una cubierta de vegetación colgante en la parte superior.",
     },
     {
       num: "07",
-      title: "GALERIA 07 - HABITACIÓN VISTA 1",
-      category: "Dormitorio Principal",
-      src: "/loom/renders/luxury/galeria_07_habitacion_vista_1.webp",
-      description: "Vista frontal simétrica del dormitorio principal. Resalta la cama con diseño aparente madera, mesas de noche a juego, luminarias tejidas suspendidas y el gran ventanal corredizo que aprovecha la luz natural e integra un patio privado con vegetación.",
+      title: "GALERÍA 07 - FACHADA VISTA 7",
+      category: "Exterior Fachada",
+      src: "/loom/renders/luxury/galeria_07_fachada_vista_7.webp",
+      description: "Vista frontal de dos módulos residenciales con cajas superiores de celosía perforada de apariencia madera y vegetación colgante en los bordes. En planta baja, muros de acabado pétreo con enredaderas, portones de acceso en celosía, numeración de vivienda, vehículo estacionado y peatones sobre la vía adoquinada.",
     },
     {
       num: "08",
-      title: "GALERIA 08 - HABITACIÓN VISTA 2",
-      category: "Dormitorio Principal",
-      src: "/loom/renders/luxury/galeria_08_habitacion_vista_2.webp",
-      description: "Dormitorio principal de estilo biofílico e introspectivo. Cuenta con una cama de plataforma con acabado tipo madera, lámparas colgantes de fibra tejida, paredes de estuco cálido bajo iluminación natural y un gran ventanal de piso a techo con vista a un patio interior enriquecido con vegetación.",
+      title: "GALERÍA 08 - FACHADA VISTA 8",
+      category: "Exterior Fachada",
+      src: "/loom/renders/luxury/galeria_08_fachada_vista_8.webp",
+      description: "Perspectiva frontal a nivel de calle de los dos módulos con celosías tipo madera y cubierta vegetal colgante en la parte superior. Se aprecia el acceso peatonal con portón calado, muros de acabado cálido con vegetación, palmas al fondo, un vehículo estacionado y personas caminando, con figuras desenfocadas en primer plano.",
     },
     {
       num: "09",
-      title: "GALERIA 09 - SALA EXTERIOR",
-      category: "Área Social Exterior",
-      src: "/loom/renders/luxury/galeria_09_sala_exterior.webp",
-      description: "Área social abierta que conecta el interior con la piscina. Incluye un espacio bajo techo que brinda un fresco sombreamiento natural, sala lounge, barra de bar, escalera flotante con peldaños de efecto madera, tumbonas sobre un deck al aire libre y abundante vegetación.",
+      title: "GALERÍA 09 - FACHADA VISTA POSTERIOR",
+      category: "Exterior Posterior",
+      src: "/loom/renders/luxury/galeria_09_fachada_vista_posterior.webp",
+      description: "Vista trasera de tres niveles hacia la piscina privada y con proyección a la vista al mar Caribe. Muestra la amplia terraza cubierta del primer nivel, un balcón superior con barandilla de cristal adornado con cubierta de vegetación colgante y ventanales corredizos que maximizan la entrada de luz natural.",
     },
     {
       num: "10",
-      title: "GALERIA 10 - FACHADA POSTERIOR",
-      category: "Exterior Posterior",
-      src: "/loom/renders/luxury/galeria_10_fachada_posterior.webp",
-      description: "Vista trasera de dos niveles hacia la piscina privada y con proyección a la vista al mar Caribe. Muestra la amplia terraza cubierta del primer nivel, un balcón superior con barandilla de cristal adornado con cubierta de vegetación colgante y ventanales corredizos que maximizan la entrada de luz natural.",
+      title: "GALERÍA 10 - HABITACIÓN VISTA 1",
+      category: "Dormitorio Principal",
+      src: "/loom/renders/luxury/galeria_10_habitacion_vista_1.webp",
+      description: "Vista frontal simétrica del dormitorio principal. Resalta la cama con diseño aparente madera, mesas de noche a juego, luminarias tejidas suspendidas y el gran ventanal corredizo que aprovecha la luz natural e integra un patio privado con vegetación.",
     },
     {
       num: "11",
-      title: "GALERIA 11 - SALA INTERIOR",
-      category: "Interior Social",
-      src: "/loom/renders/luxury/galeria_11_sala_interior.webp",
-      description: "Espacio de sala interior orientado hacia el área social y la piscina. Cuenta con mobiliario en tonos neutros, alfombra tejida, puertas correderas de celosía con apariencia madera para proporcionar un agradable sombreamiento natural, luz natural y vistas a la vegetación.",
+      title: "GALERÍA 11 - HABITACIÓN VISTA 2",
+      category: "Dormitorio Principal",
+      src: "/loom/renders/luxury/galeria_11_habitacion_vista_2.webp",
+      description: "Dormitorio principal de estilo biofílico e introspectivo. Cuenta con una cama de plataforma con acabado tipo madera, lámparas colgantes de fibra tejida, paredes de estuco cálido bajo iluminación natural y un gran ventanal de piso a techo con vista a un patio interior enriquecido con vegetación.",
     },
     {
       num: "12",
-      title: "GALERIA 12 - COCINA ALTILLO VISTA 1",
-      category: "Interior Cocina",
-      src: "/loom/renders/luxury/galeria_12_cocina_vista_1.webp",
-      description: "Vista integral de la zona social de planta abierta. Integra una cocina con muebles de acabado tipo madera, iluminación artesanal, sala de estar aprovechando la luz natural, escalera flotante con vegetación en su base y amplias mamparas correderas hacia la terraza.",
+      title: "GALERÍA 12 - HABITACIÓN VISTA 3",
+      category: "Dormitorio Principal",
+      src: "/loom/renders/luxury/galeria_12_habitacion_vista_3.webp",
+      description: "Dormitorio principal de ambiente cálido y sereno. Cama de plataforma con acabado madera, mesas de noche a juego, luminarias colgantes de fibra tejida, muros de estuco y cortinas de lino translúcidas que filtran la luz natural; el ventanal corredizo abre hacia un patio con vegetación colgante y sillas de fibra tejida.",
     },
     {
       num: "13",
-      title: "GALERIA 13 - BAÑO VISTA 1",
-      category: "Interior Baño",
-      src: "/loom/renders/luxury/galeria_13_bano_vista_1.webp",
-      description: "Baño de diseño minimalista con muros y pisos de acabado pétreo. Incluye lavabo sobre encimera flotante símil madera, ducha con mampara de cristal transparente y grifería negra moderna junto a una ventana que aporta luz natural directa y vistas a la vegetación.",
+      title: "GALERÍA 13 - HABITACIÓN VISTA 4",
+      category: "Dormitorio Principal",
+      src: "/loom/renders/luxury/galeria_13_habitacion_vista_4.webp",
+      description: "Detalle en primer plano de las cortinas de lino del dormitorio, abiertas para dar paso a la luz natural. Al fondo, el patio privado con muros cubiertos de vegetación, silla de fibra tejida y mesa de centro en madera.",
     },
     {
       num: "14",
-      title: "GALERIA 14 - BAÑO VISTA 2",
+      title: "GALERÍA 14 - BAÑO VISTA 1",
       category: "Interior Baño",
-      src: "/loom/renders/luxury/galeria_14_bano_vista_2.webp",
-      description: "Perspectiva alternativa del baño que resalta la amplitud del espacio. Destaca la combinación de acabados pétreos y detalles en tonos y textura tipo madera, la entrada de luz natural a la zona de ducha y detalles de integración de vegetación exterior.",
+      src: "/loom/renders/luxury/galeria_14_bano_vista_1.webp",
+      description: "Baño de diseño minimalista con muros y pisos de acabado pétreo. Incluye lavabo sobre encimera flotante símil madera, ducha con mampara de cristal transparente y grifería negra moderna junto a una ventana que aporta luz natural directa y vistas a la vegetación.",
     },
     {
       num: "15",
-      title: "GALERIA 15 - ALTILLO VISTA 1",
-      category: "Rooftop Lounge",
-      src: "/loom/renders/luxury/galeria_15_altillo_vista_1.webp",
+      title: "GALERÍA 15 - BAÑO VISTA 2",
+      category: "Interior Baño",
+      src: "/loom/renders/luxury/galeria_15_bano_vista_2.webp",
+      description: "Perspectiva alternativa del baño que resalta la amplitud del espacio. Destaca la combinación de acabados pétreos y detalles en tonos y textura tipo madera, la entrada de luz natural a la zona de ducha y detalles de integración de vegetación exterior.",
+    },
+    {
+      num: "16",
+      title: "GALERÍA 16 - BAÑO VISTA 3",
+      category: "Interior Baño",
+      src: "/loom/renders/luxury/galeria_16_bano_vista_3.webp",
+      description: "Baño en tonos tierra con muros de acabado pétreo. Lavamanos sobre encimera flotante en acabado madera con repisa inferior y canastas de fibra, espejo de marco negro, ducha con mampara de vidrio y grifería negra, inodoro suspendido y ventana de marco negro con vista a palmas.",
+    },
+    {
+      num: "17",
+      title: "GALERÍA 17 - COCINA VISTA 1",
+      category: "Interior Cocina",
+      src: "/loom/renders/luxury/galeria_17_cocina_vista_1.webp",
+      description: "Vista integral de la zona social de planta abierta. Integra una cocina con muebles de acabado tipo madera, iluminación artesanal, sala de estar aprovechando la luz natural, escalera flotante con vegetación en su base y amplias mamparas correderas hacia la terraza.",
+    },
+    {
+      num: "18",
+      title: "GALERÍA 18 - COCINA VISTA 2",
+      category: "Interior Cocina",
+      src: "/loom/renders/luxury/galeria_18_cocina_vista_2.webp",
+      description: "Cocina con muebles altos y bajos en acabado madera oscura, encimera y salpicadero de acabado pétreo, lavaplatos con grifería negra y ventanal corrido con vista a la vegetación. Los muebles altos, con las puertas abiertas, dejan ver la vajilla, bajo un remate de celosía de apariencia madera.",
+    },
+    {
+      num: "19",
+      title: "GALERÍA 19 - COCINA VISTA 3",
+      category: "Interior Cocina",
+      src: "/loom/renders/luxury/galeria_19_cocina_vista_3.webp",
+      description: "Cocina con muebles altos y bajos en acabado madera, mesón y salpicadero en piedra de tono arena, lavaplatos con grifería negra y ventanal corrido con vista a las palmas del patio interior. En primer plano, un cajón abierto y objetos decorativos en cerámica.",
+    },
+    {
+      num: "20",
+      title: "GALERÍA 20 - COCINA VISTA 4",
+      category: "Interior Cocina",
+      src: "/loom/renders/luxury/galeria_20_cocina_vista_4.webp",
+      description: "Detalle del mesón de la cocina en piedra de acabado pétreo tono arena, con borde en escalón que se prolonga como barra con banquetas de fibra tejida. Al fondo, el lavaplatos con grifería negra, el ventanal y la estufa empotrada.",
+    },
+    {
+      num: "21",
+      title: "GALERÍA 21 - PASILLO EXTERIOR VISTA 1",
+      category: "Pasillo Exterior",
+      src: "/loom/renders/luxury/galeria_21_pasillo_exterior_vista_1.webp",
+      description: "Pasillo exterior cubierto con cielorraso en acabado madera y luminarias empotradas, celosía de apariencia madera, sillas de fibra tejida sobre deck y sendero de losas pétreas con canal de agua. Al fondo, la piscina privada enmarcada por vegetación y muros con enredaderas.",
+    },
+    {
+      num: "22",
+      title: "GALERÍA 22 - PASILLO EXTERIOR VISTA 2",
+      category: "Pasillo Exterior",
+      src: "/loom/renders/luxury/galeria_22_pasillo_exterior_vista_2.webp",
+      description: "Vista alterna del pasillo exterior cubierto: deck de madera con sillas de fibra tejida, sendero de losas pétreas con canal de agua, muro con enredaderas y, al fondo, la piscina privada rodeada de vegetación y palmas.",
+    },
+    {
+      num: "23",
+      title: "GALERÍA 23 - SALA EXTERIOR VISTA 1",
+      category: "Área Social Exterior",
+      src: "/loom/renders/luxury/galeria_23_sala_exterior_vista_1.webp",
+      description: "Área social abierta que conecta el interior con la piscina. Incluye un espacio bajo techo que brinda un fresco sombreamiento natural, sala lounge, barra de bar, escalera flotante con peldaños de efecto madera, tumbonas sobre un deck al aire libre y abundante vegetación.",
+    },
+    {
+      num: "24",
+      title: "GALERÍA 24 - SALA EXTERIOR VISTA 2",
+      category: "Área Social Exterior",
+      src: "/loom/renders/luxury/galeria_24_sala_exterior_vista_2.webp",
+      description: "Zona social abierta que conecta la sala con el deck y la piscina. Incluye barra con banquetas de fibra, sofá y butaca sobre alfombra tejida, escalera flotante frente a un muro de listones verticales con platos decorativos, ventilador de techo, cubierta en madera y celosía corrediza; sobre el deck, un segundo estar frente a la piscina.",
+    },
+    {
+      num: "25",
+      title: "GALERÍA 25 - SALA EXTERIOR VISTA 3",
+      category: "Área Social Exterior",
+      src: "/loom/renders/luxury/galeria_25_sala_exterior_vista_3.webp",
+      description: "Zona de estar exterior sobre deck de madera, con sillas de fibra tejida y mesa de centro redonda en madera. Celosías de apariencia madera filtran la luz natural; al fondo, cerramiento con vegetación y el borde de la piscina.",
+    },
+    {
+      num: "26",
+      title: "GALERÍA 26 - SALA INTERIOR VISTA 1",
+      category: "Interior Social",
+      src: "/loom/renders/luxury/galeria_26_sala_interior_vista_1.webp",
+      description: "Espacio de sala interior orientado hacia el área social y la piscina. Cuenta con mobiliario en tonos neutros, alfombra tejida, puertas correderas de celosía con apariencia madera para proporcionar un agradable sombreamiento natural, luz natural y vistas a la vegetación.",
+    },
+    {
+      num: "27",
+      title: "GALERÍA 27 - SALA INTERIOR VISTA 2",
+      category: "Interior Social",
+      src: "/loom/renders/luxury/galeria_27_sala_interior_vista_2.webp",
+      description: "Sala interior con sofá y mesa de centro sobre alfombra tejida. Al fondo, muro de listones verticales con platos decorativos de fibra, escalera flotante con vegetación, barra con banquetas y celosía corrediza de apariencia madera hacia la terraza.",
+    },
+    {
+      num: "28",
+      title: "GALERÍA 28 - SALA INTERIOR VISTA 3",
+      category: "Interior Social",
+      src: "/loom/renders/luxury/galeria_28_sala_interior_vista_3.webp",
+      description: "Sala interior abierta hacia la piscina, con sofá y butaca en tonos neutros, escalera flotante con vegetación en su base, ventilador de techo, cielorraso en madera y paneles corredizos de celosía que enmarcan la vista al deck y a la vegetación.",
+    },
+    {
+      num: "29",
+      title: "GALERÍA 29 - SALA INTERIOR VISTA 4",
+      category: "Interior Social",
+      src: "/loom/renders/luxury/galeria_29_sala_interior_vista_4.webp",
+      description: "Vista amplia de la sala y la barra integradas a la terraza cubierta. Muestra ventilador de techo, cubierta en listones de madera con voladizo, celosías corredizas, deck junto a la piscina y vegetación colgante en el borde.",
+    },
+    {
+      num: "30",
+      title: "GALERÍA 30 - ALTILLO VISTA 1",
+      category: "Rooftop & Altillo",
+      src: "/loom/renders/luxury/galeria_30_altillo_vista_1.webp",
       description: "Exclusiva terraza en el altillo con pérgola de apariencia madera ofreciendo sombreamiento natural. Cuenta con un área lounge, bancas integradas en acabado pétreo, bases efecto madera, jacuzzi elevable, vegetación integrada y una espectacular vista panorámica al mar Caribe.",
+    },
+    {
+      num: "31",
+      title: "GALERÍA 31 - ALTILLO VISTA 2",
+      category: "Rooftop & Altillo",
+      src: "/loom/renders/luxury/galeria_31_altillo_vista_2.webp",
+      description: "Terraza del altillo bajo pérgola de madera, con jacuzzi integrado al pretil, sofá en L con cojines y mesa de centro, barra con banquetas de fibra tejida y jardineras con vegetación. Vista abierta al mar Caribe y a la playa al atardecer.",
+    },
+    {
+      num: "32",
+      title: "GALERÍA 32 - ALTILLO VISTA 3",
+      category: "Rooftop & Altillo",
+      src: "/loom/renders/luxury/galeria_32_altillo_vista_3.webp",
+      description: "Vista alterna de la terraza del altillo con jacuzzi, zona de estar y barra, con la puesta de sol sobre el mar y los quioscos de playa al fondo.",
+    },
+    {
+      num: "33",
+      title: "GALERÍA 33 - FACHADA VISTA 9",
+      category: "Exterior Fachada",
+      src: "/loom/renders/luxury/galeria_33_fachada_vista_9.webp",
+      description: "Detalle en primer plano de paneles de celosía de apariencia madera con perforaciones cuadradas de tamaño variable, que generan sombreamiento natural y juegos de luz, con vegetación colgante en la parte superior.",
     },
   ];
 
@@ -334,22 +499,20 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
 
   // Escenarios 360° VR
   const tour360List = [
-    { id: "fachada", label: "Fachada Principal", category: "Exterior", url: "https://kuula.co/share/collection/7TMZx?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
-    { id: "sala", label: "Sala & Comedor", category: "Interior Social", url: "https://kuula.co/share/collection/7TKQ2?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
-    { id: "habitacion", label: "Suite Principal", category: "Dormitorio Master", url: "https://kuula.co/share/collection/7TKzy?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
-    { id: "bano", label: "Baño Suite Master", category: "Interior Baño", url: "https://kuula.co/share/collection/7TndH?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
-    { id: "altillo", label: "Altillo & Rooftop", category: "Rooftop Lounge", url: "https://kuula.co/share/collection/7T6Y1?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
+    { id: "fachada", label: isEn ? "Main Facade" : "Fachada Principal", category: "Exterior", url: "https://kuula.co/share/collection/7TMZx?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
+    { id: "sala", label: isEn ? "Living & Dining" : "Sala & Comedor", category: isEn ? "Indoor Social" : "Interior Social", url: "https://kuula.co/share/collection/7TKQ2?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
+    { id: "habitacion", label: isEn ? "Master Suite" : "Suite Principal", category: isEn ? "Master Bedroom" : "Dormitorio Master", url: "https://kuula.co/share/collection/7TKzy?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
+    { id: "bano", label: isEn ? "Master Bathroom" : "Baño Suite Master", category: isEn ? "Indoor Bathroom" : "Interior Baño", url: "https://kuula.co/share/collection/7TndH?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
+    { id: "altillo", label: isEn ? "Loft & Rooftop" : "Altillo & Rooftop", category: "Rooftop Lounge", url: "https://kuula.co/share/collection/7T6Y1?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
   ];
 
   const formattedStage = stageId
-    ? stageId.toLowerCase().startsWith("etapa_")
-      ? `Etapa ${stageId.replace(/[^0-9]/g, "")}`
-      : `Etapa ${stageId}`
-    : "Etapa 1";
+    ? getStageDisplayName(stageId, isEn)
+    : isEn ? "Stage 1" : "Etapa 1";
 
   const locationTypeDisplay = selectedLot.location && !selectedLot.location.toLowerCase().includes("etapa")
-    ? selectedLot.location
-    : "Lote Medianero";
+    ? translateLocationType(selectedLot.location, isEn)
+    : isEn ? "Interior Lot" : "Lote Medianero";
 
   const lotIdentifier = selectedLot.rawId || selectedLot.id || "";
   const match = lotIdentifier.match(/([A-Za-z])-?(\d+)/);
@@ -359,11 +522,17 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
 
   const lotPlanItem = {
     num: "00",
-    title: `Plano Técnico y Medidas del Lote ${selectedLot.rawId || selectedLot.id}`,
-    category: "Plano del Lote",
+    title: isEn
+      ? `Technical Blueprint & Dimensions for Lot ${selectedLot.rawId || selectedLot.id}`
+      : `Plano Técnico y Medidas del Lote ${selectedLot.rawId || selectedLot.id}`,
+    category: isEn ? "Lot Blueprint" : "Plano del Lote",
     src: individualLotPlanSrc,
-    specs: `Área: ${selectedLot.area} m² • Ubicación: ${locationTypeDisplay}`,
-    description: `Plano arquitectónico oficial del lote ${selectedLot.rawId || selectedLot.id} con cotas y linderos exactos en metros (frente, fondo, laterales).`,
+    specs: isEn
+      ? `Area: ${translateAreaText(selectedLot.area, true)} • Type: ${locationTypeDisplay}`
+      : `Área: ${selectedLot.area} m² • Ubicación: ${locationTypeDisplay}`,
+    description: isEn
+      ? `Official architectural blueprint for Lot ${selectedLot.rawId || selectedLot.id} with exact perimeter dimensions and boundaries (1 m² = 10.76 sq ft).`
+      : `Plano arquitectónico oficial del lote ${selectedLot.rawId || selectedLot.id} con cotas y linderos exactos en metros (frente, fondo, laterales).`,
   };
 
   const currentPlans = selectedVilla === "luxury" 
@@ -493,7 +662,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           />
         )}
 
-        {/* Gradiente sutil inferior para controles de fondo (Igual al efecto superior) */}
+        {/* Gradiente sutil inferior para controles de fondo */}
         <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-[#0A0D0B]/90 via-[#0A0D0B]/40 to-transparent pointer-events-none z-10" />
 
         {/* Contenido Principal (Imágenes HD a Pantalla Sangrada o Tour 360) */}
@@ -527,7 +696,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
               >
                 <img
                   src={currentMediaItem.src}
-                  alt={currentMediaItem.title}
+                  alt={translateMediaTitle(currentMediaItem.title, isEn)}
                   className="w-full h-full object-contain cursor-pointer"
                   onClick={() => setLightboxOpen(true)}
                 />
@@ -536,13 +705,13 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           )}
         </AnimatePresence>
 
-        {/* Flechas de Navegación Claras & Visibles (Sleek en Desktop, grandes en 4K) */}
+        {/* Flechas de Navegación Claras & Visibles */}
         <button
           onClick={handlePrevMedia}
           className={`absolute ${
             !isPanelOpen ? "left-12 sm:left-14 min-[2200px]:left-20" : "left-3 sm:left-4 min-[2200px]:left-8"
           } top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 min-[2200px]:p-8 rounded-full bg-[#EDE7E0] hover:bg-[#B35F27] border border-[#0A0D0B]/20 hover:border-[#B35F27] text-[#0A0D0B] hover:text-white transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95 cursor-pointer group`}
-          title="Anterior (Flecha Izquierda)"
+          title={isEn ? "Previous (Left Arrow)" : "Anterior (Flecha Izquierda)"}
         >
           <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 min-[2200px]:w-12 min-[2500px]:w-14 transform group-hover:-translate-x-0.5 transition-transform" />
         </button>
@@ -550,12 +719,12 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         <button
           onClick={handleNextMedia}
           className="absolute right-3 sm:right-4 min-[2200px]:right-12 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 min-[2200px]:p-8 rounded-full bg-[#EDE7E0] hover:bg-[#B35F27] border border-[#0A0D0B]/20 hover:border-[#B35F27] text-[#0A0D0B] hover:text-white transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95 cursor-pointer group"
-          title="Siguiente (Flecha Derecha)"
+          title={isEn ? "Next (Right Arrow)" : "Siguiente (Flecha Derecha)"}
         >
           <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 min-[2200px]:w-12 min-[2500px]:w-14 transform group-hover:translate-x-0.5 transition-transform" />
         </button>
 
-        {/* Badge Flotante Inferior de Información del Render (Compacto en Desktop, grande solo en 4K) */}
+        {/* Badge Flotante Inferior de Información del Render */}
         <div className="absolute bottom-3 sm:bottom-4 min-[2200px]:bottom-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 sm:gap-3 min-[2200px]:gap-7 px-3 py-1.5 sm:px-4 sm:py-2 min-[2200px]:px-10 min-[2200px]:py-5 bg-[#0A0D0B]/85 backdrop-blur-xl border border-white/15 rounded-full shadow-2xl max-w-[50vw] sm:max-w-[60vw] min-[2200px]:max-w-[80vw]">
           <span className="text-[10px] sm:text-xs min-[2200px]:text-xl font-mono font-bold text-[#EBD9AB] uppercase tracking-wider shrink-0">
             {activeTab === "tour360"
@@ -564,27 +733,29 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           </span>
           <span className="h-3 min-[2200px]:h-7 w-[1px] bg-white/20" />
           <p className="text-[10px] sm:text-xs min-[2200px]:text-2xl font-serif font-bold text-white truncate max-w-[120px] sm:max-w-[180px] md:max-w-[240px] min-[2200px]:max-w-2xl">
-            {activeTab === "tour360" ? currentTourItem?.label : currentMediaItem?.title}
+            {activeTab === "tour360"
+              ? currentTourItem?.label
+              : translateMediaTitle(currentMediaItem?.title || "", isEn)}
           </p>
           {activeTab !== "tour360" && (
             <button
               onClick={() => setLightboxOpen(true)}
               className="p-1 min-[2200px]:p-2 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors cursor-pointer ml-0.5"
-              title="Ver en pantalla completa"
+              title={isEn ? "View fullscreen" : "Ver en pantalla completa"}
             >
               <Maximize2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 min-[2200px]:w-7 min-[2200px]:h-7" />
             </button>
           )}
         </div>
 
-        {/* Botón Flotante Inferior Derecha: Plano de Ubicación (Compacto en Desktop, grande solo en 4K) */}
+        {/* Botón Flotante Inferior Derecha: Plano de Ubicación */}
         <button
           onClick={() => setShowMiniMapModal(true)}
           className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 min-[2200px]:bottom-14 min-[2200px]:right-14 z-20 flex items-center gap-1.5 sm:gap-2 min-[2200px]:gap-3 px-3 py-1.5 sm:px-4 sm:py-2 min-[2200px]:px-9 min-[2200px]:py-5 bg-[#EDE7E0] hover:bg-white text-[#0A0D0B] border border-[#0A0D0B]/20 rounded-full shadow-2xl backdrop-blur-md transition-all duration-300 active:scale-95 cursor-pointer font-semibold text-[10px] sm:text-xs min-[2200px]:text-xl uppercase tracking-wider"
-          title="Ver Plano de Ubicación del Lote"
+          title={isEn ? "View Lot Location on Map" : "Ver Plano de Ubicación del Lote"}
         >
           <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 min-[2200px]:w-8 min-[2200px]:h-8 text-[#B35F27]" />
-          <span className="hidden sm:inline">Ubicación en Área</span>
+          <span className="hidden sm:inline">{isEn ? "Stage Location" : "Ubicación en Área"}</span>
         </button>
 
       </div>
@@ -602,31 +773,31 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
               className="flex items-center gap-1.5 px-3 py-1.5 min-[2200px]:px-8 min-[2200px]:py-4 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[11px] sm:text-xs min-[2200px]:text-base font-bold text-[#EDE7E0] uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer whitespace-nowrap"
             >
               <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 min-[2200px]:w-6 min-[2200px]:h-6" />
-              <span className="hidden sm:inline">Volver a la Etapa</span>
-              <span className="sm:hidden">Volver</span>
+              <span className="hidden sm:inline">{isEn ? "Back to Stage" : "Volver a la Etapa"}</span>
+              <span className="sm:hidden">{isEn ? "Back" : "Volver"}</span>
             </button>
           )}
 
           <div className="hidden md:block">
             <span className="text-[8px] sm:text-[9px] min-[2200px]:text-sm uppercase tracking-[0.3em] text-[#EBD9AB] font-mono font-bold block">
-              Reserva Caribe &bull; Loom
+              {isEn ? "Caribbean Reserve • Loom" : "Reserva Caribe • Loom"}
             </span>
             <h1 className="text-xs sm:text-sm min-[2200px]:text-xl font-serif font-bold text-white tracking-wide">
-              Lote <span className="text-[#B35F27]">{selectedLot.rawId}</span> &bull; {formattedStage}
+              {isEn ? "Lot" : "Lote"} <span className="text-[#B35F27]">{selectedLot.rawId}</span> &bull; {formattedStage}
             </h1>
           </div>
         </div>
 
         {/* Lado Derecho: Estado del Lote & Acciones */}
-        <div className="flex items-center gap-3 pointer-events-auto mr-12 sm:mr-14">
+        <div className="flex items-center gap-3 pointer-events-auto mr-24 sm:mr-28">
           <div className="px-2.5 py-1 sm:px-3 sm:py-1 min-[2200px]:px-7 min-[2200px]:py-3 bg-[#699385]/20 border border-[#699385]/40 text-[#699385] text-[10px] sm:text-xs min-[2200px]:text-base font-bold uppercase tracking-widest rounded-full">
-            {selectedLot.statusRaw || "DISPONIBLE"}
+            {translateStatusRaw(selectedLot.statusRaw, isEn, selectedLot.status)}
           </div>
         </div>
       </header>
 
       {/* ========================================== */}
-      {/* 3. PANEL LATERAL COLAPSABLE (DESKTOP REDUCIDO 20% & 4K GIGANTE) */}
+      {/* 3. PANEL LATERAL COLAPSABLE */}
       {/* ========================================== */}
       <motion.aside
         initial={false}
@@ -636,11 +807,11 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="fixed top-0 left-0 bottom-0 z-40 w-full sm:w-[300px] lg:w-[336px] min-[2200px]:w-[28vw] 2xl:w-[30vw] min-[2500px]:w-[32vw] min-w-[280px] max-w-[950px] bg-[#EDE7E0] text-[#0A0D0B] shadow-2xl border-r border-[#0A0D0B]/15 flex flex-col justify-between"
       >
-        {/* Pestaña Flotante Visible para Ocultar/Mostrar el Panel (Estilo VentoAzul) */}
+        {/* Pestaña Flotante Visible para Ocultar/Mostrar el Panel */}
         <button
           onClick={() => setIsPanelOpen(!isPanelOpen)}
           className="absolute top-1/2 -right-9 min-[2200px]:-right-16 transform -translate-y-1/2 z-50 flex items-center justify-center w-9 h-14 sm:w-10 sm:h-16 min-[2200px]:w-16 min-[2200px]:h-28 rounded-r-xl sm:rounded-r-2xl bg-[#EDE7E0] hover:bg-[#B35F27] border-y border-r border-[#0A0D0B]/20 hover:border-[#B35F27] text-[#0A0D0B] hover:text-white shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer"
-          title={isPanelOpen ? "Ocultar panel lateral" : "Mostrar panel lateral"}
+          title={isPanelOpen ? (isEn ? "Hide side panel" : "Ocultar panel lateral") : (isEn ? "Show side panel" : "Mostrar panel lateral")}
         >
           {isPanelOpen ? (
             <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 min-[2200px]:w-10 min-[2200px]:h-10" />
@@ -658,7 +829,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
             className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 xl:py-4 min-[2500px]:py-5 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-xl text-xs xl:text-sm min-[2500px]:text-lg font-bold text-[#EDE7E0] uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer whitespace-nowrap"
           >
             <ChevronLeft className="w-4 h-4 xl:w-5 xl:h-5 min-[2500px]:w-6 min-[2500px]:h-6" />
-            <span>Volver a la Etapa</span>
+            <span>{isEn ? "Back to Stage" : "Volver a la Etapa"}</span>
           </button>
           
           {/* Header Specs Card */}
@@ -666,10 +837,10 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
             <div className="flex justify-between items-start border-b border-[#0A0D0B]/10 pb-3">
               <div>
                 <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-[0.2em] text-[#B35F27] font-mono font-bold block">
-                  Ficha Técnica
+                  {isEn ? "Technical Sheet" : "Ficha Técnica"}
                 </span>
                 <h2 className="text-xl 2xl:text-3xl min-[2500px]:text-4xl font-serif font-bold text-[#0A0D0B] whitespace-nowrap">
-                  Lote {selectedLot.rawId}
+                  {isEn ? "Lot" : "Lote"} {selectedLot.rawId}
                 </h2>
               </div>
               <span className="px-2.5 py-1 2xl:px-4 2xl:py-1.5 min-[2500px]:px-5 min-[2500px]:py-2 text-[9px] 2xl:text-xs min-[2500px]:text-sm font-bold uppercase tracking-widest rounded-full bg-[#699385]/15 text-[#699385] border border-[#699385]/30 whitespace-nowrap">
@@ -679,11 +850,17 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
 
             <div className="grid grid-cols-2 gap-2 2xl:gap-4 text-xs 2xl:text-base min-[2500px]:text-lg">
               <div className="bg-[#EDE7E0]/60 p-2.5 2xl:p-4 min-[2500px]:p-5 rounded-xl border border-[#0A0D0B]/5">
-                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#0A0D0B]/60 block font-medium">Área Lote</span>
-                <strong className="text-sm 2xl:text-xl min-[2500px]:text-2xl font-serif font-bold text-[#0A0D0B]">{selectedLot.area} m²</strong>
+                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#0A0D0B]/60 block font-medium">
+                  {isEn ? "Lot Area" : "Área Lote"}
+                </span>
+                <strong className="text-sm 2xl:text-xl min-[2500px]:text-2xl font-serif font-bold text-[#0A0D0B]">
+                  {translateAreaText(selectedLot.area, isEn)}
+                </strong>
               </div>
               <div className="bg-[#EDE7E0]/60 p-2.5 2xl:p-4 min-[2500px]:p-5 rounded-xl border border-[#0A0D0B]/5">
-                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#0A0D0B]/60 block font-medium">Ubicación</span>
+                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#0A0D0B]/60 block font-medium">
+                  {isEn ? "Location" : "Ubicación"}
+                </span>
                 <strong className="text-xs 2xl:text-base min-[2500px]:text-xl font-semibold text-[#0A0D0B] truncate block mt-0.5">{locationTypeDisplay}</strong>
               </div>
             </div>
@@ -697,12 +874,12 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
               <div className="flex items-center gap-1.5 text-[#B35F27]">
                 <Ruler className="h-4 w-4 2xl:h-5 2xl:w-5" />
                 <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm font-bold uppercase tracking-wider text-[#0A0D0B]">
-                  Plano & Medidas del Lote
+                  {isEn ? "Lot Blueprint & Dimensions" : "Plano & Medidas del Lote"}
                 </span>
               </div>
               {blockLetter && (
                 <span className="text-[9px] 2xl:text-xs font-mono font-bold uppercase tracking-wider bg-[#B35F27]/10 text-[#B35F27] border border-[#B35F27]/20 px-2 py-0.5 rounded-md">
-                  Mz {blockLetter} &bull; Lote {lotNumber}
+                  {isEn ? `Blk ${blockLetter} • Lot ${lotNumber}` : `Mz ${blockLetter} • Lote ${lotNumber}`}
                 </span>
               )}
             </div>
@@ -714,11 +891,11 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                 setActiveIndex(0);
               }}
               className="relative w-full aspect-square bg-[#0A0D0B]/[0.03] rounded-xl overflow-hidden border border-[#0A0D0B]/10 cursor-pointer group shadow-inner flex items-center justify-center transition-all duration-300 hover:border-[#B35F27]/50"
-              title="Ver plano y medidas en el visor central"
+              title={isEn ? "View blueprint and dimensions in main viewer" : "Ver plano y medidas en el visor central"}
             >
               <img
                 src={individualLotPlanSrc}
-                alt={`Plano y medidas del Lote ${selectedLot.rawId || selectedLot.id}`}
+                alt={isEn ? `Blueprint and dimensions for Lot ${selectedLot.rawId || selectedLot.id}` : `Plano y medidas del Lote ${selectedLot.rawId || selectedLot.id}`}
                 className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
               />
 
@@ -726,7 +903,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-2.5">
                 <span className="text-white text-[10px] 2xl:text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md bg-black/50 px-2.5 py-1 rounded-full border border-white/20">
                   <Maximize2 className="h-3 w-3 text-[#EBD9AB]" />
-                  Ver en Visor Central
+                  {isEn ? "View in Main Screen" : "Ver en Visor Central"}
                 </span>
                 <span className="text-[9px] 2xl:text-xs text-[#EBD9AB] font-mono font-bold bg-[#B35F27]/80 px-2 py-0.5 rounded">
                   1080p
@@ -742,7 +919,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                   setLightboxOpen(true);
                 }}
                 className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 text-[#0A0D0B] shadow-md border border-[#0A0D0B]/10 hover:bg-[#B35F27] hover:text-white transition-colors duration-200"
-                title="Ver medidas a pantalla completa"
+                title={isEn ? "View dimensions fullscreen" : "Ver medidas a pantalla completa"}
               >
                 <ZoomIn className="h-3.5 w-3.5 2xl:h-4 2xl:w-4" />
               </button>
@@ -750,14 +927,18 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
 
             <p className="text-[9px] 2xl:text-xs text-[#0A0D0B]/60 leading-tight italic flex items-center gap-1.5 pt-0.5">
               <Info className="h-3 w-3 2xl:h-4 2xl:w-4 text-[#B35F27] shrink-0" />
-              <span>Cotas perimetrales y linderos según plano arquitectónico oficial.</span>
+              <span>
+                {isEn
+                  ? "Perimeter dimensions and boundaries per official architectural blueprint (1 m² = 10.76 sq ft)."
+                  : "Cotas perimetrales y linderos según plano arquitectónico oficial."}
+              </span>
             </p>
           </div>
 
           {/* Villa Model Selector Bar */}
           <div className="bg-white/80 border border-[#0A0D0B]/10 rounded-2xl p-2 2xl:p-4 shadow-sm">
             <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-[0.2em] text-[#B35F27] font-bold block mb-2 px-2 pt-1">
-              Modelo de Villa
+              {isEn ? "Villa Model" : "Modelo de Villa"}
             </span>
             <div className="grid grid-cols-2 gap-2 2xl:gap-4">
               <button
@@ -769,7 +950,9 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                 }`}
               >
                 <span className="text-xs 2xl:text-lg min-[2500px]:text-xl font-serif font-bold uppercase tracking-wider">Luxury</span>
-                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm mt-0.5 font-mono opacity-90">353 m² &bull; 3 Niveles</span>
+                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm mt-0.5 font-mono opacity-90">
+                  {isEn ? "3,800 sq ft • 3 Levels" : "353 m² • 3 Niveles"}
+                </span>
               </button>
 
               <button
@@ -781,7 +964,9 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                 }`}
               >
                 <span className="text-xs 2xl:text-lg min-[2500px]:text-xl font-serif font-bold uppercase tracking-wider">Garden</span>
-                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm mt-0.5 font-mono opacity-90">274 m² &bull; Biofílico</span>
+                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm mt-0.5 font-mono opacity-90">
+                  {isEn ? "2,949 sq ft • Biophilic" : "274 m² • Biofílico"}
+                </span>
               </button>
             </div>
           </div>
@@ -789,17 +974,42 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           {/* Navigation Sub-Tabs List */}
           <div className="space-y-2 2xl:space-y-4">
             <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-[0.2em] text-[#B35F27] font-bold block px-1">
-              Explorar Medios del Showroom
+              {isEn ? "Explore Showroom Media" : "Explorar Medios del Showroom"}
             </span>
 
             <div className="grid grid-cols-1 gap-1.5 2xl:gap-3">
               {(
                 [
-                  { id: "gallery" as const, label: "1. Galería Renderizada (15 Renders)", icon: ImageIcon, count: 15 },
-                  { id: "axonometric" as const, label: "2. Vista Axonométrica (1 Isométrica)", icon: Layers, count: 1 },
-                  { id: "plans" as const, label: "3. Plantas Arquitectónicas (4 Niveles)", icon: Building2, count: 4 },
-                  { id: "elevations" as const, label: "4. Alzados & Cortes (4 Planos)", icon: Compass, count: 4 },
-                  { id: "tour360" as const, label: "5. Recorrido 360° (5 Escenarios)", icon: Eye, count: 5 },
+                  {
+                    id: "gallery" as const,
+                    label: isEn ? "1. Rendered Gallery (33 Renders)" : "1. Galería Renderizada (33 Renders)",
+                    icon: ImageIcon,
+                    count: 33,
+                  },
+                  {
+                    id: "axonometric" as const,
+                    label: isEn ? "2. Axonometric View (2 Isometrics)" : "2. Vista Axonométrica (2 Isométricas)",
+                    icon: Layers,
+                    count: 2,
+                  },
+                  {
+                    id: "plans" as const,
+                    label: isEn ? "3. Architectural Plans (4 Levels)" : "3. Plantas Arquitectónicas (4 Niveles)",
+                    icon: Building2,
+                    count: 4,
+                  },
+                  {
+                    id: "elevations" as const,
+                    label: isEn ? "4. Elevations & Sections (4 Plans)" : "4. Alzados & Cortes (4 Planos)",
+                    icon: Compass,
+                    count: 4,
+                  },
+                  {
+                    id: "tour360" as const,
+                    label: isEn ? "5. 360° Virtual Tour (5 Scenes)" : "5. Recorrido 360° (5 Escenarios)",
+                    icon: Eye,
+                    count: 5,
+                  },
                 ]
               ).map((tab) => {
                 const IconComponent = tab.icon;
@@ -827,7 +1037,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           {/* Thumbnails Grid for Active Tab Items */}
           <div className="space-y-2 2xl:space-y-4 pt-1">
             <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#0A0D0B]/60 font-mono font-bold block px-1">
-              Selección Directa de Vista
+              {isEn ? "Direct View Selection" : "Selección Directa de Vista"}
             </span>
 
             {activeTab === "tour360" ? (
@@ -862,7 +1072,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                         : "border-[#0A0D0B]/10 hover:border-[#B35F27]/50 opacity-80 hover:opacity-100"
                     }`}
                   >
-                    <img src={media.src} alt={media.title} className="w-full h-full object-cover" />
+                    <img src={media.src} alt={translateMediaTitle(media.title, isEn)} loading="lazy" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-1 2xl:p-2">
                       <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm font-mono text-white font-bold">{media.num}</span>
                     </div>
@@ -875,24 +1085,47 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           {/* Detailed Financial Breakdown Card */}
           <div className="bg-[#0A0D0B] text-[#EDE7E0] rounded-2xl p-4 sm:p-5 2xl:p-8 min-[2500px]:p-10 space-y-3 2xl:space-y-6 shadow-lg">
             <div className="flex justify-between items-baseline border-b border-white/10 pb-2.5 2xl:pb-4">
-              <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#EBD9AB] font-mono">Valor Total Inversión</span>
-              <span className="text-lg 2xl:text-3xl min-[2500px]:text-4xl font-serif font-bold text-[#EDE7E0]">{selectedLot.totalPrice}</span>
+              <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#EBD9AB] font-mono">
+                {isEn ? "Total Investment Value (USD)" : "Valor Total Inversión"}
+              </span>
+              <span className="text-lg 2xl:text-3xl min-[2500px]:text-4xl font-serif font-bold text-[#EDE7E0]">
+                {formatCopOrUsd(selectedLot.totalPrice, isEn, trm, isEn)}
+              </span>
             </div>
             
             <div className="grid grid-cols-3 gap-2 2xl:gap-5 text-xs 2xl:text-base min-[2500px]:text-lg pt-1">
               <div>
-                <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-white/50 block">Cuota Inicial</span>
-                <span className="font-semibold text-white/90 text-[11px] 2xl:text-base min-[2500px]:text-xl">{selectedLot.downPayment}</span>
+                <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-white/50 block">
+                  {isEn ? "Down Payment" : "Cuota Inicial"}
+                </span>
+                <span className="font-semibold text-white/90 text-[11px] 2xl:text-base min-[2500px]:text-xl">
+                  {formatCopOrUsd(selectedLot.downPayment, isEn, trm)}
+                </span>
               </div>
               <div>
-                <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-white/50 block">Financiación</span>
-                <span className="font-semibold text-white/90 text-[11px] 2xl:text-base min-[2500px]:text-xl">{selectedLot.financing}</span>
+                <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-white/50 block">
+                  {isEn ? "Financing" : "Financiación"}
+                </span>
+                <span className="font-semibold text-white/90 text-[11px] 2xl:text-base min-[2500px]:text-xl">
+                  {formatCopOrUsd(selectedLot.financing, isEn, trm)}
+                </span>
               </div>
               <div>
-                <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-white/50 block">Contraentrega</span>
-                <span className="font-semibold text-white/90 text-[11px] 2xl:text-base min-[2500px]:text-xl">{selectedLot.finalPayment}</span>
+                <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-white/50 block">
+                  {isEn ? "Upon Delivery" : "Contraentrega"}
+                </span>
+                <span className="font-semibold text-white/90 text-[11px] 2xl:text-base min-[2500px]:text-xl">
+                  {formatCopOrUsd(selectedLot.finalPayment, isEn, trm)}
+                </span>
               </div>
             </div>
+
+            {isEn && (
+              <div className="pt-1.5 border-t border-white/10 text-[9px] 2xl:text-xs font-mono text-[#EBD9AB]/75 flex items-center justify-between">
+                <span>Live Daily TRM (Colombia)</span>
+                <span>1 USD = ${Math.round(trm).toLocaleString("en-US")} COP</span>
+              </div>
+            )}
           </div>
 
         </div>
@@ -902,7 +1135,9 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           {assignedAdvisor && (
             <div className="bg-[#B35F27]/15 border border-[#B35F27]/35 rounded-xl p-2 text-[10px] 2xl:text-xs text-[#0A0D0B] uppercase tracking-wider text-center font-semibold flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
-              <span>Tu Asesor: <strong>{assignedAdvisor.name}</strong> &bull; {assignedAdvisor.agency}</span>
+              <span>
+                {isEn ? "Your Advisor:" : "Tu Asesor:"} <strong>{assignedAdvisor.name}</strong> &bull; {assignedAdvisor.agency}
+              </span>
             </div>
           )}
           <button
@@ -916,7 +1151,11 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
             )}
             <span>
               {assignedAdvisor
-                ? `Separar por WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
+                ? isEn
+                  ? `Reserve via WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
+                  : `Separar por WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
+                : isEn
+                ? `Reserve Lot ${selectedLot.rawId}`
                 : `Separar Lote ${selectedLot.rawId}`}
             </span>
           </button>
@@ -943,10 +1182,10 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
               <div className="flex justify-between items-center px-6 py-4 border-b border-[#0A0D0B]/10 bg-[#EDE7E0]">
                 <div>
                   <span className="text-[9px] uppercase tracking-widest text-[#B35F27] font-bold block font-mono">
-                    Ubicación en Master Plan
+                    {isEn ? "Master Plan Location" : "Ubicación en Master Plan"}
                   </span>
                   <h3 className="text-base font-serif font-bold text-[#0A0D0B]">
-                    Plano del Lote {selectedLot.rawId} &bull; {formattedStage}
+                    {isEn ? `Lot ${selectedLot.rawId} Map` : `Plano del Lote ${selectedLot.rawId}`} &bull; {formattedStage}
                   </h3>
                 </div>
                 <button
@@ -978,7 +1217,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           >
             <div className="flex justify-between items-center max-w-7xl mx-auto w-full border-b border-white/10 pb-3">
               <span className="text-xs font-mono text-[#EBD9AB] uppercase tracking-widest font-bold">
-                {currentMediaItem.title}
+                {translateMediaTitle(currentMediaItem.title, isEn)}
               </span>
               <button
                 onClick={() => setLightboxOpen(false)}
@@ -991,7 +1230,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
             <div className="relative flex-1 flex items-center justify-center my-4 overflow-hidden">
               <img
                 src={currentMediaItem.src}
-                alt={currentMediaItem.title}
+                alt={translateMediaTitle(currentMediaItem.title, isEn)}
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
               />
             </div>

@@ -4,17 +4,17 @@ import { useEffect, useState } from 'react';
 import Script from 'next/script';
 
 export default function ClientScripts() {
-  const [hasConsent, setHasConsent] = useState(false);
+  const [hasConsent, setHasConsent] = useState(true);
 
   useEffect(() => {
-    // Function to check consent
+    // Function to check consent (default true while CookieBanner is disabled unless explicitly rejected)
     const checkConsent = () => {
       const match = document.cookie.match(new RegExp('(^| )cookie_consent=([^;]+)'));
       const consent = match ? match[2] : null;
-      if (consent === 'accepted') {
-        setHasConsent(true);
-      } else {
+      if (consent === 'rejected' || consent === 'declined') {
         setHasConsent(false);
+      } else {
+        setHasConsent(true);
       }
     };
 

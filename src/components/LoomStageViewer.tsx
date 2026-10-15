@@ -3,6 +3,15 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Compass } from "lucide-react";
+import {
+  useLoomLang,
+  translateLocationType,
+  translateStatusRaw,
+  translateAreaText,
+  formatCopOrUsd,
+  getStageDisplayName,
+  inferStageFromLotId,
+} from "@/lib/loomI18n";
 
 interface Lot {
   id: string;
@@ -25,12 +34,9 @@ function decodeSvgNumber(g: HTMLElement): number | null {
   
   paths.forEach((p) => {
     const d = p.getAttribute("d") || "";
-    // Strip all whitespace
     const noWhitespace = d.replace(/\s+/g, '');
-    // Remove absolute M starting coordinates
     const clean = noWhitespace.replace(/^M\s*[-+]?[0-9]*\.?[0-9]+[\s,]+[-+]?[0-9]*\.?[0-9]+/i, '').trim();
     
-    const len = clean.length;
     const cmds = clean.split(/[a-df-z]/i).length;
     const startsWith = clean.substring(0, 5).toLowerCase();
 
@@ -53,7 +59,6 @@ function decodeSvgNumber(g: HTMLElement): number | null {
   
   if (!numberStr) return null;
   
-  // Clean leading 0
   if (numberStr.startsWith("0") && numberStr.length > 1) {
     numberStr = numberStr.substring(1);
   }
@@ -160,7 +165,7 @@ function getShapeCentroid(shape: Element): { x: number; y: number } | null {
 }
 
 interface LoomStageViewerProps {
-  stageId: string; // "etapa_1", "etapa_2", or "etapa_6"
+  stageId: string; // "etapa_1" .. "etapa_6"
   lots: Lot[];
   selectedLot: Lot | null;
   onSelectLot: (lot: Lot) => void;
@@ -179,10 +184,12 @@ interface ParsedPin {
 }
 
 export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLot, onBack, onChangeStage }: LoomStageViewerProps) {
+  const { isEn, trm } = useLoomLang();
   const [svgText, setSvgText] = useState<string>("");
   const [pins, setPins] = useState<ParsedPin[]>([]);
   const [hoveredPin, setHoveredPin] = useState<ParsedPin | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [mapZoom, setMapZoom] = useState<number>(1);
   const [activeFilters, setActiveFilters] = useState({
     available: true,
     reserved: true,
@@ -191,6 +198,11 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
   });
 
   const hasAutoSelectedRef = useRef<boolean>(false);
+
+  // Reset zoom when switching stages
+  useEffect(() => {
+    setMapZoom(1);
+  }, [stageId]);
 
   // Deep linking: auto-seleccionar lote si viene en ?lot= en URL (solo una vez al cargar)
   useEffect(() => {
@@ -211,22 +223,53 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
     }
   }, [pins, onSelectLot]);
 
+  // Búsqueda Global (busca en la etapa actual y también en las 5 etapas completas)
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    return pins.filter(
-      (p) =>
-        p.lotId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.lotData.rawId.toLowerCase().includes(searchQuery.toLowerCase())
-    ).slice(0, 5);
-  }, [searchQuery, pins]);
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    const normalizedQ = q.replace(/\s+/g, "");
+
+    const results: { lotId: string; stageKey: string; lotData: Lot }[] = [];
+    const seen = new Set<string>();
+
+    // Primero coincidencias en la etapa actual
+    pins.forEach((p) => {
+      const idClean = p.lotId.toLowerCase();
+      const rawClean = p.lotData.rawId.toLowerCase();
+      const noDash = idClean.replace("-", "");
+      if (idClean.includes(normalizedQ) || rawClean.includes(normalizedQ) || noDash.includes(normalizedQ)) {
+        seen.add(p.lotId.toUpperCase());
+        results.push({ lotId: p.lotId, stageKey: stageId, lotData: p.lotData });
+      }
+    });
+
+    // Luego coincidencias en el resto del inventario global (318 lotes)
+    lots.forEach((l) => {
+      const idUpper = l.id.toUpperCase();
+      if (seen.has(idUpper)) return;
+      const idClean = l.id.toLowerCase();
+      const rawClean = (l.rawId || l.id).toLowerCase();
+      const noDash = idClean.replace("-", "");
+      if (idClean.includes(normalizedQ) || rawClean.includes(normalizedQ) || noDash.includes(normalizedQ)) {
+        seen.add(idUpper);
+        results.push({
+          lotId: l.id,
+          stageKey: inferStageFromLotId(l.id),
+          lotData: l,
+        });
+      }
+    });
+
+    return results.slice(0, 6);
+  }, [searchQuery, pins, lots, stageId]);
 
   const STAGE_CONFIGS: Record<string, { name: string; svgUrl: string; bgImage: string }> = {
-    etapa_1: { name: "Etapa 1", svgUrl: "/loom/loom_stage_1.svg", bgImage: "/loom/loom_stage_1_bg.webp" },
-    etapa_2: { name: "Etapa 2", svgUrl: "/loom/loom_stage_2.svg", bgImage: "/loom/loom_stage_2_bg.webp" },
-    etapa_3: { name: "Etapa 3", svgUrl: "/loom/loom_stage_3.svg", bgImage: "/loom/loom_stage_3_bg.webp" },
-    etapa_4: { name: "Etapa 4", svgUrl: "/loom/loom_stage_4.svg", bgImage: "/loom/loom_stage_4_bg.webp" },
-    etapa_5: { name: "Etapa 5", svgUrl: "/loom/loom_stage_5.svg", bgImage: "/loom/loom_stage_5_bg.webp" },
-    etapa_6: { name: "Alma Beach", svgUrl: "", bgImage: "/loom/loom_stage_6_bg.webp" },
+    etapa_1: { name: isEn ? "Stage 1" : "Etapa 1", svgUrl: "/loom/loom_stage_1.svg", bgImage: "/loom/loom_stage_1_bg.webp" },
+    etapa_2: { name: isEn ? "Stage 2" : "Etapa 2", svgUrl: "/loom/loom_stage_2.svg", bgImage: "/loom/loom_stage_2_bg.webp" },
+    etapa_3: { name: isEn ? "Stage 3" : "Etapa 3", svgUrl: "/loom/loom_stage_3.svg", bgImage: "/loom/loom_stage_3_bg.webp" },
+    etapa_4: { name: isEn ? "Stage 4" : "Etapa 4", svgUrl: "/loom/loom_stage_4.svg", bgImage: "/loom/loom_stage_4_bg.webp" },
+    etapa_5: { name: isEn ? "Stage 5" : "Etapa 5", svgUrl: "/loom/loom_stage_5.svg", bgImage: "/loom/loom_stage_5_bg.webp" },
+    etapa_6: { name: "Alma Beach", svgUrl: "/loom/loom_stage_6.svg", bgImage: "/loom/loom_stage_6_bg.webp" },
   };
 
   const currentConfig = STAGE_CONFIGS[stageId] || STAGE_CONFIGS["etapa_1"];
@@ -247,32 +290,36 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
   // Cache en memoria RAM para cargar todas las etapas instantáneamente (0ms de retraso)
   const svgCacheRef = useRef<Record<string, { svgText: string; pins: ParsedPin[] }>>({});
 
-  // Pre-cargar todas las imágenes WebP y SVGs de todas las etapas en segundo plano al montar el componente
+  // Pre-cargar todas las imágenes WebP de todas las etapas en segundo plano al montar el componente
   useEffect(() => {
     activeStages.forEach((stId) => {
       const cfg = STAGE_CONFIGS[stId];
       if (cfg) {
-        // Pre-cargar imagen de fondo WebP en la caché del navegador
         const img = new Image();
         img.src = cfg.bgImage;
-
-        // Pre-cargar SVG de la etapa en caché de memoria
-        if (cfg.svgUrl && !svgCacheRef.current[cfg.svgUrl]) {
-          fetch(cfg.svgUrl)
-            .then((res) => res.text())
-            .catch(() => {});
-        }
       }
     });
   }, []);
 
-  // Cargar y procesar el SVG de la etapa
+  // Cargar y procesar el SVG de la etapa (usando caché RAM si ya fue procesado)
   useEffect(() => {
     if (!svgUrl) {
       queueMicrotask(() => {
         setSvgText("");
         setPins([]);
       });
+      return;
+    }
+
+    const cacheKey = `${svgUrl}_${isEn ? "en" : "es"}`;
+    const cached = svgCacheRef.current[cacheKey];
+    if (cached && cached.svgText && cached.pins.length > 0) {
+      const refreshedPins = cached.pins.map((p) => {
+        const latestLot = lots.find((l) => l.id.toUpperCase() === p.lotId.toUpperCase());
+        return latestLot ? { ...p, lotData: latestLot } : p;
+      });
+      setSvgText(cached.svgText);
+      setPins(refreshedPins);
       return;
     }
 
@@ -404,11 +451,12 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                     finalPayment: "-",
                   };
                 } else if (lotId.includes("CLUB") || lotId.includes("HOUSE") || lotId === "CLUB_HOUSE") {
+                  const isAlmaBeach = svgUrl.includes("stage_6");
                   lotData = {
                     id: "CLUB_HOUSE",
-                    rawId: "Club House",
-                    area: "Área Social",
-                    location: "Zona de Piscinas, Canchas & Beach Club",
+                    rawId: isAlmaBeach ? "Alma Beach Club" : "Club House",
+                    area: isAlmaBeach ? "Club de Playa" : "Área Social",
+                    location: isAlmaBeach ? "Club de Playa con Salida Directa al Mar" : "Zona de Piscinas, Canchas & Social",
                     status: "common",
                     statusRaw: "AMENIDAD",
                     totalPrice: "Área Común",
@@ -467,72 +515,67 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
             }
           });
 
-          // 2. Recolectar todas las formas geométricas candidatas para lotes y amenidades
-          const candidateShapes: { element: Element; centroid: { x: number; y: number } }[] = [];
-          const allShapes = doc.querySelectorAll("rect, path, polygon, polyline");
+          // 2. Si algún grupo aún no tiene su .lot-polygon pre-construido, emparejar por distancia mínima
+          const allPrePaired = circleItems.length > 0 && circleItems.every((c) => Boolean(c.lotGroup.querySelector(".lot-polygon")));
+          if (!allPrePaired) {
+            const candidateShapes: { element: Element; centroid: { x: number; y: number } }[] = [];
+            const allShapes = doc.querySelectorAll("rect, path, polygon, polyline");
 
-          allShapes.forEach((shape) => {
-            const pGroup = shape.closest("g");
-            const pGroupId = (pGroup?.getAttribute("id") || "").toUpperCase();
-            if (pGroupId.includes("TEXTOS") || pGroupId.includes("TEXTO")) {
-              return;
-            }
-            if (pGroup && pGroup.querySelector("circle") && pGroup.children.length === 1) {
-              return;
-            }
-            const shapeClass = shape.getAttribute("class") || "";
-            if (shapeClass.includes("st2") || shapeClass.includes("svg-pin")) {
-              return;
-            }
-            const centroid = getShapeCentroid(shape);
-            if (centroid) {
-              candidateShapes.push({ element: shape, centroid });
-            }
-          });
-
-          // 3. Crear todas las parejas posibles (Círculo, Forma) con su distancia
-          interface Pair {
-            circle: CircleItem;
-            shape: Element;
-            dist: number;
-          }
-          const allPairs: Pair[] = [];
-
-          circleItems.forEach((c) => {
-            candidateShapes.forEach((s) => {
-              const dist = Math.sqrt((s.centroid.x - c.cx) ** 2 + (s.centroid.y - c.cy) ** 2);
-              if (dist < 450) {
-                allPairs.push({ circle: c, shape: s.element, dist });
+            allShapes.forEach((shape) => {
+              const pGroup = shape.closest("g");
+              const pGroupId = (pGroup?.getAttribute("id") || "").toUpperCase();
+              if (pGroupId.includes("TEXTOS") || pGroupId.includes("TEXTO")) {
+                return;
+              }
+              if (pGroup && pGroup.querySelector("circle") && pGroup.children.length === 1) {
+                return;
+              }
+              const shapeClass = shape.getAttribute("class") || "";
+              if (shapeClass.includes("st2") || shapeClass.includes("svg-pin")) {
+                return;
+              }
+              const centroid = getShapeCentroid(shape);
+              if (centroid) {
+                candidateShapes.push({ element: shape, centroid });
               }
             });
-          });
 
-          // Sort por distancia de menor a mayor
-          allPairs.sort((a, b) => a.dist - b.dist);
-
-          // 4. Asignación global voraz 1 a 1 de mínima distancia
-          const assignedCircleLotIds = new Set<string>();
-          const assignedShapeElements = new Set<Element>();
-          const assignedLotShapes = new Map<HTMLElement, Element>();
-
-          allPairs.forEach((pair) => {
-            if (assignedCircleLotIds.has(pair.circle.lotId) || assignedShapeElements.has(pair.shape)) {
-              return;
+            interface Pair {
+              circle: CircleItem;
+              shape: Element;
+              dist: number;
             }
-            assignedCircleLotIds.add(pair.circle.lotId);
-            assignedShapeElements.add(pair.shape);
-            
-            // Si el grupo del lote ya tiene su polígono oficial pre-construido (.lot-polygon), NO insertar una segunda forma duplicada
-            const existingPolygon = pair.circle.lotGroup.querySelector(".lot-polygon");
-            if (existingPolygon) {
-              assignedLotShapes.set(pair.circle.lotGroup, existingPolygon);
-            } else {
-              assignedLotShapes.set(pair.circle.lotGroup, pair.shape);
-              pair.circle.lotGroup.insertBefore(pair.shape, pair.circle.lotGroup.firstChild);
-            }
-          });
+            const allPairs: Pair[] = [];
 
-          // Crear una capa dedicada al final del SVG para TODOS los pines (para que SIEMPRE queden por encima de cualquier polígono/hover)
+            circleItems.forEach((c) => {
+              candidateShapes.forEach((s) => {
+                const dist = Math.sqrt((s.centroid.x - c.cx) ** 2 + (s.centroid.y - c.cy) ** 2);
+                if (dist < 450) {
+                  allPairs.push({ circle: c, shape: s.element, dist });
+                }
+              });
+            });
+
+            allPairs.sort((a, b) => a.dist - b.dist);
+
+            const assignedCircleLotIds = new Set<string>();
+            const assignedShapeElements = new Set<Element>();
+
+            allPairs.forEach((pair) => {
+              if (assignedCircleLotIds.has(pair.circle.lotId) || assignedShapeElements.has(pair.shape)) {
+                return;
+              }
+              assignedCircleLotIds.add(pair.circle.lotId);
+              assignedShapeElements.add(pair.shape);
+
+              const existingPolygon = pair.circle.lotGroup.querySelector(".lot-polygon");
+              if (!existingPolygon) {
+                pair.circle.lotGroup.insertBefore(pair.shape, pair.circle.lotGroup.firstChild);
+              }
+            });
+          }
+
+          // Crear una capa dedicada al final del SVG para TODOS los pines
           let pinsLayer = doc.querySelector("#ALL_PINS_LAYER");
           if (!pinsLayer) {
             pinsLayer = doc.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -545,24 +588,24 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           circleItems.forEach((item) => {
             const { cx, cy, lotId, lotGroup, element: c } = item;
 
-            // Garantizar que el grupo del lote tenga ÚNICAMENTE 1 polígono de contorno (eliminando formas duplicadas)
             const lotShapes = Array.from(lotGroup.children).filter((child) => {
               const tag = child.tagName.toLowerCase();
               return ["path", "polygon", "rect", "polyline"].includes(tag) && !(child as Element).classList.contains("svg-pin-rect");
             });
 
             if (lotShapes.length > 1) {
-              // Conservar el primer polígono oficial y eliminar cualquier forma duplicada
               lotShapes.slice(1).forEach((extra) => extra.remove());
             }
 
-            c.remove(); // Remover el círculo original para reemplazarlo por la cápsula en la capa superior
+            c.remove();
 
             let displayLabel = lotId.replace("-", "");
-            if (lotId === "PORTERIA") displayLabel = "PORTERÍA";
-            if (lotId === "PARQUE_1") displayLabel = "PARQUE 1";
-            if (lotId === "PARQUE_2") displayLabel = "PARQUE 2";
-            if (lotId === "CLUB_HOUSE" || lotId.includes("CLUB")) displayLabel = "CLUB HOUSE";
+            if (lotId === "PORTERIA") displayLabel = isEn ? "GATEHOUSE" : "PORTERÍA";
+            if (lotId === "PARQUE_1") displayLabel = isEn ? "PARK 1" : "PARQUE 1";
+            if (lotId === "PARQUE_2") displayLabel = isEn ? "PARK 2" : "PARQUE 2";
+            if (lotId === "CLUB_HOUSE" || lotId.includes("CLUB")) {
+              displayLabel = svgUrl.includes("stage_6") ? "ALMA BEACH" : "CLUB HOUSE";
+            }
 
             const isLongLabel = displayLabel.length > 5;
             const fontSize = isLongLabel ? "22" : "28";
@@ -600,11 +643,9 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
             pinsLayer?.appendChild(pinGroup);
           });
 
-          // Serializar el SVG modificado
           const serializer = new XMLSerializer();
           let modifiedSvgText = serializer.serializeToString(doc);
           
-          // Eliminar la declaración XML y prefijos ns0: para evitar que el parser HTML5 rompa el SVG
           modifiedSvgText = modifiedSvgText
             .replace(/<\?xml[^>]*\?>/gi, "")
             .replace(/ns0:/g, "")
@@ -612,8 +653,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
             .replace(/xmlns:ns0="[^"]*"/g, "")
             .trim();
           
-          // Guardar en la caché en RAM para que el cambio entre etapas sea 100% instantáneo (0ms)
-          svgCacheRef.current[svgUrl] = { svgText: modifiedSvgText, pins: finalPins };
+          svgCacheRef.current[cacheKey] = { svgText: modifiedSvgText, pins: finalPins };
 
           setSvgText(modifiedSvgText);
           setPins(finalPins);
@@ -622,26 +662,24 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
         }
       })
       .catch((err) => console.error("Error al cargar SVG de la etapa:", err));
-  }, [svgUrl, lots]);
+  }, [svgUrl, lots, isEn]);
 
-  // Filtrar los pines de lotes activos (para la capa de tooltips/interacción)
-  const filteredPins = useMemo(() => {
-    return pins.filter((p) => {
-      const status = p.lotData.status;
-      if (status === "available" && !activeFilters.available) return false;
-      if (status === "reserved" && !activeFilters.reserved) return false;
-      if (status === "blocked" && !activeFilters.sold) return false;
-      return true;
-    });
-  }, [pins, activeFilters]);
-
-  // Estadísticas rápidas de la etapa
+  // Estadísticas rápidas de la etapa (excluyendo amenidades comunes): 3 estados (Disponible, Bloqueado, Vendido)
   const stats = useMemo(() => {
-    const total = pins.length;
-    const available = pins.filter((p) => p.lotData.status === "available").length;
-    const reserved = pins.filter((p) => p.lotData.status === "reserved").length;
-    const sold = pins.filter((p) => p.lotData.status === "blocked").length;
-    return { total, available, reserved, sold };
+    const residentialPins = pins.filter(
+      (p) =>
+        p.lotData.status !== "common" &&
+        !p.lotId.includes("PARQUE") &&
+        !p.lotId.includes("PORTERIA") &&
+        !p.lotId.includes("CLUB")
+    );
+    const total = residentialPins.length;
+    const available = residentialPins.filter((p) => p.lotData.status === "available").length;
+    const blocked = residentialPins.filter(
+      (p) => p.lotData.status === "blocked" || p.lotData.status === "reserved"
+    ).length;
+    const sold = residentialPins.filter((p) => p.lotData.status === "sold").length;
+    return { total, available, blocked, sold };
   }, [pins]);
 
   // Generar reglas CSS dinámicas por cada lote usando selectores de atributos ultra-robustos
@@ -663,8 +701,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
         const isFilteredOut =
           !isAmenity &&
           ((status === "available" && !activeFilters.available) ||
-            (status === "reserved" && !activeFilters.reserved) ||
-            (status === "blocked" && !activeFilters.blocked) ||
+            ((status === "blocked" || status === "reserved") && !activeFilters.blocked) ||
             (status === "sold" && !activeFilters.sold));
 
         if (isFilteredOut) {
@@ -675,19 +712,15 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           `;
         }
 
-        let baseColor = "#10b981"; // Verde para disponibles
+        let baseColor = "#10b981"; // Verde para Disponibles
         let strokeColorHover = "#059669";
         let cursor = "pointer";
 
         if (isAmenity) {
           baseColor = "#B35F27"; // Cobre Terracota para Amenidades
           strokeColorHover = "#8D4619";
-          cursor = "pointer"; // Seleccionable con puntero de mano
-        } else if (status === "reserved") {
-          baseColor = "#f59e0b"; // Naranja para Reservados
-          strokeColorHover = "#d97706";
           cursor = "pointer";
-        } else if (status === "blocked") {
+        } else if (status === "blocked" || status === "reserved") {
           baseColor = "#3b82f6"; // Azul Cobalto para Bloqueados
           strokeColorHover = "#2563eb";
           cursor = "not-allowed";
@@ -698,14 +731,14 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
         }
 
         const pinDisplay = "block";
-        const pinScale = isHovered || isSelected ? 'scale(1.12)' : 'scale(1)';
-        const pinFill = isHovered ? '#FFFFFF' : 'rgba(255, 255, 255, 0.96)';
-        const pinStroke = isHovered ? baseColor : (isSelected ? '#B35F27' : 'rgba(10, 13, 11, 0.35)');
-        const pinStrokeWidth = isHovered ? '3px' : (isSelected ? '3.5px' : '1.8px');
+        const pinScale = isHovered || isSelected ? "scale(1.14)" : "scale(1)";
+        const pinFill = isSelected ? "#0A0D0B" : isHovered ? "#FFFFFF" : "rgba(255, 255, 255, 0.96)";
+        const pinStroke = isSelected ? "#B35F27" : isHovered ? baseColor : "rgba(10, 13, 11, 0.35)";
+        const pinStrokeWidth = isSelected ? "4px" : isHovered ? "3px" : "1.8px";
 
-        const polyFillOpacity = isHovered ? '0.45' : (isAmenity ? '0.35' : '0.22');
-        const polyStroke = isHovered ? strokeColorHover : baseColor;
-        const polyStrokeWidth = isHovered ? '3.5px' : '2px';
+        const polyFillOpacity = isSelected || isHovered ? "0.48" : isAmenity ? "0.35" : "0.22";
+        const polyStroke = isSelected ? "#FFFFFF" : isHovered ? strokeColorHover : baseColor;
+        const polyStrokeWidth = isSelected || isHovered ? "3.8px" : "2px";
 
         return `
         /* Polígono del lote o amenidad (capa inferior): controlado de forma única por estado JS */
@@ -719,7 +752,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           stroke-width: ${polyStrokeWidth} !important;
           transition: all 0.25s ease !important;
           cursor: ${cursor} !important;
-          ${isHovered ? `filter: drop-shadow(0 0 6px ${baseColor}) !important;` : ''}
+          ${isHovered || isSelected ? `filter: drop-shadow(0 0 8px ${baseColor}) !important;` : ""}
         }
 
         /* Ocultar círculo nativo de Illustrator */
@@ -743,16 +776,16 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           transform-origin: ${pin.cx}px ${pin.cy}px !important;
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
           pointer-events: none !important;
-          filter: drop-shadow(0 2px 6px rgba(0,0,0,0.18)) !important;
+          filter: drop-shadow(0 2px 6px rgba(0,0,0,0.22)) !important;
         }
 
         /* Texto vectorial inyectado (número / nombre) en la capa superior #ALL_PINS_LAYER */
         g[id="PINGROUP_${lotId}"] text.svg-pin-text {
           display: ${pinDisplay} !important;
-          font-size: ${isSelected || isHovered ? '28px' : '26px'} !important;
-          font-weight: ${isSelected || isHovered ? '900' : '800'} !important;
-          fill: #0A0D0B !important;
-          stroke: #FFFFFF !important;
+          font-size: ${isSelected || isHovered ? "28px" : "26px"} !important;
+          font-weight: ${isSelected || isHovered ? "900" : "800"} !important;
+          fill: ${isSelected ? "#EDE7E0" : "#0A0D0B"} !important;
+          stroke: ${isSelected ? "#0A0D0B" : "#FFFFFF"} !important;
           stroke-width: 1.5px !important;
           paint-order: stroke fill !important;
           transform: ${pinScale} !important;
@@ -764,6 +797,16 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
       })
       .join("");
   }, [pins, selectedLot, activeFilters, hoveredPin]);
+
+  const toggleFilter = (key: "available" | "blocked" | "sold") => {
+    setActiveFilters((prev) => {
+      if (key === "blocked") {
+        const nextVal = !prev.blocked;
+        return { ...prev, blocked: nextVal, reserved: nextVal };
+      }
+      return { ...prev, [key]: !prev[key] };
+    });
+  };
 
   return (
     <div className={`relative h-[100dvh] ${containerWidthClass} bg-[#EDE7E0] text-[#0A0D0B] select-none overflow-hidden transition-all duration-500 ease-in-out`}>
@@ -781,70 +824,168 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
         <div className="absolute inset-0 bg-gradient-to-tr from-[#EDE7E0]/80 via-[#F5F1EC]/60 to-[#EDE7E0]/80 pointer-events-none" />
       </div>
 
-      {/* Barra Superior Flotante de Controles (Master Plan + Búsqueda Rápida de Lotes) */}
-      <div className="absolute top-4 left-16 sm:left-18 z-30 flex items-center gap-2 pointer-events-auto">
-        <button 
-          onClick={onBack}
-          className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[9px] uppercase tracking-wider text-[#EDE7E0] font-bold backdrop-blur-md transition-all duration-300 shadow-md cursor-pointer"
-          title="Volver al Master Plan"
-        >
-          <svg className="w-3.5 h-3.5 text-[#EDE7E0]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-          </svg>
-          <span className="hidden sm:inline">Master Plan</span>
-        </button>
+      {/* Barra Superior Flotante de Controles (Master Plan + Búsqueda Global + Filtros de Estado) */}
+      <div className="absolute top-4 left-16 sm:left-18 right-44 sm:right-52 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <button 
+            onClick={onBack}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[10px] uppercase tracking-wider text-[#EDE7E0] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer"
+            title={isEn ? "Back to Master Plan" : "Volver al Master Plan"}
+          >
+            <svg className="w-3.5 h-3.5 text-[#EDE7E0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            <span className="hidden sm:inline">Master Plan</span>
+          </button>
 
-        {/* Buscador Rápido de Lote */}
-        {!isAmenities && (
-          <div className="relative">
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-white/90 border border-[#0A0D0B]/15 rounded-full shadow-md backdrop-blur-md">
-              <svg className="w-3 h-3 text-[#B35F27]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Buscar lote (ej: B-22)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent text-[10px] text-[#0A0D0B] placeholder-[#0A0D0B]/40 focus:outline-none w-24 sm:w-36 font-semibold"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="text-[#0A0D0B]/40 hover:text-[#0A0D0B] text-xs">
-                  &times;
-                </button>
+          {/* Indicador de Etapa Actual */}
+          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#0A0D0B]/85 text-[#EDE7E0] border border-[#EDE7E0]/15 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-md shadow-md">
+            <span className="h-2 w-2 rounded-full bg-[#B35F27]" />
+            <span>{stageName}</span>
+          </div>
+
+          {/* Buscador Rápido Global de Lotes (318 Lotes) */}
+          {!isAmenities && (
+            <div className="relative">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/95 border border-[#0A0D0B]/15 rounded-full shadow-md backdrop-blur-md">
+                <svg className="w-3.5 h-3.5 text-[#B35F27]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder={isEn ? "Search lot (e.g. B-22, H-12)..." : "Buscar lote (ej: B-22, H-12)..."}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-transparent text-[10px] sm:text-[11px] text-[#0A0D0B] placeholder-[#0A0D0B]/45 focus:outline-none w-28 sm:w-44 font-semibold"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery("")} className="text-[#0A0D0B]/40 hover:text-[#0A0D0B] text-xs cursor-pointer">
+                    &times;
+                  </button>
+                )}
+              </div>
+
+              {/* Resultados de Búsqueda Global */}
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 mt-1.5 w-60 bg-[#EDE7E0] border border-[#B35F27]/40 rounded-xl p-1.5 shadow-2xl backdrop-blur-xl z-50 space-y-1">
+                  {searchResults.map((item) => {
+                    const isOtherStage = item.stageKey !== stageId;
+                    return (
+                      <button
+                        key={`${item.stageKey}-${item.lotId}`}
+                        onClick={() => {
+                          if (isOtherStage && onChangeStage) {
+                            onChangeStage(item.stageKey);
+                          }
+                          onSelectLot(item.lotData);
+                          setSearchQuery("");
+                        }}
+                        className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white text-left transition-colors text-[11px] cursor-pointer"
+                      >
+                        <div>
+                          <span className="font-serif font-bold text-[#0A0D0B] block">
+                            {isEn ? "Lot" : "Lote"} {item.lotData.rawId || item.lotId}
+                          </span>
+                          <span className="text-[9px] text-[#0A0D0B]/60 font-medium">
+                            {getStageDisplayName(item.stageKey, isEn)} &bull; {translateAreaText(item.lotData.area, isEn)}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-[8px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                            item.lotData.status === "available"
+                              ? "text-[#10b981] bg-[#10b981]/15"
+                              : item.lotData.status === "blocked" || item.lotData.status === "reserved"
+                              ? "text-[#3b82f6] bg-[#3b82f6]/15"
+                              : "text-[#ef4444] bg-[#ef4444]/15"
+                          }`}
+                        >
+                          {translateStatusRaw(item.lotData.statusRaw, isEn, item.lotData.status)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
+          )}
+        </div>
 
-            {/* Resultados de Búsqueda */}
-            {searchResults.length > 0 && (
-              <div className="absolute top-full left-0 mt-1.5 w-48 bg-[#EDE7E0] border border-[#B35F27]/30 rounded-xl p-1.5 shadow-2xl backdrop-blur-xl z-50 space-y-1">
-                {searchResults.map((pin) => (
-                  <button
-                    key={pin.lotId}
-                    onClick={() => {
-                      onSelectLot(pin.lotData);
-                      setSearchQuery("");
-                    }}
-                    className="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-white text-left transition-colors text-[11px]"
-                  >
-                    <span className="font-serif font-bold text-[#0A0D0B]">{pin.lotId}</span>
-                    <span className="text-[8px] uppercase font-bold text-[#B35F27] bg-[#B35F27]/10 px-1.5 py-0.5 rounded">
-                      {pin.lotData.statusRaw || pin.lotData.status}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
+        {/* Píldoras Interactivas de Filtro por Estado (Disponibles / Bloqueados / Vendidos) */}
+        {!isAmenities && (
+          <div className="hidden lg:flex items-center gap-1.5 bg-[#0A0D0B]/85 border border-[#EDE7E0]/15 p-1 rounded-full backdrop-blur-md shadow-lg pointer-events-auto">
+            <button
+              onClick={() => toggleFilter("available")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                activeFilters.available
+                  ? "bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/40"
+                  : "text-white/40 hover:text-white/70 border border-transparent"
+              }`}
+              title={isEn ? "Toggle Available Lots" : "Mostrar/Ocultar Lotes Disponibles"}
+            >
+              <span className="h-2 w-2 rounded-full bg-[#10b981]" />
+              <span>{isEn ? "Available" : "Disponibles"} ({stats.available})</span>
+            </button>
+
+            <button
+              onClick={() => toggleFilter("blocked")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                activeFilters.blocked
+                  ? "bg-[#3b82f6]/20 text-[#60a5fa] border border-[#3b82f6]/40"
+                  : "text-white/40 hover:text-white/70 border border-transparent"
+              }`}
+              title={isEn ? "Toggle Blocked Lots" : "Mostrar/Ocultar Lotes Bloqueados"}
+            >
+              <span className="h-2 w-2 rounded-full bg-[#3b82f6]" />
+              <span>{isEn ? "Blocked" : "Bloqueados"} ({stats.blocked})</span>
+            </button>
+
+            <button
+              onClick={() => toggleFilter("sold")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                activeFilters.sold
+                  ? "bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40"
+                  : "text-white/40 hover:text-white/70 border border-transparent"
+              }`}
+              title={isEn ? "Toggle Sold Lots" : "Mostrar/Ocultar Lotes Vendidos"}
+            >
+              <span className="h-2 w-2 rounded-full bg-[#ef4444]" />
+              <span>{isEn ? "Sold" : "Vendidos"} ({stats.sold})</span>
+            </button>
           </div>
         )}
       </div>
 
-      {/* Panel de Filtros / Resumen de Amenidades Flotante */}
+      {/* Panel de Resumen de Amenidades Flotante (Clic para abrir Galería de Alma Beach Club) */}
       {isAmenities && (
-        <div className="absolute top-4 right-16 z-30 pointer-events-auto bg-[#699385]/20 border border-[#699385]/40 px-3 py-1.5 rounded-full text-[9px] font-semibold text-[#699385] tracking-widest uppercase backdrop-blur-md flex items-center gap-2 shadow-md">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#699385] animate-pulse"></span>
-          Amenidades: 7
-        </div>
+        <button
+          onClick={() => {
+            const almaPin = pins.find((p) => p.lotId === "CLUB_HOUSE" || p.lotData.status === "common");
+            if (almaPin) {
+              onSelectLot(almaPin.lotData);
+            } else {
+              onSelectLot({
+                id: "CLUB_HOUSE",
+                rawId: "Alma Beach Club",
+                area: "Club de Playa",
+                location: "Club de Playa con Salida Directa al Mar",
+                status: "common",
+                statusRaw: "AMENIDAD",
+                totalPrice: "Área Común",
+                downPayment: "-",
+                financing: "-",
+                finalPayment: "-",
+              });
+            }
+          }}
+          className="absolute top-4 right-44 sm:right-52 z-30 pointer-events-auto bg-[#0A0D0B]/90 hover:bg-[#B35F27] border border-[#B35F27]/50 px-3.5 py-1.5 rounded-full text-[9px] font-bold text-[#EDE7E0] tracking-widest uppercase backdrop-blur-md flex items-center gap-2 shadow-lg transition-all cursor-pointer"
+        >
+          <span className="h-2 w-2 rounded-full bg-[#B35F27] animate-pulse"></span>
+          <span>
+            {isEn
+              ? "Alma Beach Club • View Gallery (7 Renders)"
+              : "Alma Beach Club • Ver Galería (7 Renders)"}
+          </span>
+        </button>
       )}
 
       {/* Área del Plano */}
@@ -867,8 +1008,11 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
             }
           `}} />
 
-          {/* Wrapper del Mapa: Ocupa toda la pantalla y contiene el render y hitboxes */}
-          <div className="w-full h-full relative">
+          {/* Wrapper del Mapa con Zoom Suave */}
+          <div
+            className="w-full h-full relative transition-transform duration-300 ease-out"
+            style={{ transform: `scale(${mapZoom})`, transformOrigin: "center center" }}
+          >
             
             {/* Fondo de Render de la Etapa */}
             <img
@@ -878,12 +1022,11 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
               draggable={false}
             />
 
-            {isAmenities ? null : (
-              <>
-                {/* SVG Vectorial Overlay (Capa interactiva de lotes y trazados) */}
-                {svgText && (
-                  <div
-                    className="loom-stage-map-svg absolute inset-0 w-full h-full [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain z-10 pointer-events-auto"
+            <>
+              {/* SVG Vectorial Overlay (Capa interactiva de lotes y trazados) */}
+              {svgText && (
+                <div
+                  className="loom-stage-map-svg absolute inset-0 w-full h-full [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain z-10 pointer-events-auto"
                   dangerouslySetInnerHTML={{ __html: svgText }}
                   onMouseOver={(e) => {
                     const target = e.target as SVGElement;
@@ -918,48 +1061,83 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                 />
               )}
 
-
-
-              {/* Tooltip de Lote */}
+              {/* Tooltip Enriquecido de Lote */}
               <AnimatePresence>
                 {hoveredPin && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute z-50 pointer-events-none p-3 rounded-lg border border-[#B35F27]/30 bg-[#EDE7E0]/95 shadow-xl backdrop-blur-xl text-[11px] text-[#0A0D0B]"
+                    initial={{ opacity: 0, scale: 0.95, y: 4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 4 }}
+                    className="absolute z-50 pointer-events-none p-3 rounded-xl border border-[#B35F27]/45 bg-[#0A0D0B]/92 shadow-2xl backdrop-blur-xl text-[11px] text-[#EDE7E0] min-w-[165px]"
                     style={{
                       left: `${hoveredPin.xPercent}%`,
-                      top: `${hoveredPin.yPercent - 8}%`,
+                      top: `${Math.max(8, hoveredPin.yPercent - 11)}%`,
                       transform: "translateX(-50%)",
                     }}
                   >
-                    <div className="font-bold text-center border-b border-[#0A0D0B]/10 pb-1 mb-1 tracking-wider text-[#B35F27]">
-                      {hoveredPin.lotId === "PORTERIA" || hoveredPin.lotData.rawId.toLowerCase().includes("porteria")
-                        ? "PORTERÍA"
-                        : hoveredPin.lotId === "PARQUE_1"
-                        ? "PARQUE 1"
-                        : hoveredPin.lotId === "PARQUE_2"
-                        ? "PARQUE 2"
-                        : hoveredPin.lotId.includes("PARQUE")
-                        ? hoveredPin.lotData.rawId.replace("_", " ").toUpperCase()
-                        : `LOTE ${hoveredPin.lotData.rawId}`}
+                    <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-1.5 mb-1.5">
+                      <span className="font-bold tracking-wider text-[#dbaa67] uppercase">
+                        {hoveredPin.lotId === "PORTERIA" || hoveredPin.lotData.rawId.toLowerCase().includes("porteria")
+                          ? isEn ? "MAIN GATEHOUSE" : "PORTERÍA"
+                          : hoveredPin.lotId === "PARQUE_1"
+                          ? isEn ? "PARK 1" : "PARQUE 1"
+                          : hoveredPin.lotId === "PARQUE_2"
+                          ? isEn ? "PARK 2" : "PARQUE 2"
+                          : hoveredPin.lotId === "CLUB_HOUSE" || hoveredPin.lotId.includes("CLUB")
+                          ? hoveredPin.lotData.rawId.toUpperCase()
+                          : hoveredPin.lotId.includes("PARQUE")
+                          ? hoveredPin.lotData.rawId.replace("_", " ").toUpperCase()
+                          : `${isEn ? "LOT" : "LOTE"} ${hoveredPin.lotData.rawId}`}
+                      </span>
+                      <span
+                        className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
+                          hoveredPin.lotData.status === "available"
+                            ? "bg-[#10b981]/25 text-[#10b981]"
+                            : hoveredPin.lotData.status === "blocked" || hoveredPin.lotData.status === "reserved"
+                            ? "bg-[#3b82f6]/25 text-[#60a5fa]"
+                            : hoveredPin.lotData.status === "common"
+                            ? "bg-[#B35F27]/30 text-[#dbaa67]"
+                            : "bg-[#ef4444]/25 text-[#ef4444]"
+                        }`}
+                      >
+                        {translateStatusRaw(hoveredPin.lotData.statusRaw, isEn, hoveredPin.lotData.status)}
+                      </span>
                     </div>
-                    <div className="space-y-0.5 min-w-[110px]">
+                    <div className="space-y-1 text-[10px]">
                       <p className="flex justify-between gap-4">
-                        <span className="text-[#0A0D0B]/60">Área:</span>
-                        <span className="font-semibold">
-                          {hoveredPin.lotData.area.includes("m²") || hoveredPin.lotData.area.includes("Común")
-                            ? hoveredPin.lotData.area
-                            : `${hoveredPin.lotData.area} m²`}
+                        <span className="text-[#EDE7E0]/60">{isEn ? "Area:" : "Área:"}</span>
+                        <span className="font-semibold text-[#EDE7E0]">
+                          {translateAreaText(hoveredPin.lotData.area, isEn)}
                         </span>
                       </p>
+                      {hoveredPin.lotData.location && (
+                        <p className="flex justify-between gap-4">
+                          <span className="text-[#EDE7E0]/60">{isEn ? "Type:" : "Ubicación:"}</span>
+                          <span className="font-semibold text-[#EDE7E0]">
+                            {translateLocationType(hoveredPin.lotData.location, isEn)}
+                          </span>
+                        </p>
+                      )}
+                      {hoveredPin.lotData.status === "common" && (
+                        <p className="pt-1 border-t border-white/10 text-[9px] font-bold uppercase tracking-wider text-[#dbaa67] text-center">
+                          {isEn ? "Click to open photo gallery →" : "Clic para ver galería de fotos →"}
+                        </p>
+                      )}
+                      {hoveredPin.lotData.totalPrice &&
+                        hoveredPin.lotData.totalPrice !== "Área Común" &&
+                        hoveredPin.lotData.status === "available" && (
+                          <p className="flex justify-between gap-4 pt-0.5 border-t border-white/10">
+                            <span className="text-[#EDE7E0]/60">{isEn ? "Price:" : "Precio:"}</span>
+                            <span className="font-bold text-[#10b981]">
+                              {formatCopOrUsd(hoveredPin.lotData.totalPrice, isEn, trm, isEn)}
+                            </span>
+                          </p>
+                        )}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </>
-          )}
 
           </div>
 
@@ -968,9 +1146,9 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
             <button
               onClick={() => onChangeStage(prevStageId)}
               className="group absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-30 p-2.5 sm:p-3 bg-[#EDE7E0] hover:bg-[#B35F27] active:scale-95 border border-[#0A0D0B]/20 rounded-full text-[#0A0D0B] hover:text-[#EDE7E0] backdrop-blur-md transition-all duration-300 shadow-xl cursor-pointer"
-              title="Etapa Anterior"
+              title={isEn ? "Previous Stage" : "Etapa Anterior"}
             >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 stroke-[#0A0D0B] group-hover:stroke-[#EDE7E0] transition-colors" fill="none" strokeWidth="3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 stroke-[#0A0D0B] group-hover:stroke-[#EDE7E0] transition-colors" fill="none" strokeWidth="3" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
               </svg>
             </button>
@@ -981,19 +1159,74 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
             <button
               onClick={() => onChangeStage(nextStageId)}
               className="group absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-30 p-2.5 sm:p-3 bg-[#EDE7E0] hover:bg-[#B35F27] active:scale-95 border border-[#0A0D0B]/20 rounded-full text-[#0A0D0B] hover:text-[#EDE7E0] backdrop-blur-md transition-all duration-300 shadow-xl cursor-pointer"
-              title="Etapa Siguiente"
+              title={isEn ? "Next Stage" : "Etapa Siguiente"}
             >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 stroke-[#0A0D0B] group-hover:stroke-[#EDE7E0] transition-colors" fill="none" strokeWidth="3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 stroke-[#0A0D0B] group-hover:stroke-[#EDE7E0] transition-colors" fill="none" strokeWidth="3" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"></path>
               </svg>
             </button>
           )}
+      </div>
+
+      {/* Controles Flotantes de Zoom del Mapa (Abajo a la Izquierda) */}
+      <div className="absolute bottom-4 left-4 z-30 hidden sm:flex items-center gap-1 p-1 bg-[#0A0D0B]/85 border border-[#EDE7E0]/15 rounded-full backdrop-blur-md shadow-xl pointer-events-auto">
+        <button
+          onClick={() => setMapZoom((z) => Math.min(2.2, +(z + 0.25).toFixed(2)))}
+          className="p-1.5 text-[#EDE7E0]/80 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+          title={isEn ? "Zoom In (+)" : "Acercar Mapa (+)"}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+        <button
+          onClick={() => setMapZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)))}
+          className="p-1.5 text-[#EDE7E0]/80 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+          title={isEn ? "Zoom Out (-)" : "Alejar Mapa (-)"}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" />
+          </svg>
+        </button>
+        {mapZoom > 1 && (
+          <button
+            onClick={() => setMapZoom(1)}
+            className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#dbaa67] hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+          >
+            {mapZoom}x
+          </button>
+        )}
+      </div>
+
+      {/* Barra Inferior de Cambio Directo entre Etapas (Bottom Stage Switcher Dock) */}
+      {onChangeStage && (
+        <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto max-w-[95vw] overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 rounded-full backdrop-blur-xl shadow-2xl">
+            {activeStages.map((stKey) => {
+              const isCurrent = stKey === stageId;
+              const label = getStageDisplayName(stKey, isEn);
+              return (
+                <button
+                  key={stKey}
+                  onClick={() => onChangeStage(stKey)}
+                  className={`px-2.5 sm:px-3.5 py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer shrink-0 ${
+                    isCurrent
+                      ? "bg-[#B35F27] text-[#EDE7E0] shadow-md scale-105"
+                      : "text-[#EDE7E0]/75 hover:text-[#EDE7E0] hover:bg-white/10"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
+      )}
 
       {/* Leyenda de Brújula (Flotante a la Derecha) */}
-      <div className="absolute bottom-7 right-6 z-20 hidden md:flex items-center gap-2 text-[#0A0D0B]/70 text-[9px] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
+      <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/75 text-[9px] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
         <Compass className="h-3.5 w-3.5 text-[#B35F27] rotate-[45deg]" />
-        Norte orientado hacia el mar (Derecha / Playa)
+        {isEn ? "North oriented towards the sea (Right / Beach)" : "Norte orientado hacia el mar (Derecha / Playa)"}
       </div>
 
     </div>

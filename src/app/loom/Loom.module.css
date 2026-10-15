@@ -62,19 +62,24 @@
 
 .entrarBtn {
   position: absolute;
-  bottom: 12vh; /* Colocado más abajo para dejar apreciar el video de fondo */
-  background: #B35F27; /* Cobre Terracota Oficial */
+  bottom: 11vh; /* Colocado más abajo para dejar apreciar el video de fondo */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: rgba(179, 95, 39, 0.92); /* Cobre Terracota Oficial */
+  backdrop-filter: blur(12px);
   color: #EDE7E0; /* Texto Marfil Natural */
-  border: 1px solid #B35F27;
-  padding: 1.1rem 4.5rem; /* Adaptado al texto "Ingresar al Showroom" */
-  font-size: 0.95rem;
-  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  padding: 1.05rem 3.8rem;
+  font-size: 0.9rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 4px;
+  letter-spacing: 3.5px;
   cursor: pointer;
-  border-radius: 0px; /* Completamente rectangular */
+  border-radius: 9999px; /* Cápsula elegante acorde con toda la UI */
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 8px 30px rgba(179, 95, 39, 0.35);
+  box-shadow: 0 10px 35px rgba(179, 95, 39, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   font-family: var(--font-sans);
   white-space: nowrap;
 }
@@ -83,8 +88,8 @@
   background: #EDE7E0; /* Relleno Marfil Natural en Hover */
   color: #0A0D0B; /* Texto Carbón Oscuro */
   border-color: #EDE7E0;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 35px rgba(237, 231, 224, 0.4);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 14px 40px rgba(237, 231, 224, 0.45);
 }
 
 @media (max-width: 992px) {

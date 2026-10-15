@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#07090e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Patrimofy Earth 3D | Visor Geoespacial de Masterplans de Lujo</title>
+    <meta name="description" content="Gemelo digital y visor 3D fotorrealista de macro-lotes y masterplans con salida directa al mar en Cartagena de Indias. Loom, Luwana, Pantai y Niwu." />
+    
+    <!-- MapLibre GL CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+    
+    <!-- Custom Luxury HUD Styles -->
+    <script type="module" crossorigin src="./assets/index-zER7ySCA.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DRaFBOWL.css">
+  </head>
+  <body>
+    <!-- Map Canvas 3D -->
+    <div id="map"></div>
+
+    <!-- HUD Overlay Layer -->
+    <div class="hud-overlay">
+      <!-- TOP BAR -->
+      <header class="hud-topbar hud-interactive">
+        <div class="brand-wrapper">
+          <div class="brand-crest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1 id="lbl-brand">PATRIMOFY</h1>
+            <p id="lbl-tagline">EARTH 3D · PROYECTO ALMA BEACH</p>
+          </div>
+        </div>
+
+        <!-- Project Selector for Proyecto Alma Beach (Loom first by default) -->
+        <div class="portfolio-controls">
+          <!-- Direct Project Pills with Selection/Deselection Toggles -->
+          <nav class="sector-nav" aria-label="Masterplans de Proyecto Alma Beach">
+            <button class="nav-pill nav-pill-all" id="btn-show-all" title="Mostrar todos los macro-lotes">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <span id="lbl-show-all">Todos (4)</span>
+            </button>
+            <button class="nav-pill active pill-selected" id="btn-proj-loom" data-id="loom">
+              <span class="pill-chk" data-toggle="loom" title="Seleccionar / Deseleccionar">✓</span>
+              <span class="nav-pill-dot" style="background:#d4af37;box-shadow:0 0 8px #d4af37;"></span>
+              <span>Loom</span>
+            </button>
+            <button class="nav-pill pill-selected" id="btn-proj-luwana" data-id="luwana">
+              <span class="pill-chk" data-toggle="luwana" title="Seleccionar / Deseleccionar">✓</span>
+              <span class="nav-pill-dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8;"></span>
+              <span>Luwana</span>
+            </button>
+            <button class="nav-pill pill-selected" id="btn-proj-pantai" data-id="pantai">
+              <span class="pill-chk" data-toggle="pantai" title="Seleccionar / Deseleccionar">✓</span>
+              <span class="nav-pill-dot" style="background:#10b981;box-shadow:0 0 8px #10b981;"></span>
+              <span>Pantai</span>
+            </button>
+            <button class="nav-pill pill-selected" id="btn-proj-niwu" data-id="niwu">
+              <span class="pill-chk" data-toggle="niwu" title="Seleccionar / Deseleccionar">✓</span>
+              <span class="nav-pill-dot" style="background:#a78bfa;box-shadow:0 0 8px #a78bfa;"></span>
+              <span>Niwu</span>
+            </button>
+          </nav>
+
+          <!-- Dropdown Button for Individual Project Direct Jump -->
+          <div class="project-dropdown-wrapper">
+            <button class="btn-project-selector" id="btn-project-dropdown">
+              <span id="lbl-dropdown-active">Loom Luxury Residence</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="project-dropdown-menu" id="project-dropdown-menu">
+              <!-- Populated dynamically via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="header-actions">
+          <button class="btn-tactical" id="btn-map-style" title="Alternar Google Satélite Híbrido (Vías) / Satélite Limpio">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+              <line x1="8" y1="2" x2="8" y2="18"></line>
+              <line x1="16" y1="6" x2="16" y2="22"></line>
+            </svg>
+            <span id="lbl-map-style">Google Híbrido</span>
+          </button>
+
+          <button class="btn-tactical" id="btn-drone" title="Sobrevuelo Dron 360°">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"></path>
+            </svg>
+            <span id="lbl-drone">Sobrevuelo Dron 360°</span>
+          </button>
+
+          <button class="btn-tactical" id="btn-reset" title="Vista General">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+            <span id="lbl-reset">Vista General</span>
+          </button>
+
+          <!-- Language Switcher -->
+          <div class="lang-switch">
+            <button class="lang-btn active" id="btn-lang-es">ES</button>
+            <button class="lang-btn" id="btn-lang-en">EN</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- INVESTMENT DOSSIER DRAWER (SIDEBAR / MOBILE BOTTOM SHEET) -->
+      <aside class="dossier-drawer" id="dossier-drawer" aria-label="Dossier de Inversión">
+        <div class="sheet-handle" id="sheet-handle"></div>
+        <div class="dossier-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+              <span class="dossier-badge" id="dossier-badge">Lujo Bioclimático</span>
+              <span class="dossier-sector-tag" id="dossier-sector-tag">Proyecto Alma Beach · Residencias Bioclimáticas</span>
+            </div>
+            <h2 class="dossier-title" id="dossier-title">Loom Luxury Residence</h2>
+          </div>
+          <button class="btn-close-dossier" id="btn-close-dossier" aria-label="Cerrar">✕</button>
+        </div>
+
+        <!-- Botón para Concentrarse / Aislar este lote -->
+        <button class="btn-focus-toggle" id="btn-focus-toggle" title="Concentrarse exclusivamente en este lote">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line x1="12" y1="2" x2="12" y2="5"></line>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+            <line x1="2" y1="12" x2="5" y2="12"></line>
+            <line x1="19" y1="12" x2="22" y2="12"></line>
+          </svg>
+          <span id="lbl-focus-toggle">Concentrarse solo en este lote (Loom Luxury Residence)</span>
+        </button>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-title" id="lbl-area">Área Total</div>
+            <div class="metric-value" id="val-area">72.480 m²</div>
+            <div class="metric-sub" id="val-hectares">7.25 Ha</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title" id="lbl-perimeter">Perímetro</div>
+            <div class="metric-value" id="val-perimeter">1.845,2 m</div>
+            <div class="metric-sub" id="lbl-perimeter-sub">Línea de Linderos</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title" id="lbl-elevation">Elevación</div>
+            <div class="metric-value" id="val-elevation">0 - 5.6 m</div>
+            <div class="metric-sub" id="lbl-elevation-sub">Sobre el nivel del mar</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title" id="lbl-access">Acceso Costero</div>
+            <div class="metric-value" id="val-access" style="font-size:13px;color:#00f0ff;">Salida Directa al Mar</div>
+            <div class="metric-sub" id="val-access-sub">Alma Beach Club</div>
+          </div>
+        </div>
+
+        <!-- Corporate & Licensing Strip -->
+        <div class="corporate-meta-box">
+          <div class="corporate-meta-row">
+            <span class="corporate-meta-label" id="lbl-promoter">Promotora y Aliados</span>
+            <span class="corporate-meta-val" id="val-promoter">Promotora Rubik 5 · ICG · Maadga Group</span>
+          </div>
+          <div class="corporate-meta-row">
+            <span class="corporate-meta-label" id="lbl-license">Vocación y Licencia</span>
+            <span class="corporate-meta-val" id="val-license">Residencial Premium & Rentas Boutique</span>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <p class="dossier-description" id="dossier-desc">
+          Residencias de ultra lujo con salida directa al mar, diseñadas bajo principios bioclimáticos por Maadga Group (Gary Michell) y construidas por ICG.
+        </p>
+
+        <!-- Strategic Highlights -->
+        <div>
+          <h4 style="font-size:11px;text-transform:uppercase;color:var(--text-gold);letter-spacing:1px;margin-bottom:10px;" id="lbl-highlights">
+            Atributos de Plusvalía
+          </h4>
+          <ul class="highlights-list" id="dossier-highlights">
+            <!-- Injected via JS -->
+          </ul>
+        </div>
+
+        <!-- Action Buttons (Connected Funnel) -->
+        <div class="dossier-actions">
+          <a href="https://showroom.patrimofy.com/?project=loom" target="_blank" rel="noopener noreferrer" class="btn-showroom-gold" id="btn-enter-showroom">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <path d="m9 12 2 2 4-4"></path>
+            </svg>
+            <span id="lbl-enter-showroom">Ingresar al Plano Interactivo 3D</span>
+          </a>
+
+          <a href="#" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-cta" id="btn-whatsapp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"></path>
+            </svg>
+            <span id="lbl-contact-advisor">Hablar con Asesor en WhatsApp</span>
+          </a>
+
+          <a href="https://www.google.com/maps/search/?api=1&query=10.638991,-75.420583" target="_blank" rel="noopener noreferrer" class="btn-gps-link" id="btn-google-maps">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <span id="lbl-open-gmaps">Ver Ruta GPS en Google Maps</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- BOTTOM BAR & TELEMETRY -->
+      <footer class="hud-bottombar hud-interactive">
+        <div class="telemetry-box">
+          <div class="telemetry-item">
+            <span class="telemetry-label" id="lbl-tel-coords">COORDENADAS</span>
+            <span class="telemetry-val" id="tel-coords">10.6390° N, -75.4206° W</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label" id="lbl-tel-tilt">INCLINACIÓN 3D</span>
+            <span class="telemetry-val" id="tel-tilt">64°</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label" id="lbl-tel-alt">ALTITUD CÁMARA</span>
+            <span class="telemetry-val" id="tel-alt">800 m MSL</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label" id="lbl-tel-hdg">RUMBO</span>
+            <span class="telemetry-val" id="tel-hdg">315°</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Main Logic -->
+  </body>
+</html>

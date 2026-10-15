@@ -29,12 +29,13 @@ export interface StageLotData {
 interface SvgMapProps {
   svgContent: string;
   liveLots: StageLotData[];
+  selectedLotId?: string | null;
   onLotClick: (lotData: StageLotData | null, lotNumStrRaw: string) => void;
   stageNumber: string;
   filterStatus: "all" | "available" | "reserved" | "sold";
 }
 
-const SvgMap = memo(({ svgContent, liveLots, onLotClick, stageNumber, filterStatus }: SvgMapProps) => {
+const SvgMap = memo(({ svgContent, liveLots, selectedLotId, onLotClick, stageNumber, filterStatus }: SvgMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -48,9 +49,16 @@ const SvgMap = memo(({ svgContent, liveLots, onLotClick, stageNumber, filterStat
     const embeddedImages = svg.querySelectorAll("image");
     embeddedImages.forEach((img) => img.remove());
 
-    const allShapes = svg.querySelectorAll("path, polygon, rect, polyline, circle, ellipse, text, tspan");
+    // Disable pointer events on text nodes so they don't intercept polygon clicks or get filled
+    const allTexts = svg.querySelectorAll("text, tspan");
+    allTexts.forEach((t) => {
+      (t as SVGElement).style.pointerEvents = "none";
+    });
+
+    const allShapes = svg.querySelectorAll("path, polygon, rect, polyline, circle, ellipse");
     allShapes.forEach((shape) => {
-      const el = shape as SVGElement;
+      const el = shape as SVGElement & { cleanup?: () => void };
+      if (el.cleanup) el.cleanup();
       
       const lotIdRaw = el.getAttribute("id") || el.parentElement?.getAttribute("id") || "";
       const decodedIdRaw = lotIdRaw.replace(/_x([0-9a-fA-F]{2,})_/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
@@ -89,9 +97,10 @@ const SvgMap = memo(({ svgContent, liveLots, onLotClick, stageNumber, filterStat
           });
 
       const status = isSpecialZone ? "common" : (lotData?.status || "available");
+      const effectiveFilterStatus = status === "blocked" ? "sold" : status;
 
       // Filter check
-      if (filterStatus !== "all" && status !== "common" && status !== filterStatus) {
+      if (filterStatus !== "all" && status !== "common" && effectiveFilterStatus !== filterStatus) {
         el.style.setProperty('opacity', '0.15', 'important');
         el.style.setProperty('pointer-events', 'none', 'important');
         return;
@@ -107,6 +116,11 @@ const SvgMap = memo(({ svgContent, liveLots, onLotClick, stageNumber, filterStat
         baseStroke = "rgba(239, 68, 68, 0.8)";
         hoverFill = "rgba(239, 68, 68, 0.6)";
         hoverStroke = "#ffffff";
+      } else if (status === "blocked") {
+        baseFill = "rgba(59, 130, 246, 0.35)";
+        baseStroke = "rgba(59, 130, 246, 0.85)";
+        hoverFill = "rgba(59, 130, 246, 0.6)";
+        hoverStroke = "#ffffff";
       } else if (status === "reserved") {
         baseFill = "rgba(234, 179, 8, 0.35)";
         baseStroke = "rgba(234, 179, 8, 0.8)";
@@ -119,10 +133,15 @@ const SvgMap = memo(({ svgContent, liveLots, onLotClick, stageNumber, filterStat
         hoverStroke = "#ffffff";
       }
 
+      const isSelected = selectedLotId != null && (
+        (isSpecialZone && selectedLotId === specialZoneId) ||
+        (!isSpecialZone && (selectedLotId === lotData?.id || selectedLotId === lotNumStrRaw))
+      );
+
       el.style.setProperty('opacity', '1', 'important');
-      el.style.setProperty('fill', baseFill, 'important');
-      el.style.setProperty('stroke', baseStroke, 'important');
-      el.style.setProperty('stroke-width', '1px', 'important');
+      el.style.setProperty('fill', isSelected ? hoverFill : baseFill, 'important');
+      el.style.setProperty('stroke', isSelected ? hoverStroke : baseStroke, 'important');
+      el.style.setProperty('stroke-width', isSelected ? '2.5px' : '1px', 'important');
       el.style.setProperty('cursor', 'pointer', 'important');
       el.style.setProperty('pointer-events', 'all', 'important');
       el.style.setProperty('transition', 'all 0.3s ease', 'important');
@@ -130,13 +149,13 @@ const SvgMap = memo(({ svgContent, liveLots, onLotClick, stageNumber, filterStat
       const handleEnter = () => {
         el.style.setProperty('fill', hoverFill, 'important');
         el.style.setProperty('stroke', hoverStroke, 'important');
-        el.style.setProperty('stroke-width', '2px', 'important');
+        el.style.setProperty('stroke-width', '2.5px', 'important');
       };
 
       const handleLeave = () => {
-        el.style.setProperty('fill', baseFill, 'important');
-        el.style.setProperty('stroke', baseStroke, 'important');
-        el.style.setProperty('stroke-width', '1px', 'important');
+        el.style.setProperty('fill', isSelected ? hoverFill : baseFill, 'important');
+        el.style.setProperty('stroke', isSelected ? hoverStroke : baseStroke, 'important');
+        el.style.setProperty('stroke-width', isSelected ? '2.5px' : '1px', 'important');
       };
 
       const handleClick = () => {
@@ -176,7 +195,7 @@ const SvgMap = memo(({ svgContent, liveLots, onLotClick, stageNumber, filterStat
       el.addEventListener("touchstart", handleEnter, { passive: true });
       el.addEventListener("touchend", handleLeave, { passive: true });
 
-      (el as unknown as { cleanup: () => void }).cleanup = () => {
+      el.cleanup = () => {
         el.removeEventListener("mouseenter", handleEnter);
         el.removeEventListener("mouseleave", handleLeave);
         el.removeEventListener("click", handleClick);
@@ -191,7 +210,7 @@ const SvgMap = memo(({ svgContent, liveLots, onLotClick, stageNumber, filterStat
         if (el.cleanup) el.cleanup();
       });
     };
-  }, [svgContent, liveLots, onLotClick, filterStatus]);
+  }, [svgContent, liveLots, selectedLotId, onLotClick, filterStatus]);
 
   return (
     <div 
@@ -219,9 +238,10 @@ interface StageViewProps {
   stageId: string;
   onBack: () => void;
   onNext?: () => void;
+  onChangeStage?: (newStageId: string) => void;
 }
 
-export default function StageView({ stageId, onBack, onNext }: StageViewProps) {
+export default function StageView({ stageId, onBack, onNext, onChangeStage }: StageViewProps) {
   const [svgContent, setSvgContent] = useState<string>("");
   const [liveLots, setLiveLots] = useState<StageLotData[]>([]);
   const [selectedLotData, setSelectedLotData] = useState<StageLotData | null>(null);
@@ -462,6 +482,12 @@ export default function StageView({ stageId, onBack, onNext }: StageViewProps) {
                   <button
                     key={lot.id}
                     onClick={() => {
+                      const numMatch = lot.id.match(/\d+/);
+                      const lotNum = numMatch ? parseInt(numMatch[0], 10) : 0;
+                      const targetStage = lotNum >= 61 ? "etapa-2" : "etapa-1";
+                      if (lotNum > 0 && targetStage !== stageId && onChangeStage) {
+                        onChangeStage(targetStage);
+                      }
                       setSelectedLotData(lot);
                       setSearchQuery("");
                     }}
@@ -469,7 +495,13 @@ export default function StageView({ stageId, onBack, onNext }: StageViewProps) {
                   >
                     <span className="font-serif font-bold text-white">Lote {lot.rawId}</span>
                     <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full ${
-                      lot.status === 'available' ? 'bg-[#396866]/40 text-[#A58E74] border border-[#A58E74]/40' : 'bg-red-500/20 text-red-400'
+                      lot.status === 'available'
+                        ? 'bg-[#396866]/40 text-[#A58E74] border border-[#A58E74]/40'
+                        : lot.status === 'reserved'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : lot.status === 'blocked'
+                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                        : 'bg-red-500/20 text-red-400'
                     }`}>
                       {lot.statusRaw || lot.status}
                     </span>
@@ -522,6 +554,7 @@ export default function StageView({ stageId, onBack, onNext }: StageViewProps) {
         <SvgMap 
           svgContent={svgContent} 
           liveLots={liveLots} 
+          selectedLotId={selectedLotData?.id}
           onLotClick={handleLotClick} 
           stageNumber={stageNumber}
           filterStatus={filterStatus}
@@ -560,6 +593,7 @@ export default function StageView({ stageId, onBack, onNext }: StageViewProps) {
                 <div className={`px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase inline-flex items-center gap-1.5 ${
                   selectedLotData.status === 'available' ? 'bg-[#396866]/20 text-[#396866] border border-[#396866]/40' :
                   selectedLotData.status === 'reserved' ? 'bg-amber-500/15 text-amber-800 border border-amber-500/30' :
+                  selectedLotData.status === 'blocked' ? 'bg-blue-500/15 text-blue-800 border border-blue-500/30' :
                   selectedLotData.status === 'common' ? 'bg-[#899984]/20 text-[#152A2D] border border-[#899984]/40' :
                   'bg-red-500/15 text-red-700 border border-red-500/30'
                 }`}>

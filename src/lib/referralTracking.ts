@@ -140,7 +140,7 @@ export function buildLotWhatsAppUrl(
   advisor?: Advisor | null
 ): string {
   const targetAdvisor = advisor || getActiveAdvisor() || ADVISORS_REGISTRY["patrimofy"];
-  const phoneNumber = targetAdvisor?.whatsapp?.replace(/\D/g, "") || "573053117404";
+  const phoneNumber = targetAdvisor?.whatsapp?.replace(/\D/g, "") || "573332393784";
   const advisorName = targetAdvisor?.name ? `Hola ${targetAdvisor.name.split(" ")[0]}!` : "Hola!";
 
   const lotDisplay = lot.rawId || `Lote ${lot.id}`;
@@ -161,7 +161,7 @@ export function buildGeneralProjectWhatsAppUrl(
   advisor?: Advisor | null
 ): string {
   const targetAdvisor = advisor || getActiveAdvisor() || ADVISORS_REGISTRY["patrimofy"];
-  const phoneNumber = targetAdvisor?.whatsapp?.replace(/\D/g, "") || "573053117404";
+  const phoneNumber = targetAdvisor?.whatsapp?.replace(/\D/g, "") || "573332393784";
   const advisorName = targetAdvisor?.name ? `Hola ${targetAdvisor.name.split(" ")[0]}!` : "Hola!";
   const refTag = targetAdvisor ? `[Ref: Plano 3D - Asesor ${targetAdvisor.name}]` : `[Ref: Plano 3D ${projectName}]`;
 

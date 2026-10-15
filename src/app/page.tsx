@@ -108,7 +108,7 @@ export default function RootShowroomPage() {
         </h1>
 
         <p className="text-sm sm:text-base text-white/70 font-sans max-w-2xl leading-relaxed mb-10">
-          Explora nuestros desarrollos inmobiliarios frente al mar en Cartagena. Visualiza planos 3D interactivos, disponibilidad de lotes en tiempo real y arquitectura de autor.
+          Explora nuestros desarrollos inmobiliarios con salida directa al mar en Cartagena. Visualiza planos 3D interactivos, disponibilidad de lotes en tiempo real y arquitectura de autor.
         </p>
 
         {/* Grid de Tarjetas de Proyectos (Luwana vs Loom) */}
@@ -122,7 +122,7 @@ export default function RootShowroomPage() {
               
               <div className="flex justify-between items-start">
                 <span className="px-3 py-1 bg-[#CBAA85]/15 text-[#CBAA85] border border-[#CBAA85]/30 rounded-full text-[9px] font-bold uppercase tracking-widest">
-                  Frente al Mar
+                  Salida Directa al Mar
                 </span>
                 <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
@@ -138,7 +138,7 @@ export default function RootShowroomPage() {
               </div>
 
               <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-sans">
-                Condominio boutique exclusivo frente al mar en Manzanillo del Mar, Zona Norte de Cartagena. Lotes urbanizados de alta valorización y rentabilidad.
+                Condominio boutique exclusivo con salida directa al mar en Manzanillo del Mar, Zona Norte de Cartagena. Lotes urbanizados de alta valorización y rentabilidad.
               </p>
 
               {/* Tags de características */}
