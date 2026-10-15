@@ -6,8 +6,23 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfa
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat" });
 
 export const metadata: Metadata = {
-  title: "Showroom Reserva Caribe | Real Estate Colombia",
-  description: "Explora nuestros proyectos inmobiliarios de lujo en Cartagena. Visualiza los lotes y villas en nuestro Showroom interactivo 3D.",
+  metadataBase: new URL("https://www.masterplanalmabeach.com"),
+  title: "Showroom Master Plan Alma Beach | Real Estate Colombia",
+  description:
+    "Explora nuestros proyectos inmobiliarios de lujo en Cartagena. Visualiza los lotes y villas en nuestro Showroom interactivo 3D.",
+  openGraph: {
+    title: "Showroom Master Plan Alma Beach | Real Estate Colombia",
+    description:
+      "Explora nuestros proyectos inmobiliarios de lujo en Cartagena. Visualiza los lotes y villas en nuestro Showroom interactivo 3D.",
+    images: [
+      {
+        url: "/loom/hero_poster_loom.webp",
+        width: 1200,
+        height: 630,
+        alt: "Showroom Master Plan Alma Beach | Loom Luxury Residence",
+      },
+    ],
+  },
 };
 
 import LegalFooter from "@/components/LegalFooter";

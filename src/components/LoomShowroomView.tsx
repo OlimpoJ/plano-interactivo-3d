@@ -780,7 +780,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
 
           <div className="hidden md:block">
             <span className="text-[8px] sm:text-[9px] min-[2200px]:text-sm uppercase tracking-[0.3em] text-[#EBD9AB] font-mono font-bold block">
-              {isEn ? "Caribbean Reserve • Loom" : "Reserva Caribe • Loom"}
+              {isEn ? "Master Plan Alma Beach • Loom" : "Master Plan Alma Beach • Loom"}
             </span>
             <h1 className="text-xs sm:text-sm min-[2200px]:text-xl font-serif font-bold text-white tracking-wide">
               {isEn ? "Lot" : "Lote"} <span className="text-[#B35F27]">{selectedLot.rawId}</span> &bull; {formattedStage}
