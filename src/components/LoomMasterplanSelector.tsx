@@ -174,14 +174,14 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
       </div>
 
       {/* Botón Flotante Volver al Inicio (Sobre la imagen, desplazado para no colisionar con el menú) */}
-      <div className="absolute top-3 left-14 sm:top-4 sm:left-18 z-30 pointer-events-auto flex items-center gap-2">
+      <div className="absolute top-2.5 left-13 sm:top-3 sm:left-16 lg:top-4 lg:left-18 z-30 pointer-events-auto flex items-center gap-2">
         <button 
           onClick={onBack}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2 bg-[#0A0D0B]/80 hover:bg-[#0A0D0B] active:scale-95 border border-[#EDE7E0]/20 rounded-full text-[10px] uppercase tracking-wider text-[#EDE7E0] hover:text-[#B35F27] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer"
+          className="flex items-center justify-center gap-1.5 px-3 py-1.5 lg:px-3.5 lg:py-2 bg-[#0A0D0B]/80 hover:bg-[#0A0D0B] active:scale-95 border border-[#EDE7E0]/20 rounded-full text-[9.5px] lg:text-[10px] uppercase tracking-wider text-[#EDE7E0] hover:text-[#B35F27] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer"
         >
           ← {isEn ? "Home" : "Inicio"}
         </button>
-        <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 bg-[#EDE7E0]/90 border border-[#0A0D0B]/15 rounded-full text-[10px] uppercase tracking-widest text-[#0A0D0B] font-bold backdrop-blur-md shadow-md">
+        <div className="hidden lg:flex items-center gap-2 px-3.5 py-1.5 bg-[#EDE7E0]/90 border border-[#0A0D0B]/15 rounded-full text-[10px] uppercase tracking-widest text-[#0A0D0B] font-bold backdrop-blur-md shadow-md">
           <span className="h-2 w-2 rounded-full bg-[#10b981] animate-pulse" />
           <span>{isEn ? "Master Plan • Select a Stage" : "Master Plan • Selecciona una Etapa"}</span>
         </div>

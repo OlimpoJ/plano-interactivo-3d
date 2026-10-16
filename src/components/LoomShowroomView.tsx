@@ -787,7 +787,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         </div>
 
         {/* Lado Derecho: Estado del Lote & Acciones */}
-        <div className="flex items-center gap-3 pointer-events-auto mr-0 sm:mr-28">
+        <div className="flex items-center gap-3 pointer-events-auto mr-0">
           <div className="px-2.5 py-1 sm:px-3 sm:py-1 min-[2200px]:px-7 min-[2200px]:py-3 bg-[#699385]/20 border border-[#699385]/40 text-[#699385] text-[10px] sm:text-xs min-[2200px]:text-base font-bold uppercase tracking-widest rounded-full">
             {translateStatusRaw(selectedLot.statusRaw, isEn, selectedLot.status)}
           </div>

@@ -285,19 +285,19 @@ function LoomShowroomInner() {
     <LoomOrientationWrapper>
       
       {/* Controles Flotantes Globales (Menú Hamburguesa & Regresar al Master Plan en Hero) */}
-      <div className="fixed top-3 left-3 sm:top-4 sm:left-4 z-40 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+      <div className="fixed top-2.5 left-3 sm:top-3 sm:left-3.5 lg:top-4 lg:left-4 z-40 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
         <button
           onClick={() => setIsMenuOpen(true)}
-          className="p-2.5 sm:p-3 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] transition-all duration-300 group cursor-pointer"
+          className="p-2 lg:p-3 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] transition-all duration-300 group cursor-pointer"
           title={isEn ? "Navigation Menu" : "Menú de Navegación"}
         >
-          <Menu className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform" />
+          <Menu className="h-4 w-4 lg:h-5 lg:w-5 group-hover:scale-110 transition-transform" />
         </button>
 
         {view === "hero" && (
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-2.5 py-2 sm:px-3.5 sm:py-2 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] text-[10px] sm:text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] text-[10px] lg:text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer"
           >
             <ArrowLeft size={14} className="shrink-0" />
             <span>
@@ -309,12 +309,12 @@ function LoomShowroomInner() {
       </div>
 
       {view !== "showroom" && !(view === "stage" && selectedLot) && (
-        <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-40 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+        <div className="fixed top-2.5 right-3 sm:top-3 sm:right-3.5 lg:top-4 lg:right-4 z-40 flex items-center gap-1.5 lg:gap-2 pointer-events-auto">
           {/* Botón Elegante de Vista Limpia (Solo en la Hero para apreciar el video) */}
           {view === "hero" && (
             <button
               onClick={() => setIsCleanVideoView((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-full border shadow-xl backdrop-blur-md text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-full border shadow-xl backdrop-blur-md text-[10px] lg:text-[11px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
                 isCleanVideoView
                   ? "bg-[#B35F27] text-[#EDE7E0] border-[#B35F27] hover:bg-[#964d1d]"
                   : "bg-[#EDE7E0]/92 text-[#0A0D0B] border-[#0A0D0B]/15 hover:bg-[#EDE7E0] hover:text-[#B35F27]"
@@ -331,13 +331,13 @@ function LoomShowroomInner() {
             >
               {isCleanVideoView ? (
                 <>
-                  <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <Eye className="h-3.5 w-3.5 lg:h-4 lg:w-4 shrink-0" />
                   <span className="sm:hidden">{isEn ? "Info" : "Info"}</span>
                   <span className="hidden sm:inline">{isEn ? "Show Info" : "Mostrar Info"}</span>
                 </>
               ) : (
                 <>
-                  <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#B35F27] shrink-0" />
+                  <EyeOff className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-[#B35F27] shrink-0" />
                   <span className="sm:hidden">{isEn ? "Clean" : "Limpia"}</span>
                   <span className="hidden sm:inline">{isEn ? "Clean View" : "Vista Limpia"}</span>
                 </>
@@ -350,10 +350,10 @@ function LoomShowroomInner() {
             className="flex items-center rounded-full bg-[#EDE7E0]/92 border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md p-0.5"
             title={isEn ? "Switch Language (ES / EN)" : "Cambiar Idioma (ES / EN)"}
           >
-            <Globe className="w-3.5 h-3.5 text-[#0A0D0B]/55 ml-2 mr-1 hidden sm:block" />
+            <Globe className="w-3.5 h-3.5 text-[#0A0D0B]/55 ml-2 mr-1 hidden lg:block" />
             <button
               onClick={() => setLang("es")}
-              className={`px-2 py-1 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-2 py-0.5 lg:py-1 rounded-full text-[9.5px] lg:text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 lang === "es"
                   ? "bg-[#B35F27] text-white shadow-sm"
                   : "text-[#0A0D0B]/70 hover:text-[#0A0D0B]"
@@ -363,7 +363,7 @@ function LoomShowroomInner() {
             </button>
             <button
               onClick={() => setLang("en")}
-              className={`px-2 py-1 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-2 py-0.5 lg:py-1 rounded-full text-[9.5px] lg:text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 lang === "en"
                   ? "bg-[#B35F27] text-white shadow-sm"
                   : "text-[#0A0D0B]/70 hover:text-[#0A0D0B]"
@@ -376,24 +376,24 @@ function LoomShowroomInner() {
           {assignedAdvisor && (
             <button
               onClick={handleOpenContact}
-              className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#EDE7E0]/95 text-[#0A0D0B] border border-[#B35F27]/35 shadow-xl backdrop-blur-md text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 lg:gap-2 px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-full bg-[#EDE7E0]/95 text-[#0A0D0B] border border-[#B35F27]/35 shadow-xl backdrop-blur-md text-[9.5px] lg:text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 cursor-pointer"
               title={
                 isEn
                   ? `Contact your advisor ${assignedAdvisor.name} via WhatsApp`
                   : `Contactar a tu asesor ${assignedAdvisor.name} por WhatsApp`
               }
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span>
-                {isEn ? "Advisor:" : "Asesor:"}{" "}
+                <span className="hidden xl:inline">{isEn ? "Advisor:" : "Asesor:"} </span>
                 <strong className="text-[#B35F27]">{assignedAdvisor.name.split(" ")[0]}</strong>
               </span>
-              <MessageCircle size={14} className="text-[#25D366] shrink-0" />
+              <MessageCircle size={13} className="text-[#25D366] shrink-0" />
             </button>
           )}
           <button
             onClick={toggleFullscreen}
-            className="p-2.5 sm:p-3 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] transition-all duration-300 group cursor-pointer"
+            className="p-2 lg:p-3 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] transition-all duration-300 group cursor-pointer"
             title={
               isFullscreen
                 ? isEn ? "Exit Fullscreen" : "Salir de Pantalla Completa"
@@ -401,9 +401,9 @@ function LoomShowroomInner() {
             }
           >
             {isFullscreen ? (
-              <Minimize2 className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform" />
+              <Minimize2 className="h-4 w-4 lg:h-5 lg:w-5 group-hover:scale-110 transition-transform" />
             ) : (
-              <Maximize2 className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform" />
+              <Maximize2 className="h-4 w-4 lg:h-5 lg:w-5 group-hover:scale-110 transition-transform" />
             )}
           </button>
         </div>

@@ -842,7 +842,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: "100%", opacity: 0.8 }}
         transition={{ type: "spring", damping: 25, stiffness: 150 }}
-        className="fixed top-0 right-0 z-40 h-[100dvh] w-[88vw] max-md:portrait:top-auto max-md:portrait:bottom-0 max-md:portrait:left-0 max-md:portrait:right-0 max-md:portrait:w-full max-md:portrait:h-[84dvh] max-md:portrait:rounded-t-3xl max-md:portrait:border-t max-md:portrait:border-l-0 max-md:landscape:w-[48vw] md:w-[24rem] lg:w-[28rem] bg-[#EDE7E0]/96 border-l border-[#0A0D0B]/15 shadow-2xl backdrop-blur-xl flex flex-col text-[#0A0D0B] justify-between overflow-hidden"
+        className="fixed top-0 right-0 z-40 h-[100dvh] w-[88vw] max-md:portrait:top-auto max-md:portrait:bottom-0 max-md:portrait:left-0 max-md:portrait:right-0 max-md:portrait:w-full max-md:portrait:h-[84dvh] max-md:portrait:rounded-t-3xl max-md:portrait:border-t max-md:portrait:border-l-0 max-lg:landscape:w-[46vw] md:w-[24rem] lg:w-[28rem] bg-[#EDE7E0]/96 border-l border-[#0A0D0B]/15 shadow-2xl backdrop-blur-xl flex flex-col text-[#0A0D0B] justify-between overflow-hidden"
       >
         {/* Barra Superior de Agarre en Móvil Vertical (Bottom Sheet Handle) */}
         <div
@@ -854,11 +854,11 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
         </div>
 
         {/* Cabecera del Panel */}
-        <div className="px-4 py-3.5 sm:p-5 border-b border-[#0A0D0B]/10 flex justify-between items-center relative z-10 bg-[#EDE7E0]/80 shrink-0">
+        <div className="px-4 py-3.5 sm:p-5 max-lg:landscape:px-3.5 max-lg:landscape:py-2 border-b border-[#0A0D0B]/10 flex justify-between items-center relative z-10 bg-[#EDE7E0]/80 shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
             <div>
-              <span className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[#B35F27] font-bold block">LOOM Luxury Residence</span>
-              <h2 className="text-lg sm:text-2xl font-serif text-[#0A0D0B] font-bold tracking-wide mt-0.5 truncate">
+              <span className="text-[8px] sm:text-[10px] max-lg:landscape:text-[8px] uppercase tracking-[0.2em] text-[#B35F27] font-bold block">LOOM Luxury Residence</span>
+              <h2 className="text-lg sm:text-2xl max-lg:landscape:text-base font-serif text-[#0A0D0B] font-bold tracking-wide mt-0.5 truncate">
                 {lotDetails.isAmenity ? translateAreaText(lot.rawId, isEn) : `${isEn ? "Lot" : "Lote"} ${lot.rawId}`}
               </h2>
             </div>
@@ -898,7 +898,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
         </div>
 
         {/* Cuerpo del Panel */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3 sm:space-y-4 relative z-10">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 max-lg:landscape:p-3 space-y-3 sm:space-y-4 max-lg:landscape:space-y-2.5 relative z-10">
           
           {/* Cinta Compacta de Dimensiones */}
           <div className="grid grid-cols-2 bg-white/80 border border-[#0A0D0B]/10 p-2.5 sm:p-3.5 rounded-xl text-center items-center shadow-sm">
@@ -1344,12 +1344,12 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
         </div>
 
         {/* Botones de Acción Fijos Inferiores */}
-        <div className="p-4 sm:p-5 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-[#0A0D0B]/10 bg-[#EDE7E0] space-y-2 shrink-0">
+        <div className="p-4 sm:p-5 max-lg:landscape:p-2.5 pb-[max(1rem,env(safe-area-inset-bottom))] max-lg:landscape:pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-[#0A0D0B]/10 bg-[#EDE7E0] space-y-2 max-lg:landscape:space-y-0 shrink-0">
           {lotDetails.isAmenity ? (
             amenityItems.length > 0 ? (
               <button
                 onClick={() => setIsPlanLightboxOpen(true)}
-                className="w-full py-3.5 bg-[#B35F27] hover:bg-[#964d1d] text-white font-bold rounded-xl uppercase tracking-[0.14em] text-xs transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#B35F27]/25 cursor-pointer hover:scale-[1.01]"
+                className="w-full py-3.5 max-lg:landscape:py-2.5 bg-[#B35F27] hover:bg-[#964d1d] text-white font-bold rounded-xl uppercase tracking-[0.14em] text-xs max-lg:landscape:text-[10px] transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#B35F27]/25 cursor-pointer hover:scale-[1.01]"
               >
                 <Maximize2 className="h-4 w-4 shrink-0" />
                 <span className="truncate">
@@ -1359,43 +1359,43 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                 </span>
               </button>
             ) : (
-              <div className="w-full py-3 text-center text-[#B35F27] font-bold uppercase tracking-widest text-[10px] border border-[#B35F27]/30 rounded-xl bg-[#B35F27]/10 shadow-sm">
+              <div className="w-full py-3 max-lg:landscape:py-2 text-center text-[#B35F27] font-bold uppercase tracking-widest text-[10px] border border-[#B35F27]/30 rounded-xl bg-[#B35F27]/10 shadow-sm">
                 {isEn ? "Official Park Renders • Coming Soon" : "Renders de Parques • Próximamente"}
               </div>
             )
           ) : lot.status === "sold" ? (
-            <div className="w-full py-3 text-center text-red-600 font-bold uppercase tracking-widest text-[10px] border border-red-500/30 rounded-xl bg-red-500/10 shadow-sm">
+            <div className="w-full py-3 max-lg:landscape:py-2 text-center text-red-600 font-bold uppercase tracking-widest text-[10px] border border-red-500/30 rounded-xl bg-red-500/10 shadow-sm">
               {isEn ? "Lot Sold • Not Available" : "Lote Vendido • No disponible"}
             </div>
           ) : lot.status === "blocked" ? (
-            <div className="w-full py-3 text-center text-blue-700 font-bold uppercase tracking-widest text-[10px] border border-blue-500/30 rounded-xl bg-blue-500/10 shadow-sm">
+            <div className="w-full py-3 max-lg:landscape:py-2 text-center text-blue-700 font-bold uppercase tracking-widest text-[10px] border border-blue-500/30 rounded-xl bg-blue-500/10 shadow-sm">
               {isEn ? "Lot Blocked • Administrative Hold" : "Lote Bloqueado • Reserva Administrativa"}
             </div>
           ) : (
-            <>
+            <div className="space-y-2 max-lg:landscape:space-y-0 max-lg:landscape:grid max-lg:landscape:grid-cols-2 max-lg:landscape:gap-2">
               <button
                 onClick={() => onEnterShowroom(lot)}
-                className="w-full py-3.5 bg-[#B35F27] hover:bg-[#964d1d] text-white font-bold rounded-xl uppercase tracking-[0.15em] text-xs transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#B35F27]/25 cursor-pointer hover:scale-[1.01]"
+                className="w-full py-3.5 max-lg:landscape:py-2.5 px-2 bg-[#B35F27] hover:bg-[#964d1d] text-white font-bold rounded-xl uppercase tracking-[0.12em] text-xs max-lg:landscape:text-[10px] transition-all duration-300 flex items-center justify-center gap-1.5 shadow-lg shadow-[#B35F27]/25 cursor-pointer hover:scale-[1.01]"
               >
-                <Layout className="h-4 w-4" />
-                <span>{isEn ? "Enter 3D Showroom" : "Ingresar al Showroom"}</span>
+                <Layout className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 shrink-0" />
+                <span className="truncate">{isEn ? "3D Showroom" : "Showroom 3D"}</span>
               </button>
               <button
                 onClick={handleSeparateClick}
-                className="w-full py-3 bg-white hover:bg-white/80 border border-[#0A0D0B]/15 text-[#0A0D0B] font-bold rounded-xl uppercase tracking-[0.15em] text-xs transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                className="w-full py-3 max-lg:landscape:py-2.5 px-2 bg-white hover:bg-white/80 border border-[#0A0D0B]/15 text-[#0A0D0B] font-bold rounded-xl uppercase tracking-[0.12em] text-xs max-lg:landscape:text-[10px] transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
               >
-                {assignedAdvisor ? <MessageCircle className="h-4 w-4 text-[#25D366]" /> : <Phone className="h-4 w-4 text-[#B35F27]" />}
-                <span>
+                {assignedAdvisor ? <MessageCircle className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 text-[#25D366] shrink-0" /> : <Phone className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 text-[#B35F27] shrink-0" />}
+                <span className="truncate">
                   {assignedAdvisor
                     ? isEn
-                      ? `Reserve via WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
-                      : `Separar por WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
+                      ? `WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
+                      : `WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
                     : isEn
                     ? "Reserve Lot"
                     : "Separar Lote"}
                 </span>
               </button>
-            </>
+            </div>
           )}
         </div>
       </motion.div>

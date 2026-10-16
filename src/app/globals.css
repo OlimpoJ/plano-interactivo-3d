@@ -60,7 +60,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--color-bg);
+  background: var(--color-loom-dark);
   color: var(--color-loom-dark);
   font-family: var(--font-sans);
   overflow-x: hidden;

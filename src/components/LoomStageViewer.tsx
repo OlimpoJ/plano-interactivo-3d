@@ -292,7 +292,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
   const currentConfig = STAGE_CONFIGS[stageId] || STAGE_CONFIGS["etapa_1"];
   const isAmenities = stageId === "etapa_6";
   const containerWidthClass = selectedLot 
-    ? "w-full max-md:landscape:w-[55vw]" 
+    ? "w-full max-lg:landscape:w-[54vw]" 
     : "w-full";
   const svgUrl = currentConfig.svgUrl;
   const bgImage = currentConfig.bgImage;
@@ -826,37 +826,37 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
   };
 
   return (
-    <div className={`relative h-[100dvh] ${containerWidthClass} bg-[#EDE7E0] text-[#0A0D0B] select-none overflow-hidden transition-all duration-500 ease-in-out`}>
+    <div className={`relative h-[100dvh] ${containerWidthClass} bg-[#070c16] text-[#0A0D0B] select-none overflow-hidden transition-all duration-500 ease-in-out`}>
       
       {/* Estilos dinámicos inyectados */}
       <style dangerouslySetInnerHTML={{ __html: dynamicLotStyles }} />
 
-      {/* Fondo difuminado esmerilado */}
+      {/* Fondo difuminado inmersivo (extiende orgánicamente el render aéreo en pantallas 20:9 y ultrawide) */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <img
           src={bgImage}
           alt="Blur background"
-          className="w-full h-full object-cover opacity-25 blur-3xl scale-110 pointer-events-none"
+          className="w-full h-full object-cover opacity-60 blur-2xl scale-110 pointer-events-none"
         />
-        <div className="absolute inset-0 bg-gradient-to-tr from-[#EDE7E0]/80 via-[#F5F1EC]/60 to-[#EDE7E0]/80 pointer-events-none" />
+        <div className="absolute inset-0 bg-[#070c16]/45 pointer-events-none" />
       </div>
 
       {/* Barra Superior Flotante de Controles (Master Plan + Búsqueda Global + Filtros de Estado) */}
-      <div className="absolute top-3 left-14 right-28 sm:top-4 sm:left-18 sm:right-52 z-30 flex flex-nowrap sm:flex-wrap items-center justify-between gap-1.5 sm:gap-2 pointer-events-none">
+      <div className="absolute top-2.5 left-13 right-28 sm:top-3 sm:left-16 sm:right-48 lg:top-4 lg:left-18 lg:right-64 z-30 flex items-center justify-between gap-1.5 sm:gap-2 pointer-events-none">
         <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto min-w-0">
           <button 
             onClick={onBack}
-            className="flex items-center justify-center gap-1.5 px-2.5 py-2 sm:px-3.5 sm:py-2 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[10px] uppercase tracking-wider text-[#EDE7E0] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer shrink-0"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 lg:px-3.5 lg:py-2 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[9.5px] lg:text-[10px] uppercase tracking-wider text-[#EDE7E0] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer shrink-0"
             title={isEn ? "Back to Master Plan" : "Volver al Master Plan"}
           >
-            <svg className="w-3.5 h-3.5 text-[#EDE7E0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 text-[#EDE7E0] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
             <span className="hidden sm:inline">Master Plan</span>
           </button>
 
-          {/* Indicador de Etapa Actual */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#0A0D0B]/85 text-[#EDE7E0] border border-[#EDE7E0]/15 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-md shadow-md shrink-0">
+          {/* Indicador de Etapa Actual (Solo en pantallas amplias XL, ya que la barra inferior resalta la etapa activa) */}
+          <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 bg-[#0A0D0B]/85 text-[#EDE7E0] border border-[#EDE7E0]/15 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-md shadow-md shrink-0">
             <span className="h-2 w-2 rounded-full bg-[#B35F27]" />
             <span>{stageName}</span>
           </div>
@@ -864,16 +864,16 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           {/* Buscador Rápido Global de Lotes (318 Lotes) */}
           {!isAmenities && (
             <div className="relative min-w-0">
-              <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-white/95 border border-[#0A0D0B]/15 rounded-full shadow-md backdrop-blur-md">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/95 border border-[#0A0D0B]/15 rounded-full shadow-md backdrop-blur-md">
                 <svg className="w-3.5 h-3.5 text-[#B35F27] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input
                   type="text"
-                  placeholder={isEn ? "Search lot (e.g. B-22)..." : "Buscar lote (ej: B-22)..."}
+                  placeholder={isEn ? "Search lot..." : "Buscar lote..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent text-[10px] sm:text-[11px] text-[#0A0D0B] placeholder-[#0A0D0B]/45 focus:outline-none w-24 focus:w-32 sm:w-44 sm:focus:w-44 transition-all font-semibold"
+                  className="bg-transparent text-[10px] lg:text-[11px] text-[#0A0D0B] placeholder-[#0A0D0B]/50 focus:outline-none w-20 focus:w-28 sm:w-24 sm:focus:w-32 lg:w-36 xl:w-44 transition-all font-semibold"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery("")} className="text-[#0A0D0B]/40 hover:text-[#0A0D0B] text-xs cursor-pointer shrink-0">
@@ -925,11 +925,88 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
               )}
             </div>
           )}
+
+          {/* Filtros Compactos en Línea para Móvil Horizontal y Tablet (sm a lg): Cero segunda fila sobre los lotes */}
+          {!isAmenities && (
+            <div className="hidden sm:flex lg:hidden items-center gap-1 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 p-1 rounded-full backdrop-blur-md shadow-lg shrink-0">
+              <button
+                onClick={() => toggleFilter("available")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  activeFilters.available
+                    ? "bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/40"
+                    : "text-white/40 border border-transparent"
+                }`}
+                title={isEn ? "Toggle Available Lots" : "Mostrar/Ocultar Lotes Disponibles"}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" />
+                <span>{isEn ? "Avail." : "Disp."} ({stats.available})</span>
+              </button>
+
+              <button
+                onClick={() => toggleFilter("blocked")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  activeFilters.blocked
+                    ? "bg-[#3b82f6]/20 text-[#60a5fa] border border-[#3b82f6]/40"
+                    : "text-white/40 border border-transparent"
+                }`}
+                title={isEn ? "Toggle Blocked Lots" : "Mostrar/Ocultar Lotes Bloqueados"}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-[#3b82f6]" />
+                <span>{isEn ? "Blk." : "Bloq."} ({stats.blocked})</span>
+              </button>
+
+              <button
+                onClick={() => toggleFilter("sold")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  activeFilters.sold
+                    ? "bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40"
+                    : "text-white/40 border border-transparent"
+                }`}
+                title={isEn ? "Toggle Sold Lots" : "Mostrar/Ocultar Lotes Vendidos"}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-[#ef4444]" />
+                <span>{isEn ? "Sold" : "Vend."} ({stats.sold})</span>
+              </button>
+            </div>
+          )}
+
+          {/* Botón Integrado de Galería para Alma Beach Club (Alineado sin colisionar con ES|EN) */}
+          {isAmenities && (
+            <button
+              onClick={() => {
+                const almaPin = pins.find((p) => p.lotId === "CLUB_HOUSE" || p.lotData.status === "common");
+                if (almaPin) {
+                  onSelectLot(almaPin.lotData);
+                } else {
+                  onSelectLot({
+                    id: "CLUB_HOUSE",
+                    rawId: "Alma Beach Club",
+                    area: "Club de Playa",
+                    location: "Club de Playa con Salida Directa al Mar",
+                    status: "common",
+                    statusRaw: "AMENIDAD",
+                    totalPrice: "Área Común",
+                    downPayment: "-",
+                    financing: "-",
+                    finalPayment: "-",
+                  });
+                }
+              }}
+              className="bg-[#0A0D0B]/90 hover:bg-[#B35F27] border border-[#B35F27]/60 px-3 py-1.5 rounded-full text-[8.5px] sm:text-[9px] font-bold text-[#EDE7E0] tracking-wider uppercase backdrop-blur-md flex items-center gap-1.5 shadow-lg transition-all cursor-pointer shrink-0"
+            >
+              <span className="h-2 w-2 rounded-full bg-[#B35F27] animate-pulse shrink-0"></span>
+              <span className="truncate max-w-[165px] sm:max-w-none">
+                {isEn
+                  ? "Alma Beach Club • View Gallery (23 Renders)"
+                  : "Alma Beach Club • Ver Galería (23 Renders)"}
+              </span>
+            </button>
+          )}
         </div>
 
-        {/* Píldoras Interactivas de Filtro por Estado (Disponibles / Bloqueados / Vendidos) - Desktop */}
+        {/* Píldoras Interactivas de Filtro por Estado (Disponibles / Bloqueados / Vendidos) - Desktop (lg+) */}
         {!isAmenities && (
-          <div className="hidden lg:flex items-center gap-1.5 bg-[#0A0D0B]/85 border border-[#EDE7E0]/15 p-1 rounded-full backdrop-blur-md shadow-lg pointer-events-auto">
+          <div className="hidden lg:flex items-center gap-1.5 bg-[#0A0D0B]/85 border border-[#EDE7E0]/15 p-1 rounded-full backdrop-blur-md shadow-lg pointer-events-auto shrink-0">
             <button
               onClick={() => toggleFilter("available")}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
@@ -972,83 +1049,52 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
         )}
       </div>
 
-      {/* Píldoras Interactivas de Filtro por Estado en Móvil / Tablet (Vertical) */}
+      {/* Píldoras Interactivas de Filtro por Estado SOLO en Móvil Vertical estrecho (<640px) */}
       {!isAmenities && (
-        <div className="lg:hidden max-md:landscape:hidden absolute top-14 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 bg-[#0A0D0B]/85 border border-[#EDE7E0]/15 p-1 rounded-full backdrop-blur-md shadow-lg pointer-events-auto max-w-[94vw] overflow-x-auto no-scrollbar">
-          <button
-            onClick={() => toggleFilter("available")}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
-              activeFilters.available
-                ? "bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/40"
-                : "text-white/40 border border-transparent"
-            }`}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" />
-            <span>{isEn ? "Avail." : "Disp."} ({stats.available})</span>
-          </button>
+        <div className="sm:hidden absolute top-13 inset-x-0 z-30 flex justify-center px-3 pointer-events-none">
+          <div className="pointer-events-auto flex items-center gap-1 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 p-1 rounded-full backdrop-blur-md shadow-lg max-w-full overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => toggleFilter("available")}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
+                activeFilters.available
+                  ? "bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/40"
+                  : "text-white/40 border border-transparent"
+              }`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" />
+              <span>{isEn ? "Avail." : "Disp."} ({stats.available})</span>
+            </button>
 
-          <button
-            onClick={() => toggleFilter("blocked")}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
-              activeFilters.blocked
-                ? "bg-[#3b82f6]/20 text-[#60a5fa] border border-[#3b82f6]/40"
-                : "text-white/40 border border-transparent"
-            }`}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-[#3b82f6]" />
-            <span>{isEn ? "Blocked" : "Bloq."} ({stats.blocked})</span>
-          </button>
+            <button
+              onClick={() => toggleFilter("blocked")}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
+                activeFilters.blocked
+                  ? "bg-[#3b82f6]/20 text-[#60a5fa] border border-[#3b82f6]/40"
+                  : "text-white/40 border border-transparent"
+              }`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-[#3b82f6]" />
+              <span>{isEn ? "Blocked" : "Bloq."} ({stats.blocked})</span>
+            </button>
 
-          <button
-            onClick={() => toggleFilter("sold")}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
-              activeFilters.sold
-                ? "bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40"
-                : "text-white/40 border border-transparent"
-            }`}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-[#ef4444]" />
-            <span>{isEn ? "Sold" : "Vend."} ({stats.sold})</span>
-          </button>
+            <button
+              onClick={() => toggleFilter("sold")}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
+                activeFilters.sold
+                  ? "bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40"
+                  : "text-white/40 border border-transparent"
+              }`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-[#ef4444]" />
+              <span>{isEn ? "Sold" : "Vend."} ({stats.sold})</span>
+            </button>
+          </div>
         </div>
-      )}
-
-      {/* Panel de Resumen de Amenidades Flotante (Clic para abrir Galería de Alma Beach Club) */}
-      {isAmenities && (
-        <button
-          onClick={() => {
-            const almaPin = pins.find((p) => p.lotId === "CLUB_HOUSE" || p.lotData.status === "common");
-            if (almaPin) {
-              onSelectLot(almaPin.lotData);
-            } else {
-              onSelectLot({
-                id: "CLUB_HOUSE",
-                rawId: "Alma Beach Club",
-                area: "Club de Playa",
-                location: "Club de Playa con Salida Directa al Mar",
-                status: "common",
-                statusRaw: "AMENIDAD",
-                totalPrice: "Área Común",
-                downPayment: "-",
-                financing: "-",
-                finalPayment: "-",
-              });
-            }
-          }}
-          className="absolute top-14 left-1/2 -translate-x-1/2 sm:top-4 sm:left-auto sm:translate-x-0 sm:right-52 z-30 pointer-events-auto bg-[#0A0D0B]/90 hover:bg-[#B35F27] border border-[#B35F27]/50 px-3.5 py-1.5 rounded-full text-[9px] font-bold text-[#EDE7E0] tracking-widest uppercase backdrop-blur-md flex items-center gap-2 shadow-lg transition-all cursor-pointer whitespace-nowrap"
-        >
-          <span className="h-2 w-2 rounded-full bg-[#B35F27] animate-pulse shrink-0"></span>
-          <span>
-            {isEn
-              ? "Alma Beach Club • View Gallery (23 Renders)"
-              : "Alma Beach Club • Ver Galería (23 Renders)"}
-          </span>
-        </button>
       )}
 
       {/* Área del Plano */}
       <div
-        className={`absolute inset-0 w-full h-full overflow-hidden bg-black/40 shadow-[0_20px_50px_rgba(0,0,0,0.6)] z-10 ${
+        className={`absolute inset-0 w-full h-full overflow-hidden bg-transparent z-10 ${
           mapZoom > 1 ? "cursor-grab active:cursor-grabbing" : ""
         }`}
         onMouseDown={(e) => {
@@ -1296,8 +1342,8 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           )}
       </div>
 
-      {/* Controles Flotantes de Zoom del Mapa (Visibles también en Móvil arriba de la barra de etapas) */}
-      <div className="absolute bottom-14 left-3 sm:bottom-4 sm:left-4 z-30 flex items-center gap-1 p-1 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 rounded-full backdrop-blur-md shadow-xl pointer-events-auto">
+      {/* Controles Flotantes de Zoom del Mapa */}
+      <div className="absolute bottom-13 left-3 sm:bottom-2.5 sm:left-3 lg:bottom-5 lg:left-4 z-30 flex items-center gap-1 p-1 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 rounded-full backdrop-blur-md shadow-xl pointer-events-auto">
         <button
           onClick={() => setMapZoom((z) => Math.min(2.75, +(z + 0.35).toFixed(2)))}
           className="p-1.5 text-[#EDE7E0]/85 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
@@ -1331,25 +1377,27 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
 
       {/* Barra Inferior de Cambio Directo entre Etapas (Bottom Stage Switcher Dock) */}
       {onChangeStage && (
-        <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto max-w-[95vw] overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 rounded-full backdrop-blur-xl shadow-2xl">
-            {activeStages.map((stKey) => {
-              const isCurrent = stKey === stageId;
-              const label = getStageDisplayName(stKey, isEn);
-              return (
-                <button
-                  key={stKey}
-                  onClick={() => onChangeStage(stKey)}
-                  className={`px-2.5 sm:px-3.5 py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer shrink-0 ${
-                    isCurrent
-                      ? "bg-[#B35F27] text-[#EDE7E0] shadow-md scale-105"
-                      : "text-[#EDE7E0]/75 hover:text-[#EDE7E0] hover:bg-white/10"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+        <div className="absolute bottom-2.5 sm:bottom-2.5 lg:bottom-5 inset-x-0 z-30 flex justify-center px-3 pointer-events-none">
+          <div className="pointer-events-auto max-w-full overflow-x-auto no-scrollbar bg-[#0A0D0B]/90 border border-[#EDE7E0]/15 rounded-full backdrop-blur-xl shadow-2xl">
+            <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-1 sm:px-2 sm:py-1 lg:py-1.5 w-max">
+              {activeStages.map((stKey) => {
+                const isCurrent = stKey === stageId;
+                const label = getStageDisplayName(stKey, isEn);
+                return (
+                  <button
+                    key={stKey}
+                    onClick={() => onChangeStage(stKey)}
+                    className={`px-2.5 sm:px-3 lg:px-3.5 py-1 lg:py-1.5 rounded-full text-[8.5px] sm:text-[9px] lg:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer shrink-0 whitespace-nowrap ${
+                      isCurrent
+                        ? "bg-[#B35F27] text-[#EDE7E0] shadow-md scale-105"
+                        : "text-[#EDE7E0]/75 hover:text-[#EDE7E0] hover:bg-white/10"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

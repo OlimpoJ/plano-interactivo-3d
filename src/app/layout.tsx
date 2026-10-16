@@ -1,9 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Montserrat } from "next/font/google";
 import "./globals.css";
 
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat" });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0A0D0B",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.masterplanalmabeach.com"),
