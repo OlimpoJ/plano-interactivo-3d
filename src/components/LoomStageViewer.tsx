@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass } from "lucide-react";
+import { Compass, ChevronDown } from "lucide-react";
 import {
   useLoomLang,
   translateLocationType,
@@ -189,6 +189,8 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
   const [pins, setPins] = useState<ParsedPin[]>([]);
   const [hoveredPin, setHoveredPin] = useState<ParsedPin | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isStageMenuOpen, setIsStageMenuOpen] = useState<boolean>(false);
+  const stageMenuRef = useRef<HTMLDivElement>(null);
   const [mapZoom, setMapZoom] = useState<number>(1);
   const [mapPan, setMapPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const panDragRef = useRef<{
@@ -209,11 +211,23 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
 
   const hasAutoSelectedRef = useRef<boolean>(false);
 
-  // Reset zoom and pan when switching stages
+  // Reset zoom, pan and close stage menu when switching stages
   useEffect(() => {
     setMapZoom(1);
     setMapPan({ x: 0, y: 0 });
+    setIsStageMenuOpen(false);
   }, [stageId]);
+
+  // Close stage dropdown menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (stageMenuRef.current && !stageMenuRef.current.contains(e.target as Node)) {
+        setIsStageMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (mapZoom <= 1) {
@@ -841,24 +855,82 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
         <div className="absolute inset-0 bg-[#070c16]/45 pointer-events-none" />
       </div>
 
-      {/* Barra Superior Flotante de Controles (Master Plan + Búsqueda Global + Filtros de Estado) */}
-      <div className="absolute top-2.5 left-13 right-28 sm:top-3 sm:left-16 sm:right-48 lg:top-4 lg:left-18 lg:right-64 z-30 flex items-center justify-between gap-1.5 sm:gap-2 pointer-events-none">
+      {/* Barra Superior Flotante de Controles (Master Plan + Selector de Etapa + Búsqueda Global + Filtros de Estado) */}
+      <div className="absolute top-2.5 left-13 right-28 sm:top-3 sm:left-15 sm:right-46 lg:top-4 lg:left-18 lg:right-64 z-30 flex items-center justify-between gap-1.5 sm:gap-2 pointer-events-none">
         <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto min-w-0">
           <button 
             onClick={onBack}
-            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 lg:px-3.5 lg:py-2 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[9.5px] lg:text-[10px] uppercase tracking-wider text-[#EDE7E0] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer shrink-0"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 lg:px-3.5 lg:py-2 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[9.5px] lg:text-[10px] uppercase tracking-wider text-[#EDE7E0] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer shrink-0"
             title={isEn ? "Back to Master Plan" : "Volver al Master Plan"}
           >
             <svg className="w-3.5 h-3.5 text-[#EDE7E0] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
-            <span className="hidden sm:inline">Master Plan</span>
+            <span className="hidden sm:inline xl:hidden">{isEn ? "Map" : "Mapa"}</span>
+            <span className="hidden xl:inline">Master Plan</span>
           </button>
 
-          {/* Indicador de Etapa Actual (Solo en pantallas amplias XL, ya que la barra inferior resalta la etapa activa) */}
-          <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 bg-[#0A0D0B]/85 text-[#EDE7E0] border border-[#EDE7E0]/15 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-md shadow-md shrink-0">
-            <span className="h-2 w-2 rounded-full bg-[#B35F27]" />
-            <span>{stageName}</span>
+          {/* Selector Desplegable Compacto de Etapa (En la Barra Superior) */}
+          <div ref={stageMenuRef} className="relative shrink-0">
+            <button
+              onClick={() => setIsStageMenuOpen((prev) => !prev)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3 lg:py-2 bg-[#0A0D0B]/90 hover:bg-[#0A0D0B] text-[#EDE7E0] border border-[#B35F27]/55 rounded-full text-[9.5px] lg:text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-lg transition-all cursor-pointer active:scale-95"
+              title={isEn ? "Switch Stage" : "Cambiar de Etapa"}
+            >
+              <span className="h-2 w-2 rounded-full bg-[#B35F27] shrink-0" />
+              <span className="whitespace-nowrap">{stageName}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-[#dbaa67] transition-transform duration-200 shrink-0 ${
+                  isStageMenuOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {isStageMenuOpen && onChangeStage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                  transition={{ duration: 0.16 }}
+                  className="absolute top-full left-0 mt-1.5 w-48 bg-[#0A0D0B]/95 border border-[#B35F27]/45 rounded-2xl p-1.5 shadow-2xl backdrop-blur-xl z-50 space-y-0.5"
+                >
+                  <div className="px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.2em] text-[#dbaa67]/75 border-b border-white/10 mb-1">
+                    {isEn ? "Select Stage" : "Seleccionar Etapa"}
+                  </div>
+                  {activeStages.map((stKey) => {
+                    const isCurrent = stKey === stageId;
+                    const label = getStageDisplayName(stKey, isEn);
+                    return (
+                      <button
+                        key={stKey}
+                        onClick={() => {
+                          onChangeStage(stKey);
+                          setIsStageMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                          isCurrent
+                            ? "bg-[#B35F27] text-[#EDE7E0] shadow-md"
+                            : "text-[#EDE7E0]/80 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                              isCurrent ? "bg-[#EDE7E0]" : "bg-[#B35F27]/70"
+                            }`}
+                          />
+                          <span className="whitespace-nowrap">{label}</span>
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[10px] text-[#EDE7E0] font-bold">✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Buscador Rápido Global de Lotes (318 Lotes) */}
@@ -873,7 +945,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                   placeholder={isEn ? "Search lot..." : "Buscar lote..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent text-[10px] lg:text-[11px] text-[#0A0D0B] placeholder-[#0A0D0B]/50 focus:outline-none w-20 focus:w-28 sm:w-24 sm:focus:w-32 lg:w-36 xl:w-44 transition-all font-semibold"
+                  className="bg-transparent text-[10px] lg:text-[11px] text-[#0A0D0B] placeholder-[#0A0D0B]/50 focus:outline-none w-16 focus:w-24 sm:w-20 sm:focus:w-28 lg:w-36 xl:w-44 transition-all font-semibold"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery("")} className="text-[#0A0D0B]/40 hover:text-[#0A0D0B] text-xs cursor-pointer shrink-0">
@@ -1343,7 +1415,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
       </div>
 
       {/* Controles Flotantes de Zoom del Mapa */}
-      <div className="absolute bottom-13 left-3 sm:bottom-2.5 sm:left-3 lg:bottom-5 lg:left-4 z-30 flex items-center gap-1 p-1 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 rounded-full backdrop-blur-md shadow-xl pointer-events-auto">
+      <div className="absolute bottom-3 left-3 lg:bottom-5 lg:left-4 z-30 flex items-center gap-1 p-1 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 rounded-full backdrop-blur-md shadow-xl pointer-events-auto">
         <button
           onClick={() => setMapZoom((z) => Math.min(2.75, +(z + 0.35).toFixed(2)))}
           className="p-1.5 text-[#EDE7E0]/85 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
@@ -1374,33 +1446,6 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           </button>
         )}
       </div>
-
-      {/* Barra Inferior de Cambio Directo entre Etapas (Bottom Stage Switcher Dock) */}
-      {onChangeStage && (
-        <div className="absolute bottom-2.5 sm:bottom-2.5 lg:bottom-5 inset-x-0 z-30 flex justify-center px-3 pointer-events-none">
-          <div className="pointer-events-auto max-w-full overflow-x-auto no-scrollbar bg-[#0A0D0B]/90 border border-[#EDE7E0]/15 rounded-full backdrop-blur-xl shadow-2xl">
-            <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-1 sm:px-2 sm:py-1 lg:py-1.5 w-max">
-              {activeStages.map((stKey) => {
-                const isCurrent = stKey === stageId;
-                const label = getStageDisplayName(stKey, isEn);
-                return (
-                  <button
-                    key={stKey}
-                    onClick={() => onChangeStage(stKey)}
-                    className={`px-2.5 sm:px-3 lg:px-3.5 py-1 lg:py-1.5 rounded-full text-[8.5px] sm:text-[9px] lg:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer shrink-0 whitespace-nowrap ${
-                      isCurrent
-                        ? "bg-[#B35F27] text-[#EDE7E0] shadow-md scale-105"
-                        : "text-[#EDE7E0]/75 hover:text-[#EDE7E0] hover:bg-white/10"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Leyenda de Brújula (Flotante a la Derecha) */}
       <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/75 text-[9px] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
