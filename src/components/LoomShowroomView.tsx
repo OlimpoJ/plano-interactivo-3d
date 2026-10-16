@@ -101,6 +101,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
 
   // Lightbox a pantalla completa real
   const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
+  const [lotBlueprintLightboxOpen, setLotBlueprintLightboxOpen] = useState<boolean>(false);
 
   // Modal de selección de inmobiliaria / asesoría comercial
   const [showReferralModal, setShowReferralModal] = useState<boolean>(false);
@@ -531,8 +532,8 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
   };
 
   const currentPlans = selectedVilla === "luxury" 
-    ? [lotPlanItem, ...luxuryPlans] 
-    : [lotPlanItem, ...gardenPlans];
+    ? luxuryPlans 
+    : gardenPlans;
 
   const getActiveMediaList = useCallback(() => {
     if (activeTab === "gallery") return sharedGallery;
@@ -571,7 +572,10 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") handlePrevMedia();
       if (e.key === "ArrowRight") handleNextMedia();
-      if (e.key === "Escape") setLightboxOpen(false);
+      if (e.key === "Escape") {
+        setLightboxOpen(false);
+        setLotBlueprintLightboxOpen(false);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -897,17 +901,11 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
               )}
             </div>
 
-            {/* Contenedor de la Imagen con Click para ver en el visor principal / Lightbox */}
+            {/* Contenedor de la Imagen con Click para ampliar en pantalla completa */}
             <div 
-              onClick={() => {
-                setActiveTab("plans");
-                setActiveIndex(0);
-                if (typeof window !== "undefined" && window.innerWidth < 1024) {
-                  setIsPanelOpen(false);
-                }
-              }}
+              onClick={() => setLotBlueprintLightboxOpen(true)}
               className="relative w-full aspect-square bg-[#0A0D0B]/[0.03] rounded-xl overflow-hidden border border-[#0A0D0B]/10 cursor-pointer group shadow-inner flex items-center justify-center transition-all duration-300 hover:border-[#B35F27]/50"
-              title={isEn ? "View blueprint and dimensions in main viewer" : "Ver plano y medidas en el visor central"}
+              title={isEn ? "Expand blueprint and dimensions fullscreen" : "Ampliar plano y medidas a pantalla completa"}
             >
               <img
                 src={individualLotPlanSrc}
@@ -919,7 +917,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-2.5">
                 <span className="text-white text-[10px] 2xl:text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md bg-black/50 px-2.5 py-1 rounded-full border border-white/20">
                   <Maximize2 className="h-3 w-3 text-[#EBD9AB]" />
-                  {isEn ? "View in Main Screen" : "Ver en Visor Central"}
+                  {isEn ? "Expand Fullscreen" : "Ampliar Medidas"}
                 </span>
                 <span className="text-[9px] 2xl:text-xs text-[#EBD9AB] font-mono font-bold bg-[#B35F27]/80 px-2 py-0.5 rounded">
                   1080p
@@ -930,9 +928,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setActiveTab("plans");
-                  setActiveIndex(0);
-                  setLightboxOpen(true);
+                  setLotBlueprintLightboxOpen(true);
                 }}
                 className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 text-[#0A0D0B] shadow-md border border-[#0A0D0B]/10 hover:bg-[#B35F27] hover:text-white transition-colors duration-200"
                 title={isEn ? "View dimensions fullscreen" : "Ver medidas a pantalla completa"}
@@ -1192,7 +1188,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
       {/* 4. MODAL LIGHTBOX COMPLETO (FULLSCREEN IMAGES) */}
       {/* ========================================== */}
       <AnimatePresence>
-        {lightboxOpen && currentMediaItem && (
+        {(lotBlueprintLightboxOpen || (lightboxOpen && currentMediaItem)) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1201,10 +1197,15 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           >
             <div className="flex justify-between items-center max-w-7xl mx-auto w-full border-b border-white/10 pb-3">
               <span className="text-xs font-mono text-[#EBD9AB] uppercase tracking-widest font-bold">
-                {translateMediaTitle(currentMediaItem.title, isEn)}
+                {lotBlueprintLightboxOpen
+                  ? lotPlanItem.title
+                  : translateMediaTitle(currentMediaItem?.title || "", isEn)}
               </span>
               <button
-                onClick={() => setLightboxOpen(false)}
+                onClick={() => {
+                  setLightboxOpen(false);
+                  setLotBlueprintLightboxOpen(false);
+                }}
                 className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-6 h-6" />
@@ -1213,14 +1214,20 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
 
             <div className="relative flex-1 flex items-center justify-center my-4 overflow-hidden">
               <img
-                src={currentMediaItem.src}
-                alt={translateMediaTitle(currentMediaItem.title, isEn)}
+                src={lotBlueprintLightboxOpen ? lotPlanItem.src : currentMediaItem?.src}
+                alt={
+                  lotBlueprintLightboxOpen
+                    ? lotPlanItem.title
+                    : translateMediaTitle(currentMediaItem?.title || "", isEn)
+                }
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
               />
             </div>
 
             <div className="max-w-4xl mx-auto w-full bg-white/10 backdrop-blur-md p-4 rounded-xl text-center">
-              <p className="text-xs text-white/90 leading-relaxed font-sans">{currentMediaItem.description}</p>
+              <p className="text-xs text-white/90 leading-relaxed font-sans">
+                {lotBlueprintLightboxOpen ? lotPlanItem.description : currentMediaItem?.description}
+              </p>
             </div>
           </motion.div>
         )}
