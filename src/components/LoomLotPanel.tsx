@@ -361,30 +361,6 @@ const AMENITY_GALLERIES: Record<AmenityGalleryConfig["key"], AmenityGalleryConfi
         descEn:
           "Regulation padel court integrated into the Club House landscape, featuring tempered glass enclosures and sports lighting.",
       },
-      {
-        num: "03",
-        src: "/loom/renders/amenities/urbanismo/galeria_01_urbanismo_implantacion_vista_1.webp",
-        titleEs: "Implantación General Urbanismo • Vista 1",
-        titleEn: "Masterplan Urban Layout • View 1",
-        categoryEs: "Urbanismo LOOM",
-        categoryEn: "LOOM Masterplan",
-        descEs:
-          "Vista aérea cenital de la implantación del proyecto: manzanas de lotes con trazado diagonal, vías internas con retornos, zona de amenidades con piscinas y jardines, y el Club de Playa al oriente.",
-        descEn:
-          "Top-down aerial view of the project layout: diagonal lot blocks, internal roads with turnarounds, amenity zone with pools and gardens, and the Beach Club to the east.",
-      },
-      {
-        num: "04",
-        src: "/loom/renders/amenities/urbanismo/galeria_02_urbanismo_implantacion_vista_2.webp",
-        titleEs: "Implantación Numerada & Ejes Viales • Vista 2",
-        titleEn: "Numbered Masterplan & Road Axes • View 2",
-        categoryEs: "Urbanismo LOOM",
-        categoryEn: "LOOM Masterplan",
-        descEs:
-          "Vista aérea cenital con lotes numerados por manzana y ejes viales de la A a la L: al occidente la portería de acceso, en el sector central el parque lineal, y al oriente el Club House y el Beach Club.",
-        descEn:
-          "Top-down aerial view with numbered lots by block and road axes A through L: main gatehouse to the west, linear park in the center, and Club House and Beach Club to the east.",
-      },
     ],
   },
   PORTERIA: {
