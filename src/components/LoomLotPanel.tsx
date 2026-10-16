@@ -827,20 +827,38 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
 
   return (
     <>
-      {/* Contenedor Principal (Panel Lateral) */}
+      {/* Fondo Oscuro Táctil para Cerrar en Móvil */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="md:hidden fixed inset-0 z-30 bg-black/45 backdrop-blur-[2px]"
+      />
+
+      {/* Contenedor Principal (Bottom Sheet en Móvil Vertical / Panel Lateral en Horizontal y Desktop) */}
       <motion.div
         initial={{ x: "100%", opacity: 0.8 }}
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: "100%", opacity: 0.8 }}
         transition={{ type: "spring", damping: 25, stiffness: 150 }}
-        className="fixed top-0 right-0 z-40 h-[100dvh] w-[85vw] max-md:landscape:w-[48vw] md:w-[24rem] lg:w-[28rem] bg-[#EDE7E0]/95 border-l border-[#0A0D0B]/15 shadow-2xl backdrop-blur-xl flex flex-col text-[#0A0D0B] justify-between"
+        className="fixed top-0 right-0 z-40 h-[100dvh] w-[88vw] max-md:portrait:top-auto max-md:portrait:bottom-0 max-md:portrait:left-0 max-md:portrait:right-0 max-md:portrait:w-full max-md:portrait:h-[84dvh] max-md:portrait:rounded-t-3xl max-md:portrait:border-t max-md:portrait:border-l-0 max-md:landscape:w-[48vw] md:w-[24rem] lg:w-[28rem] bg-[#EDE7E0]/96 border-l border-[#0A0D0B]/15 shadow-2xl backdrop-blur-xl flex flex-col text-[#0A0D0B] justify-between overflow-hidden"
       >
+        {/* Barra Superior de Agarre en Móvil Vertical (Bottom Sheet Handle) */}
+        <div
+          onClick={onClose}
+          className="md:hidden portrait:flex hidden w-full pt-2.5 pb-1 justify-center items-center bg-[#EDE7E0]/90 cursor-pointer shrink-0"
+          title={isEn ? "Tap to close" : "Toca para cerrar"}
+        >
+          <div className="w-11 h-1.5 rounded-full bg-[#0A0D0B]/20" />
+        </div>
+
         {/* Cabecera del Panel */}
-        <div className="p-4 sm:p-5 border-b border-[#0A0D0B]/10 flex justify-between items-center relative z-10 bg-[#EDE7E0]/80">
-          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+        <div className="px-4 py-3.5 sm:p-5 border-b border-[#0A0D0B]/10 flex justify-between items-center relative z-10 bg-[#EDE7E0]/80 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
             <div>
               <span className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[#B35F27] font-bold block">LOOM Luxury Residence</span>
-              <h2 className="text-lg sm:text-2xl font-serif text-[#0A0D0B] font-bold tracking-wide mt-0.5">
+              <h2 className="text-lg sm:text-2xl font-serif text-[#0A0D0B] font-bold tracking-wide mt-0.5 truncate">
                 {lotDetails.isAmenity ? translateAreaText(lot.rawId, isEn) : `${isEn ? "Lot" : "Lote"} ${lot.rawId}`}
               </h2>
             </div>
@@ -849,7 +867,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             {!lotDetails.isAmenity && (
               <button
                 onClick={handleShareLot}
@@ -1326,15 +1344,15 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
         </div>
 
         {/* Botones de Acción Fijos Inferiores */}
-        <div className="p-4 sm:p-5 border-t border-[#0A0D0B]/10 bg-[#EDE7E0] space-y-2">
+        <div className="p-4 sm:p-5 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-[#0A0D0B]/10 bg-[#EDE7E0] space-y-2 shrink-0">
           {lotDetails.isAmenity ? (
             amenityItems.length > 0 ? (
               <button
                 onClick={() => setIsPlanLightboxOpen(true)}
                 className="w-full py-3.5 bg-[#B35F27] hover:bg-[#964d1d] text-white font-bold rounded-xl uppercase tracking-[0.14em] text-xs transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#B35F27]/25 cursor-pointer hover:scale-[1.01]"
               >
-                <Maximize2 className="h-4 w-4" />
-                <span>
+                <Maximize2 className="h-4 w-4 shrink-0" />
+                <span className="truncate">
                   {isEn
                     ? `Fullscreen Gallery (${amenityItems.length} Renders)`
                     : `Ver Galería en Pantalla Completa (${amenityItems.length} Renders)`}
@@ -1391,32 +1409,32 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[#0A0D0B]/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-6"
+            className="fixed inset-0 z-50 bg-[#0A0D0B]/95 backdrop-blur-2xl flex flex-col justify-between p-3 sm:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
             onClick={() => setIsPlanLightboxOpen(false)}
           >
             {/* Header del Lightbox */}
             <div 
-              className="flex justify-between items-center w-full max-w-6xl mx-auto z-10"
+              className="flex justify-between items-center gap-2 w-full max-w-6xl mx-auto z-10"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-[#B35F27]/20 border border-[#B35F27]/40 text-[#EBD9AB]">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="p-2 rounded-xl bg-[#B35F27]/20 border border-[#B35F27]/40 text-[#EBD9AB] shrink-0 hidden xs:block sm:block">
                   {lotDetails.isAmenity ? <ImageIcon className="h-5 w-5" /> : <Ruler className="h-5 w-5" />}
                 </div>
-                <div>
-                  <span className="text-[9px] uppercase tracking-[0.25em] text-[#EBD9AB] font-mono font-bold block">
+                <div className="min-w-0">
+                  <span className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-[#EBD9AB] font-mono font-bold block truncate">
                     {lotDetails.isAmenity
                       ? isEn
-                        ? `LOOM LUXURY RESIDENCE • ${lotDetails.amenityGallery?.badgeEn || "COMMON AREA GALLERY"}`
-                        : `LOOM LUXURY RESIDENCE • ${lotDetails.amenityGallery?.badgeEs || "GALERÍA DE ZONA COMÚN"}`
+                        ? `LOOM • ${lotDetails.amenityGallery?.badgeEn || "COMMON AREA GALLERY"}`
+                        : `LOOM • ${lotDetails.amenityGallery?.badgeEs || "GALERÍA DE ZONA COMÚN"}`
                       : isEn
-                      ? "LOOM LUXURY RESIDENCE • OFFICIAL TECHNICAL BLUEPRINT"
-                      : "LOOM LUXURY RESIDENCE • PLANO TÉCNICO OFICIAL"}
+                      ? "LOOM • OFFICIAL TECHNICAL BLUEPRINT"
+                      : "LOOM • PLANO TÉCNICO OFICIAL"}
                   </span>
-                  <h3 className="text-base sm:text-xl font-serif font-bold text-white tracking-wide">
+                  <h3 className="text-sm sm:text-xl font-serif font-bold text-white tracking-wide truncate">
                     {lotDetails.isAmenity && activeAmenityItem ? (
                       <>
-                        <span className="text-[#B35F27] mr-2">{activeAmenityItem.num}</span>
+                        <span className="text-[#B35F27] mr-1.5 sm:mr-2">{activeAmenityItem.num}</span>
                         {isEn ? activeAmenityItem.titleEn : activeAmenityItem.titleEs}
                       </>
                     ) : (
@@ -1428,32 +1446,32 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                 </div>
               </div>
 
-              {/* Botones de Control de Zoom & Cerrar */}
-              <div className="flex items-center gap-2">
-                <div className="hidden sm:flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-xl p-1 border border-white/15">
+              {/* Botones de Control de Zoom & Cerrar (Visibles en Móvil y Desktop) */}
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <div className="flex items-center gap-0.5 sm:gap-1 bg-white/10 backdrop-blur-md rounded-xl p-1 border border-white/15">
                   <button
                     onClick={() => setLightboxZoom(prev => Math.max(0.75, prev - 0.25))}
-                    className="p-1.5 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
+                    className="p-1 sm:p-1.5 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
                     title={isEn ? "Zoom out" : "Reducir zoom"}
                   >
-                    <ZoomOut className="h-4 w-4" />
+                    <ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </button>
-                  <span className="text-xs font-mono font-bold text-[#EBD9AB] px-2">
+                  <span className="text-[10px] sm:text-xs font-mono font-bold text-[#EBD9AB] px-1 sm:px-2">
                     {Math.round(lightboxZoom * 100)}%
                   </span>
                   <button
                     onClick={() => setLightboxZoom(prev => Math.min(3, prev + 0.25))}
-                    className="p-1.5 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
+                    className="p-1 sm:p-1.5 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
                     title={isEn ? "Zoom in" : "Aumentar zoom"}
                   >
-                    <ZoomIn className="h-4 w-4" />
+                    <ZoomIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </button>
                   <button
                     onClick={() => setLightboxZoom(1)}
-                    className="p-1.5 hover:bg-white/20 rounded-lg text-white/70 hover:text-white transition-colors cursor-pointer"
+                    className="p-1 sm:p-1.5 hover:bg-white/20 rounded-lg text-white/70 hover:text-white transition-colors cursor-pointer"
                     title={isEn ? "Reset zoom" : "Restablecer zoom"}
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    <RotateCcw className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                   </button>
                 </div>
 
@@ -1462,63 +1480,63 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                   className="p-2 sm:p-2.5 rounded-full bg-white/10 hover:bg-[#B35F27] border border-white/20 text-white transition-all cursor-pointer"
                   title={isEn ? "Close (Esc)" : "Cerrar (Esc)"}
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
             </div>
 
             {/* Contenedor Central de la Imagen con Zoom y Navegación */}
             <div 
-              className="relative flex-1 flex items-center justify-center overflow-hidden my-3 w-full max-w-6xl mx-auto"
+              className="relative flex-1 flex items-center justify-center overflow-hidden my-2 sm:my-3 w-full max-w-6xl mx-auto"
               onClick={(e) => e.stopPropagation()}
             >
               {lotDetails.isAmenity && amenityItems.length > 1 && (
                 <button
                   onClick={handlePrevAmenitySlide}
-                  className="absolute left-2 sm:left-4 z-20 p-3 rounded-full bg-black/65 hover:bg-[#B35F27] text-white border border-white/20 transition-all cursor-pointer shadow-2xl"
+                  className="absolute left-1.5 sm:left-4 z-20 p-2 sm:p-3 rounded-full bg-black/65 hover:bg-[#B35F27] text-white border border-white/20 transition-all cursor-pointer shadow-2xl"
                   title={isEn ? "Previous (Left Arrow)" : "Anterior (Flecha Izquierda)"}
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
               )}
 
               <motion.div
                 animate={{ scale: lightboxZoom }}
                 transition={{ type: "spring", stiffness: 200, damping: 25 }}
-                className={`max-w-5xl max-h-[72vh] rounded-2xl shadow-2xl border border-white/20 overflow-hidden flex items-center justify-center ${
+                className={`max-w-5xl max-h-[68dvh] sm:max-h-[72vh] rounded-2xl shadow-2xl border border-white/20 overflow-hidden flex items-center justify-center ${
                   lotDetails.isAmenity ? "bg-black/60 p-1" : "bg-white p-2"
                 }`}
               >
                 <img
                   src={lotDetails.isAmenity && activeAmenityItem ? activeAmenityItem.src : lotDetails.imageSrc}
                   alt={lotDetails.isAmenity && activeAmenityItem ? (isEn ? activeAmenityItem.titleEn : activeAmenityItem.titleEs) : `Plano Lote ${lot.rawId}`}
-                  className="max-w-full max-h-[70vh] object-contain select-none rounded-xl"
+                  className="max-w-full max-h-[66dvh] sm:max-h-[70vh] object-contain select-none rounded-xl"
                 />
               </motion.div>
 
               {lotDetails.isAmenity && amenityItems.length > 1 && (
                 <button
                   onClick={handleNextAmenitySlide}
-                  className="absolute right-2 sm:right-4 z-20 p-3 rounded-full bg-black/65 hover:bg-[#B35F27] text-white border border-white/20 transition-all cursor-pointer shadow-2xl"
+                  className="absolute right-1.5 sm:right-4 z-20 p-2 sm:p-3 rounded-full bg-black/65 hover:bg-[#B35F27] text-white border border-white/20 transition-all cursor-pointer shadow-2xl"
                   title={isEn ? "Next (Right Arrow)" : "Siguiente (Flecha Derecha)"}
                 >
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
               )}
             </div>
 
             {/* Footer Informativo & Tira de Miniaturas del Lightbox */}
             <div 
-              className="w-full max-w-5xl mx-auto flex flex-col gap-3 z-10"
+              className="w-full max-w-5xl mx-auto flex flex-col gap-2 sm:gap-3 z-10"
               onClick={(e) => e.stopPropagation()}
             >
               {lotDetails.isAmenity && activeAmenityItem ? (
                 <>
-                  <p className="text-center text-white/85 text-xs sm:text-sm max-w-3xl mx-auto leading-relaxed">
+                  <p className="text-center text-white/85 text-[11px] sm:text-sm max-w-3xl mx-auto leading-relaxed line-clamp-2 sm:line-clamp-none px-2">
                     {isEn ? activeAmenityItem.descEn : activeAmenityItem.descEs}
                   </p>
                   {amenityItems.length > 1 && (
-                    <div className="flex items-center justify-center gap-2 overflow-x-auto py-1 no-scrollbar">
+                    <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto py-1 px-2 no-scrollbar">
                       {amenityItems.map((item, idx) => {
                         const isCurrent = idx === amenitySlideIdx;
                         return (
@@ -1528,7 +1546,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                               setAmenitySlideIdx(idx);
                               setLightboxZoom(1);
                             }}
-                            className={`relative h-12 sm:h-14 w-20 sm:w-24 rounded-lg overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                            className={`relative h-11 sm:h-14 w-16 sm:w-24 rounded-lg overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
                               isCurrent
                                 ? "border-[#B35F27] scale-105 shadow-lg"
                                 : "border-white/15 opacity-55 hover:opacity-100"
@@ -1547,17 +1565,17 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                 </>
               ) : (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-center text-white/70 text-xs">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
                     <span className="px-2.5 py-1 rounded-full bg-[#B35F27]/20 border border-[#B35F27]/40 text-[#EBD9AB] font-bold text-[10px] uppercase">
                       {isEn ? "Type:" : "Tipología:"} {translateLocationType(lot.location || "Medianero", isEn)}
                     </span>
-                    <span className="text-[11px] text-white/80">
+                    <span className="text-[10px] sm:text-[11px] text-white/80">
                       {isEn
                         ? "Boundary, depth, and frontage dimensions expressed in linear meters (m)."
                         : "Medidas de linderos, fondos y frentes expresadas en metros lineales (m)."}
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-white/50">
+                  <span className="text-[10px] font-mono text-white/50 hidden sm:inline">
                     {isEn ? "Press Esc to close" : "Presiona Esc para cerrar"}
                   </span>
                 </div>

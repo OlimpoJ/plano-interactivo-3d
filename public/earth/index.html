@@ -13,8 +13,8 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
     
     <!-- Custom Luxury HUD Styles -->
-    <script type="module" crossorigin src="./assets/index-zER7ySCA.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DRaFBOWL.css">
+    <script type="module" crossorigin src="./assets/index-CTjSkEJ0.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-XBckznm1.css">
   </head>
   <body>
     <!-- Map Canvas 3D -->
@@ -47,25 +47,25 @@
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
               </svg>
-              <span id="lbl-show-all">Todos (4)</span>
+              <span id="lbl-show-all">Todos (1/4)</span>
             </button>
             <button class="nav-pill active pill-selected" id="btn-proj-loom" data-id="loom">
               <span class="pill-chk" data-toggle="loom" title="Seleccionar / Deseleccionar">✓</span>
               <span class="nav-pill-dot" style="background:#d4af37;box-shadow:0 0 8px #d4af37;"></span>
               <span>Loom</span>
             </button>
-            <button class="nav-pill pill-selected" id="btn-proj-luwana" data-id="luwana">
-              <span class="pill-chk" data-toggle="luwana" title="Seleccionar / Deseleccionar">✓</span>
+            <button class="nav-pill pill-deselected" id="btn-proj-luwana" data-id="luwana">
+              <span class="pill-chk" data-toggle="luwana" title="Seleccionar / Deseleccionar"></span>
               <span class="nav-pill-dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8;"></span>
               <span>Luwana</span>
             </button>
-            <button class="nav-pill pill-selected" id="btn-proj-pantai" data-id="pantai">
-              <span class="pill-chk" data-toggle="pantai" title="Seleccionar / Deseleccionar">✓</span>
+            <button class="nav-pill pill-deselected" id="btn-proj-pantai" data-id="pantai">
+              <span class="pill-chk" data-toggle="pantai" title="Seleccionar / Deseleccionar"></span>
               <span class="nav-pill-dot" style="background:#10b981;box-shadow:0 0 8px #10b981;"></span>
               <span>Pantai</span>
             </button>
-            <button class="nav-pill pill-selected" id="btn-proj-niwu" data-id="niwu">
-              <span class="pill-chk" data-toggle="niwu" title="Seleccionar / Deseleccionar">✓</span>
+            <button class="nav-pill pill-deselected" id="btn-proj-niwu" data-id="niwu">
+              <span class="pill-chk" data-toggle="niwu" title="Seleccionar / Deseleccionar"></span>
               <span class="nav-pill-dot" style="background:#a78bfa;box-shadow:0 0 8px #a78bfa;"></span>
               <span>Niwu</span>
             </button>
@@ -123,82 +123,92 @@
       <!-- INVESTMENT DOSSIER DRAWER (SIDEBAR / MOBILE BOTTOM SHEET) -->
       <aside class="dossier-drawer" id="dossier-drawer" aria-label="Dossier de Inversión">
         <div class="sheet-handle" id="sheet-handle"></div>
-        <div class="dossier-header">
-          <div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+        <div class="dossier-header" id="dossier-header-bar">
+          <div class="dossier-header-info">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
               <span class="dossier-badge" id="dossier-badge">Lujo Bioclimático</span>
               <span class="dossier-sector-tag" id="dossier-sector-tag">Proyecto Alma Beach · Residencias Bioclimáticas</span>
             </div>
             <h2 class="dossier-title" id="dossier-title">Loom Luxury Residence</h2>
+            <p class="mobile-quick-summary" id="mobile-quick-summary">72.480 m² · 7.25 Ha · Salida Directa al Mar</p>
           </div>
-          <button class="btn-close-dossier" id="btn-close-dossier" aria-label="Cerrar">✕</button>
-        </div>
-
-        <!-- Botón para Concentrarse / Aislar este lote -->
-        <button class="btn-focus-toggle" id="btn-focus-toggle" title="Concentrarse exclusivamente en este lote">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <circle cx="12" cy="12" r="3"></circle>
-            <line x1="12" y1="2" x2="12" y2="5"></line>
-            <line x1="12" y1="19" x2="12" y2="22"></line>
-            <line x1="2" y1="12" x2="5" y2="12"></line>
-            <line x1="19" y1="12" x2="22" y2="12"></line>
-          </svg>
-          <span id="lbl-focus-toggle">Concentrarse solo en este lote (Loom Luxury Residence)</span>
-        </button>
-
-        <!-- Metrics Grid -->
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-title" id="lbl-area">Área Total</div>
-            <div class="metric-value" id="val-area">72.480 m²</div>
-            <div class="metric-sub" id="val-hectares">7.25 Ha</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-title" id="lbl-perimeter">Perímetro</div>
-            <div class="metric-value" id="val-perimeter">1.845,2 m</div>
-            <div class="metric-sub" id="lbl-perimeter-sub">Línea de Linderos</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-title" id="lbl-elevation">Elevación</div>
-            <div class="metric-value" id="val-elevation">0 - 5.6 m</div>
-            <div class="metric-sub" id="lbl-elevation-sub">Sobre el nivel del mar</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-title" id="lbl-access">Acceso Costero</div>
-            <div class="metric-value" id="val-access" style="font-size:13px;color:#00f0ff;">Salida Directa al Mar</div>
-            <div class="metric-sub" id="val-access-sub">Alma Beach Club</div>
+          <div class="dossier-header-controls">
+            <button class="btn-mobile-expand" id="btn-mobile-expand" type="button" aria-label="Ver Ficha Completa">
+              <span id="lbl-mobile-expand">Ver Ficha</span>
+              <span class="expand-chevron" id="expand-chevron">▴</span>
+            </button>
+            <button class="btn-close-dossier" id="btn-close-dossier" aria-label="Cerrar">✕</button>
           </div>
         </div>
 
-        <!-- Corporate & Licensing Strip -->
-        <div class="corporate-meta-box">
-          <div class="corporate-meta-row">
-            <span class="corporate-meta-label" id="lbl-promoter">Promotora y Aliados</span>
-            <span class="corporate-meta-val" id="val-promoter">Promotora Rubik 5 · ICG · Maadga Group</span>
+        <!-- Collapsible Details Body (Expanded by default on Desktop, Toggleable on Mobile) -->
+        <div class="dossier-collapsible-body" id="dossier-collapsible-body">
+          <!-- Botón para Concentrarse / Aislar este lote -->
+          <button class="btn-focus-toggle is-focused" id="btn-focus-toggle" title="Mostrar todos los lotes / Concentrarse en este lote">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="3"></circle>
+              <line x1="12" y1="2" x2="12" y2="5"></line>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+              <line x1="2" y1="12" x2="5" y2="12"></line>
+              <line x1="19" y1="12" x2="22" y2="12"></line>
+            </svg>
+            <span id="lbl-focus-toggle">Mostrar todos los lotes</span>
+          </button>
+
+          <!-- Metrics Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-title" id="lbl-area">Área Total</div>
+              <div class="metric-value" id="val-area">72.480 m²</div>
+              <div class="metric-sub" id="val-hectares">7.25 Ha</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title" id="lbl-perimeter">Perímetro</div>
+              <div class="metric-value" id="val-perimeter">1.845,2 m</div>
+              <div class="metric-sub" id="lbl-perimeter-sub">Línea de Linderos</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title" id="lbl-elevation">Elevación</div>
+              <div class="metric-value" id="val-elevation">0 - 5.6 m</div>
+              <div class="metric-sub" id="lbl-elevation-sub">Sobre el nivel del mar</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title" id="lbl-access">Acceso Costero</div>
+              <div class="metric-value" id="val-access" style="font-size:13px;color:#00f0ff;">Salida Directa al Mar</div>
+              <div class="metric-sub" id="val-access-sub">Alma Beach Club</div>
+            </div>
           </div>
-          <div class="corporate-meta-row">
-            <span class="corporate-meta-label" id="lbl-license">Vocación y Licencia</span>
-            <span class="corporate-meta-val" id="val-license">Residencial Premium & Rentas Boutique</span>
+
+          <!-- Corporate & Licensing Strip -->
+          <div class="corporate-meta-box">
+            <div class="corporate-meta-row">
+              <span class="corporate-meta-label" id="lbl-promoter">Promotora y Aliados</span>
+              <span class="corporate-meta-val" id="val-promoter">Promotora Rubik 5 · ICG · Maadga Group</span>
+            </div>
+            <div class="corporate-meta-row">
+              <span class="corporate-meta-label" id="lbl-license">Vocación y Licencia</span>
+              <span class="corporate-meta-val" id="val-license">Residencial Premium & Rentas Boutique</span>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <p class="dossier-description" id="dossier-desc">
+            Residencias de ultra lujo con salida directa al mar, diseñadas bajo principios bioclimáticos por Maadga Group (Gary Michell) y construidas por ICG.
+          </p>
+
+          <!-- Strategic Highlights -->
+          <div>
+            <h4 style="font-size:11px;text-transform:uppercase;color:var(--text-gold);letter-spacing:1px;margin-bottom:8px;" id="lbl-highlights">
+              Atributos de Plusvalía
+            </h4>
+            <ul class="highlights-list" id="dossier-highlights">
+              <!-- Injected via JS -->
+            </ul>
           </div>
         </div>
 
-        <!-- Description -->
-        <p class="dossier-description" id="dossier-desc">
-          Residencias de ultra lujo con salida directa al mar, diseñadas bajo principios bioclimáticos por Maadga Group (Gary Michell) y construidas por ICG.
-        </p>
-
-        <!-- Strategic Highlights -->
-        <div>
-          <h4 style="font-size:11px;text-transform:uppercase;color:var(--text-gold);letter-spacing:1px;margin-bottom:10px;" id="lbl-highlights">
-            Atributos de Plusvalía
-          </h4>
-          <ul class="highlights-list" id="dossier-highlights">
-            <!-- Injected via JS -->
-          </ul>
-        </div>
-
-        <!-- Action Buttons (Connected Funnel) -->
+        <!-- Action Buttons (Always visible at bottom of Dossier) -->
         <div class="dossier-actions">
           <a href="https://showroom.patrimofy.com/?project=loom" target="_blank" rel="noopener noreferrer" class="btn-showroom-gold" id="btn-enter-showroom">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -208,22 +218,31 @@
             <span id="lbl-enter-showroom">Ingresar al Plano Interactivo 3D</span>
           </a>
 
-          <a href="#" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-cta" id="btn-whatsapp">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"></path>
-            </svg>
-            <span id="lbl-contact-advisor">Hablar con Asesor en WhatsApp</span>
-          </a>
+          <div class="dossier-secondary-actions">
+            <a href="#" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-cta" id="btn-whatsapp">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"></path>
+              </svg>
+              <span id="lbl-contact-advisor">Hablar con Asesor en WhatsApp</span>
+            </a>
 
-          <a href="https://www.google.com/maps/search/?api=1&query=10.638991,-75.420583" target="_blank" rel="noopener noreferrer" class="btn-gps-link" id="btn-google-maps">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <span id="lbl-open-gmaps">Ver Ruta GPS en Google Maps</span>
-          </a>
+            <a href="https://www.google.com/maps/search/?api=1&query=10.638991,-75.420583" target="_blank" rel="noopener noreferrer" class="btn-gps-link" id="btn-google-maps">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <span id="lbl-open-gmaps">Ver Ruta GPS en Google Maps</span>
+            </a>
+          </div>
         </div>
       </aside>
+
+      <!-- Floating Pill to Reopen Dossier when Closed -->
+      <button class="btn-reopen-dossier hud-interactive" id="btn-reopen-dossier" type="button" style="display:none;">
+        <span class="reopen-dot" id="reopen-dot"></span>
+        <span id="lbl-reopen-dossier">Loom Luxury Residence · Ver Info</span>
+        <span style="color:var(--gold-primary);font-size:12px;">▴</span>
+      </button>
 
       <!-- BOTTOM BAR & TELEMETRY -->
       <footer class="hud-bottombar hud-interactive">

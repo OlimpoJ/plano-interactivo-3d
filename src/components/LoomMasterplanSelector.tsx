@@ -174,10 +174,10 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
       </div>
 
       {/* Botón Flotante Volver al Inicio (Sobre la imagen, desplazado para no colisionar con el menú) */}
-      <div className="absolute top-4 left-16 sm:left-18 z-30 pointer-events-auto flex items-center gap-2.5">
+      <div className="absolute top-3 left-14 sm:top-4 sm:left-18 z-30 pointer-events-auto flex items-center gap-2">
         <button 
           onClick={onBack}
-          className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#0A0D0B]/80 hover:bg-[#0A0D0B] active:scale-95 border border-[#EDE7E0]/20 rounded-full text-[10px] uppercase tracking-wider text-[#EDE7E0] hover:text-[#B35F27] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2 bg-[#0A0D0B]/80 hover:bg-[#0A0D0B] active:scale-95 border border-[#EDE7E0]/20 rounded-full text-[10px] uppercase tracking-wider text-[#EDE7E0] hover:text-[#B35F27] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer"
         >
           ← {isEn ? "Home" : "Inicio"}
         </button>
@@ -187,9 +187,15 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
         </div>
       </div>
 
+      {/* Indicador de exploración táctil en móvil vertical */}
+      <div className="md:hidden portrait:flex hidden absolute top-14 left-1/2 -translate-x-1/2 z-30 pointer-events-none items-center gap-1.5 px-3 py-1 rounded-full bg-[#0A0D0B]/75 border border-[#EDE7E0]/15 backdrop-blur-md text-[9px] uppercase tracking-widest text-[#EDE7E0]/85 font-semibold whitespace-nowrap shadow-md">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#10b981] animate-pulse" />
+        <span>{isEn ? "Swipe map or select a stage below" : "Desliza el mapa o elige una etapa abajo"}</span>
+      </div>
+
       <div 
         ref={containerRef}
-        className="absolute inset-0 w-full h-full overflow-hidden z-10"
+        className="absolute inset-0 w-full h-full overflow-hidden max-md:portrait:overflow-x-auto max-md:portrait:overflow-y-hidden z-10 touch-pan-x"
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoveredStage(null)}
       >
@@ -203,8 +209,8 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
               }
             `}} />
 
-            {/* Wrapper del Mapa: Ocupa toda la pantalla y contiene el render y hitboxes */}
-            <div className="w-full h-full relative">
+            {/* Wrapper del Mapa: En Desktop ocupa toda la pantalla; en Móvil Vertical ofrece vista panorámica deslizable */}
+            <div className="w-full h-full max-md:portrait:w-[235vw] max-md:portrait:min-w-[860px] max-md:portrait:h-[46dvh] max-md:portrait:mt-[9dvh] relative">
 
               {/* SVG Visual Overlay (Glassmorphism & Zoom) */}
               <svg 
@@ -522,6 +528,64 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
         <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/80 text-[9px] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
           <Compass className="h-3.5 w-3.5 text-[#B35F27] rotate-[45deg]" />
           {isEn ? "North oriented towards the sea (Right / Beach)" : "Norte orientado hacia el mar (Derecha / Playa)"}
+        </div>
+      </div>
+
+      {/* Selector Rápido de Etapas para Móvil (Grid 2x3 en Vertical / Dock Compacto en Horizontal) */}
+      <div className="md:hidden absolute bottom-0 inset-x-0 z-30 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-[#051415] via-[#051415]/95 to-transparent pointer-events-auto">
+        <div className="max-w-md mx-auto">
+          <p className="portrait:block landscape:hidden text-center text-[9px] uppercase tracking-[0.2em] text-[#EDE7E0]/70 font-bold mb-2">
+            {isEn ? "Tap a Stage to Explore Lots & Pricing" : "Toca una Etapa para Explorar Lotes y Precios"}
+          </p>
+          <div className="grid grid-cols-2 gap-2 landscape:flex landscape:items-center landscape:justify-center landscape:gap-1.5 landscape:overflow-x-auto">
+            {stagesData.map((stage) => {
+              const stats = stageStats[stage.id];
+              const isAlma = stage.id === "ZONA_6";
+              const label = isEn ? stage.nameEn : stage.nameEs;
+              return (
+                <button
+                  key={`mobile-stage-${stage.id}`}
+                  onClick={() => onSelectStage(stage.stageKey)}
+                  className={`flex items-center justify-between px-3 py-2.5 landscape:px-2.5 landscape:py-1.5 rounded-xl border backdrop-blur-md transition-all active:scale-95 text-left cursor-pointer ${
+                    isAlma
+                      ? "bg-[#B35F27]/25 border-[#B35F27]/60 text-[#EDE7E0]"
+                      : "bg-[#EDE7E0]/92 border-[#0A0D0B]/15 text-[#0A0D0B]"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          isAlma ? "bg-[#F3E5AB]" : "bg-[#10b981]"
+                        }`}
+                      />
+                      <span className="text-[11px] landscape:text-[10px] font-extrabold uppercase tracking-wider truncate">
+                        {label}
+                      </span>
+                    </div>
+                    <span
+                      className={`block text-[9px] landscape:hidden font-bold uppercase tracking-wider mt-0.5 pl-3.5 ${
+                        isAlma ? "text-[#F3E5AB]" : "text-[#0f766e]"
+                      }`}
+                    >
+                      {isAlma
+                        ? isEn
+                          ? "Beach Club • 23 Renders"
+                          : "Club de Playa • 23 Renders"
+                        : `${stats?.available ?? 0} ${isEn ? "Avail." : "Disp."} / ${stats?.total ?? 0}`}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-xs font-bold ml-1.5 landscape:hidden ${
+                      isAlma ? "text-[#F3E5AB]" : "text-[#B35F27]"
+                    }`}
+                  >
+                    →
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

@@ -285,7 +285,7 @@ function LoomShowroomInner() {
     <LoomOrientationWrapper>
       
       {/* Controles Flotantes Globales (Menú Hamburguesa & Regresar al Master Plan en Hero) */}
-      <div className="fixed top-4 left-4 z-40 flex items-center gap-2 pointer-events-auto">
+      <div className="fixed top-3 left-3 sm:top-4 sm:left-4 z-40 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
         <button
           onClick={() => setIsMenuOpen(true)}
           className="p-2.5 sm:p-3 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] transition-all duration-300 group cursor-pointer"
@@ -297,21 +297,24 @@ function LoomShowroomInner() {
         {view === "hero" && (
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-lg"
+            className="flex items-center gap-1.5 px-2.5 py-2 sm:px-3.5 sm:py-2 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] text-[10px] sm:text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer"
           >
-            <ArrowLeft size={14} />
-            <span>{isEn ? "Back to Master Plan" : "Regresar al Master Plan"}</span>
+            <ArrowLeft size={14} className="shrink-0" />
+            <span>
+              <span className="hidden sm:inline">{isEn ? "Back to " : "Regresar al "}</span>
+              Master Plan
+            </span>
           </Link>
         )}
       </div>
 
       {view !== "showroom" && !(view === "stage" && selectedLot) && (
-        <div className="fixed top-4 right-4 z-40 flex items-center gap-2 pointer-events-auto">
+        <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-40 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
           {/* Botón Elegante de Vista Limpia (Solo en la Hero para apreciar el video) */}
           {view === "hero" && (
             <button
               onClick={() => setIsCleanVideoView((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full border shadow-xl backdrop-blur-md text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-full border shadow-xl backdrop-blur-md text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
                 isCleanVideoView
                   ? "bg-[#B35F27] text-[#EDE7E0] border-[#B35F27] hover:bg-[#964d1d]"
                   : "bg-[#EDE7E0]/92 text-[#0A0D0B] border-[#0A0D0B]/15 hover:bg-[#EDE7E0] hover:text-[#B35F27]"
@@ -329,12 +332,14 @@ function LoomShowroomInner() {
               {isCleanVideoView ? (
                 <>
                   <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                  <span>{isEn ? "Show Info" : "Mostrar Info"}</span>
+                  <span className="sm:hidden">{isEn ? "Info" : "Info"}</span>
+                  <span className="hidden sm:inline">{isEn ? "Show Info" : "Mostrar Info"}</span>
                 </>
               ) : (
                 <>
                   <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#B35F27] shrink-0" />
-                  <span className="hidden xs:inline sm:inline">{isEn ? "Clean View" : "Vista Limpia"}</span>
+                  <span className="sm:hidden">{isEn ? "Clean" : "Limpia"}</span>
+                  <span className="hidden sm:inline">{isEn ? "Clean View" : "Vista Limpia"}</span>
                 </>
               )}
             </button>
@@ -392,7 +397,7 @@ function LoomShowroomInner() {
             title={
               isFullscreen
                 ? isEn ? "Exit Fullscreen" : "Salir de Pantalla Completa"
-                : isEn ? "Fullscreen" : "Pantalla Completa"
+                : isEn ? "Pantalla Completa" : "Pantalla Completa"
             }
           >
             {isFullscreen ? (
@@ -437,7 +442,7 @@ function LoomShowroomInner() {
         />
       ) : view === "stage" && selectedStage ? (
         /* Vista de Lotes por Etapa */
-        <div className="relative w-full min-h-screen bg-[#070c16] overflow-hidden flex flex-col">
+        <div className="relative w-full min-h-dvh bg-[#070c16] overflow-hidden flex flex-col">
           <LoomStageViewer
             stageId={selectedStage}
             lots={lots}
@@ -476,7 +481,7 @@ function LoomShowroomInner() {
         />
       ) : (
         /* Pantalla Hero de Entrada */
-        <main className="loom-theme relative w-full min-h-screen bg-black overflow-hidden flex flex-col text-white select-none">
+        <main className="loom-theme relative w-full min-h-dvh bg-black overflow-hidden flex flex-col text-white select-none">
           <section className={styles.heroContainer}>
             {/* Video de Fondo de Loom */}
             <video

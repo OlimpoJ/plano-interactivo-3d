@@ -641,7 +641,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
   const currentTourItem = activeTab === "tour360" ? tour360List[activeIndex] : null;
 
   return (
-    <div className="relative w-full h-screen bg-[#0A0D0B] text-[#EDE7E0] flex flex-col overflow-hidden font-sans select-none">
+    <div className="relative w-full h-dvh bg-[#0A0D0B] text-[#EDE7E0] flex flex-col overflow-hidden font-sans select-none">
 
       {/* ========================================== */}
       {/* 1. VISOR PRINCIPAL INMERSIVO (SE ADAPTA AL PANEL & 4K) */}
@@ -709,7 +709,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         <button
           onClick={handlePrevMedia}
           className={`absolute ${
-            !isPanelOpen ? "left-12 sm:left-14 min-[2200px]:left-20" : "left-3 sm:left-4 min-[2200px]:left-8"
+            !isPanelOpen ? "left-3 sm:left-14 min-[2200px]:left-20" : "left-3 sm:left-4 min-[2200px]:left-8"
           } top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 min-[2200px]:p-8 rounded-full bg-[#EDE7E0] hover:bg-[#B35F27] border border-[#0A0D0B]/20 hover:border-[#B35F27] text-[#0A0D0B] hover:text-white transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95 cursor-pointer group`}
           title={isEn ? "Previous (Left Arrow)" : "Anterior (Flecha Izquierda)"}
         >
@@ -725,14 +725,14 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         </button>
 
         {/* Badge Flotante Inferior de Información del Render */}
-        <div className="absolute bottom-3 sm:bottom-4 min-[2200px]:bottom-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 sm:gap-3 min-[2200px]:gap-7 px-3 py-1.5 sm:px-4 sm:py-2 min-[2200px]:px-10 min-[2200px]:py-5 bg-[#0A0D0B]/85 backdrop-blur-xl border border-white/15 rounded-full shadow-2xl max-w-[50vw] sm:max-w-[60vw] min-[2200px]:max-w-[80vw]">
+        <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-4 min-[2200px]:bottom-14 left-3 sm:left-1/2 sm:-translate-x-1/2 z-20 flex items-center gap-2 sm:gap-3 min-[2200px]:gap-7 px-3 py-1.5 sm:px-4 sm:py-2 min-[2200px]:px-10 min-[2200px]:py-5 bg-[#0A0D0B]/88 backdrop-blur-xl border border-white/15 rounded-full shadow-2xl max-w-[68vw] sm:max-w-[60vw] min-[2200px]:max-w-[80vw]">
           <span className="text-[10px] sm:text-xs min-[2200px]:text-xl font-mono font-bold text-[#EBD9AB] uppercase tracking-wider shrink-0">
             {activeTab === "tour360"
               ? `${activeIndex + 1} / ${tour360List.length}`
               : `${activeIndex + 1} / ${activeMediaList.length}`}
           </span>
-          <span className="h-3 min-[2200px]:h-7 w-[1px] bg-white/20" />
-          <p className="text-[10px] sm:text-xs min-[2200px]:text-2xl font-serif font-bold text-white truncate max-w-[120px] sm:max-w-[180px] md:max-w-[240px] min-[2200px]:max-w-2xl">
+          <span className="h-3 min-[2200px]:h-7 w-[1px] bg-white/20 shrink-0" />
+          <p className="text-[10px] sm:text-xs min-[2200px]:text-2xl font-serif font-bold text-white truncate max-w-[140px] sm:max-w-[180px] md:max-w-[240px] min-[2200px]:max-w-2xl">
             {activeTab === "tour360"
               ? currentTourItem?.label
               : translateMediaTitle(currentMediaItem?.title || "", isEn)}
@@ -740,7 +740,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           {activeTab !== "tour360" && (
             <button
               onClick={() => setLightboxOpen(true)}
-              className="p-1 min-[2200px]:p-2 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors cursor-pointer ml-0.5"
+              className="p-1 min-[2200px]:p-2 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors cursor-pointer ml-0.5 shrink-0"
               title={isEn ? "View fullscreen" : "Ver en pantalla completa"}
             >
               <Maximize2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 min-[2200px]:w-7 min-[2200px]:h-7" />
@@ -751,11 +751,12 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         {/* Botón Flotante Inferior Derecha: Plano de Ubicación */}
         <button
           onClick={() => setShowMiniMapModal(true)}
-          className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 min-[2200px]:bottom-14 min-[2200px]:right-14 z-20 flex items-center gap-1.5 sm:gap-2 min-[2200px]:gap-3 px-3 py-1.5 sm:px-4 sm:py-2 min-[2200px]:px-9 min-[2200px]:py-5 bg-[#EDE7E0] hover:bg-white text-[#0A0D0B] border border-[#0A0D0B]/20 rounded-full shadow-2xl backdrop-blur-md transition-all duration-300 active:scale-95 cursor-pointer font-semibold text-[10px] sm:text-xs min-[2200px]:text-xl uppercase tracking-wider"
+          className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 sm:bottom-4 sm:right-4 min-[2200px]:bottom-14 min-[2200px]:right-14 z-20 flex items-center gap-1.5 sm:gap-2 min-[2200px]:gap-3 px-3 py-1.5 sm:px-4 sm:py-2 min-[2200px]:px-9 min-[2200px]:py-5 bg-[#EDE7E0] hover:bg-white text-[#0A0D0B] border border-[#0A0D0B]/20 rounded-full shadow-2xl backdrop-blur-md transition-all duration-300 active:scale-95 cursor-pointer font-semibold text-[10px] sm:text-xs min-[2200px]:text-xl uppercase tracking-wider"
           title={isEn ? "View Lot Location on Map" : "Ver Plano de Ubicación del Lote"}
         >
-          <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 min-[2200px]:w-8 min-[2200px]:h-8 text-[#B35F27]" />
+          <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 min-[2200px]:w-8 min-[2200px]:h-8 text-[#B35F27] shrink-0" />
           <span className="hidden sm:inline">{isEn ? "Stage Location" : "Ubicación en Área"}</span>
+          <span className="sm:hidden">{isEn ? "Map" : "Mapa"}</span>
         </button>
 
       </div>
@@ -763,19 +764,28 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
       {/* ========================================== */}
       {/* 2. BARRA SUPERIOR DE NAVEGACIÓN FLOTANTE */}
       {/* ========================================== */}
-      <header className="absolute top-0 left-0 right-0 z-30 px-3 sm:px-5 min-[2200px]:px-10 py-2.5 min-[2200px]:py-6 bg-gradient-to-b from-[#0A0D0B]/90 via-[#0A0D0B]/60 to-transparent backdrop-blur-sm flex justify-between items-center pointer-events-none">
+      <header className="absolute top-0 left-0 right-0 z-30 px-3 sm:px-5 min-[2200px]:px-10 py-3 sm:py-2.5 min-[2200px]:py-6 bg-gradient-to-b from-[#0A0D0B]/90 via-[#0A0D0B]/60 to-transparent backdrop-blur-sm flex justify-between items-center pointer-events-none">
         
         {/* Lado Izquierdo: Título o Volver si panel cerrado */}
-        <div className={`flex items-center gap-3 min-[2200px]:gap-5 pointer-events-auto transition-all duration-300 ${!isPanelOpen ? "ml-12 sm:ml-14" : ""}`}>
+        <div className={`flex items-center gap-1.5 sm:gap-3 min-[2200px]:gap-5 pointer-events-auto transition-all duration-300 ${!isPanelOpen ? "ml-11 sm:ml-14" : ""}`}>
           {!isPanelOpen && (
-            <button
-              onClick={onBack}
-              className="flex items-center gap-1.5 px-3 py-1.5 min-[2200px]:px-8 min-[2200px]:py-4 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[11px] sm:text-xs min-[2200px]:text-base font-bold text-[#EDE7E0] uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer whitespace-nowrap"
-            >
-              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 min-[2200px]:w-6 min-[2200px]:h-6" />
-              <span className="hidden sm:inline">{isEn ? "Back to Stage" : "Volver a la Etapa"}</span>
-              <span className="sm:hidden">{isEn ? "Back" : "Volver"}</span>
-            </button>
+            <>
+              <button
+                onClick={onBack}
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 min-[2200px]:px-8 min-[2200px]:py-4 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[10px] sm:text-xs min-[2200px]:text-base font-bold text-[#EDE7E0] uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer whitespace-nowrap"
+              >
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 min-[2200px]:w-6 min-[2200px]:h-6" />
+                <span className="hidden sm:inline">{isEn ? "Back to Stage" : "Volver a la Etapa"}</span>
+                <span className="sm:hidden">{isEn ? "Back" : "Volver"}</span>
+              </button>
+              <button
+                onClick={() => setIsPanelOpen(true)}
+                className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 bg-[#EDE7E0]/95 hover:bg-white text-[#0A0D0B] border border-[#0A0D0B]/15 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-md cursor-pointer whitespace-nowrap"
+              >
+                <Layers className="w-3.5 h-3.5 text-[#B35F27]" />
+                <span>{isEn ? "Lot & Models" : "Lote y Modelos"}</span>
+              </button>
+            </>
           )}
 
           <div className="hidden md:block">
@@ -789,12 +799,20 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         </div>
 
         {/* Lado Derecho: Estado del Lote & Acciones */}
-        <div className="flex items-center gap-3 pointer-events-auto mr-24 sm:mr-28">
+        <div className="flex items-center gap-3 pointer-events-auto mr-0 sm:mr-28">
           <div className="px-2.5 py-1 sm:px-3 sm:py-1 min-[2200px]:px-7 min-[2200px]:py-3 bg-[#699385]/20 border border-[#699385]/40 text-[#699385] text-[10px] sm:text-xs min-[2200px]:text-base font-bold uppercase tracking-widest rounded-full">
             {translateStatusRaw(selectedLot.statusRaw, isEn, selectedLot.status)}
           </div>
         </div>
       </header>
+
+      {/* Fondo Táctil en Móvil/Tablet para Cerrar el Panel y Ver Renders */}
+      {isPanelOpen && (
+        <div
+          onClick={() => setIsPanelOpen(false)}
+          className="lg:hidden fixed inset-0 z-30 bg-black/50 backdrop-blur-[2px]"
+        />
+      )}
 
       {/* ========================================== */}
       {/* 3. PANEL LATERAL COLAPSABLE */}
@@ -805,7 +823,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           x: isPanelOpen ? 0 : "-100%",
         }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed top-0 left-0 bottom-0 z-40 w-full sm:w-[300px] lg:w-[336px] min-[2200px]:w-[28vw] 2xl:w-[30vw] min-[2500px]:w-[32vw] min-w-[280px] max-w-[950px] bg-[#EDE7E0] text-[#0A0D0B] shadow-2xl border-r border-[#0A0D0B]/15 flex flex-col justify-between"
+        className="fixed top-0 left-0 bottom-0 z-40 w-[86vw] max-w-[330px] sm:max-w-none sm:w-[300px] lg:w-[336px] min-[2200px]:w-[28vw] 2xl:w-[30vw] min-[2500px]:w-[32vw] min-w-[270px] lg:max-w-[950px] bg-[#EDE7E0] text-[#0A0D0B] shadow-2xl border-r border-[#0A0D0B]/15 flex flex-col justify-between"
       >
         {/* Pestaña Flotante Visible para Ocultar/Mostrar el Panel */}
         <button
@@ -821,16 +839,27 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         </button>
 
         {/* Scrollable Panel Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 2xl:p-8 min-[2500px]:p-12 space-y-6 2xl:space-y-8 min-[2500px]:space-y-10 scrollbar-hide pt-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 2xl:p-8 min-[2500px]:p-12 space-y-5 sm:space-y-6 2xl:space-y-8 min-[2500px]:space-y-10 scrollbar-hide pt-5 sm:pt-6">
           
-          {/* Botón Volver a la Etapa Integrado en la Barra Lateral */}
-          <button
-            onClick={onBack}
-            className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 xl:py-4 min-[2500px]:py-5 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-xl text-xs xl:text-sm min-[2500px]:text-lg font-bold text-[#EDE7E0] uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer whitespace-nowrap"
-          >
-            <ChevronLeft className="w-4 h-4 xl:w-5 xl:h-5 min-[2500px]:w-6 min-[2500px]:h-6" />
-            <span>{isEn ? "Back to Stage" : "Volver a la Etapa"}</span>
-          </button>
+          {/* Botones Superiores de Navegación en el Panel */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onBack}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-3 sm:px-4 sm:py-3.5 xl:py-4 min-[2500px]:py-5 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-xl text-[11px] sm:text-xs xl:text-sm min-[2500px]:text-lg font-bold text-[#EDE7E0] uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer whitespace-nowrap"
+            >
+              <ChevronLeft className="w-4 h-4 xl:w-5 xl:h-5 min-[2500px]:w-6 min-[2500px]:h-6 shrink-0" />
+              <span>{isEn ? "Back to Stage" : "Volver a la Etapa"}</span>
+            </button>
+
+            <button
+              onClick={() => setIsPanelOpen(false)}
+              className="lg:hidden flex items-center justify-center gap-1.5 px-3 py-3 bg-[#0A0D0B] text-[#EDE7E0] rounded-xl text-[10px] font-bold uppercase tracking-wider shadow-md active:scale-95 cursor-pointer shrink-0"
+              title={isEn ? "View Renders" : "Ver Renders"}
+            >
+              <Eye className="w-3.5 h-3.5 text-[#EBD9AB]" />
+              <span>{isEn ? "View Renders" : "Ver Renders"}</span>
+            </button>
+          </div>
           
           {/* Header Specs Card */}
           <div className="bg-white/80 border border-[#0A0D0B]/10 rounded-2xl p-4 2xl:p-6 min-[2500px]:p-8 shadow-sm space-y-3">
@@ -889,6 +918,9 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
               onClick={() => {
                 setActiveTab("plans");
                 setActiveIndex(0);
+                if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                  setIsPanelOpen(false);
+                }
               }}
               className="relative w-full aspect-square bg-[#0A0D0B]/[0.03] rounded-xl overflow-hidden border border-[#0A0D0B]/10 cursor-pointer group shadow-inner flex items-center justify-center transition-all duration-300 hover:border-[#B35F27]/50"
               title={isEn ? "View blueprint and dimensions in main viewer" : "Ver plano y medidas en el visor central"}
@@ -1037,7 +1069,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           {/* Thumbnails Grid for Active Tab Items */}
           <div className="space-y-2 2xl:space-y-4 pt-1">
             <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#0A0D0B]/60 font-mono font-bold block px-1">
-              {isEn ? "Direct View Selection" : "Selección Directa de Vista"}
+              {isEn ? "Direct View Selection (Tap to View)" : "Selección Directa de Vista (Toca para Ver)"}
             </span>
 
             {activeTab === "tour360" ? (
@@ -1045,7 +1077,12 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                 {tour360List.map((scene, idx) => (
                   <button
                     key={scene.id}
-                    onClick={() => setActiveIndex(idx)}
+                    onClick={() => {
+                      setActiveIndex(idx);
+                      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                        setIsPanelOpen(false);
+                      }
+                    }}
                     className={`flex items-center justify-between p-2.5 2xl:p-4 min-[2500px]:p-5 rounded-xl border text-xs 2xl:text-base text-left transition-all duration-300 cursor-pointer ${
                       activeIndex === idx
                         ? "bg-[#0A0D0B] text-white border-[#0A0D0B] shadow-md"
@@ -1065,7 +1102,12 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                 {activeMediaList.map((media, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setActiveIndex(idx)}
+                    onClick={() => {
+                      setActiveIndex(idx);
+                      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                        setIsPanelOpen(false);
+                      }
+                    }}
                     className={`relative rounded-lg overflow-hidden border aspect-[4/3] cursor-pointer transition-all duration-300 group ${
                       activeIndex === idx
                         ? "border-[#B35F27] ring-2 ring-[#B35F27]/50 shadow-md"
@@ -1131,7 +1173,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         </div>
 
         {/* Sticky Action Footer */}
-        <div className="p-4 2xl:p-6 min-[2500px]:p-8 bg-white/90 border-t border-[#0A0D0B]/10 backdrop-blur-md space-y-2">
+        <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] 2xl:p-6 min-[2500px]:p-8 bg-white/90 border-t border-[#0A0D0B]/10 backdrop-blur-md space-y-2 shrink-0">
           {assignedAdvisor && (
             <div className="bg-[#B35F27]/15 border border-[#B35F27]/35 rounded-xl p-2 text-[10px] 2xl:text-xs text-[#0A0D0B] uppercase tracking-wider text-center font-semibold flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
@@ -1171,20 +1213,22 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
+            onClick={() => setShowMiniMapModal(false)}
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-4xl bg-[#EDE7E0] rounded-2xl overflow-hidden shadow-2xl border border-white/20 flex flex-col"
             >
-              <div className="flex justify-between items-center px-6 py-4 border-b border-[#0A0D0B]/10 bg-[#EDE7E0]">
+              <div className="flex justify-between items-center px-4 py-3 sm:px-6 sm:py-4 border-b border-[#0A0D0B]/10 bg-[#EDE7E0]">
                 <div>
-                  <span className="text-[9px] uppercase tracking-widest text-[#B35F27] font-bold block font-mono">
+                  <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-[#B35F27] font-bold block font-mono">
                     {isEn ? "Master Plan Location" : "Ubicación en Master Plan"}
                   </span>
-                  <h3 className="text-base font-serif font-bold text-[#0A0D0B]">
+                  <h3 className="text-sm sm:text-base font-serif font-bold text-[#0A0D0B]">
                     {isEn ? `Lot ${selectedLot.rawId} Map` : `Plano del Lote ${selectedLot.rawId}`} &bull; {formattedStage}
                   </h3>
                 </div>
@@ -1196,7 +1240,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                 </button>
               </div>
 
-              <div className="w-full h-[500px] bg-black/5">
+              <div className="w-full h-[60dvh] sm:h-[500px] bg-black/5">
                 <LoomLotZoomCanvas stageId={stageId} selectedLot={selectedLot} />
               </div>
             </motion.div>

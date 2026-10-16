@@ -78,10 +78,10 @@ export default function LoomLocationModal({ isOpen, onClose }: LoomLocationModal
             type="button"
             onClick={onClose}
             aria-label={isEn ? "Return to 3D Interactive Plan" : "Volver al Plano Interactivo 3D"}
-            className="fixed top-[78px] sm:top-[86px] left-3.5 sm:left-[26px] z-[60] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0b0f17]/85 hover:bg-[#121826]/95 text-[#f8fafc] border border-[#d4af37]/40 hover:border-[#d4af37] shadow-[0_10px_30px_rgba(0,0,0,0.65)] hover:shadow-[0_0_18px_rgba(212,175,55,0.35)] backdrop-blur-xl transition-all duration-200 cursor-pointer group"
+            className="fixed top-[104px] md:top-[86px] left-3 md:left-[26px] z-[60] inline-flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-3.5 md:py-2 rounded-xl bg-[#0b0f17]/90 hover:bg-[#121826]/95 text-[#f8fafc] border border-[#d4af37]/45 hover:border-[#d4af37] shadow-[0_10px_30px_rgba(0,0,0,0.65)] hover:shadow-[0_0_18px_rgba(212,175,55,0.35)] backdrop-blur-xl transition-all duration-200 cursor-pointer group"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
-            <span className="text-[11px] sm:text-xs font-medium tracking-wide">
+            <span className="text-[10.5px] sm:text-xs font-medium tracking-wide">
               {isEn ? "Return to 3D Plan" : "Volver al Plano 3D"}
             </span>
             <span className="hidden md:inline-flex items-center px-1.5 py-0.5 ml-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-mono text-[#94a3b8] uppercase">
