@@ -25,14 +25,14 @@ Estado: LISTO PARA PRODUCCIÓN (Production-Ready)
 - Componente LoomShowroomView.tsx: Modo Presentación / Showroom split-screen diseñado para asesores en sala de ventas y sesiones de Zoom/Meet.
 - Simulador Financiero a la Medida en LoomLotPanel.tsx: Cálculo interactivo de cuota inicial, financiación directa sin intereses y saldo contra entrega.
 
-3. GALERÍAS HD DE ZONAS COMUNES (AMENITIES INTERACTIVOS)
+3. GALERÍAS HD DE ZONAS COMUNES (AMENITIES INTERACTIVOS ACTUALIZADOS)
 --------------------------------------------------------------------------------
-- Organización y optimización de 16 renders en alta definición (.webp) dentro de public/loom/renders/amenities/:
-  * Club de Playa (Alma Beach Club): 8 renders HD (public/loom/renders/amenities/club-de-playa/01.webp a 08.webp).
-  * Club House Social & Wellness: 4 renders HD (public/loom/renders/amenities/club-house/01.webp a 04.webp).
-  * Portería Monumental & Acceso: 4 renders HD (public/loom/renders/amenities/porteria/01.webp a 04.webp).
-  * Parques Bioclimáticos de Etapa: Estructura lista en public/loom/renders/amenities/parques/ con estado informativo para próxima carga de renders.
-- Al hacer clic sobre cualquier pin o polígono de zona común en el plano, el panel lateral despliega el carrusel fotográfico con miniaturas y visor Lightbox a pantalla completa.
+- Reemplazo total y optimización a WebP HD (2400px) de los 32 nuevos renders oficiales de arquitectura y diseño en public/loom/renders/amenities/:
+  * Beach Club & Zonas Comunes (23 renders HD en club-de-playa/): Vistas generales Club de Playa, Sun Beds, Ocean Lounge, Ocean Dining, Sunset Dining, Sunset Spa, LOOM Oasis (7 vistas), Lago LOOM, Cancha de Voleibol y Nature Walk.
+  * Club House & Urbanismo (4 renders HD en club-house/ y urbanismo/): Piscina principal Club House, Cancha de Pádel e Implantación General / Numerada del Urbanismo.
+  * Portería Monumental (4 renders HD en porteria/): Vistas frontal, peatonal, detalle de caseta de control y panorámica al atardecer.
+  * Parque Lineal & The Garden Walk (4 renders HD en parques/): Render oficial de Parque Lineal (The Garden Walk), senderos Nature Walk y Lago LOOM.
+- Al hacer clic sobre cualquier pin o polígono de zona común en el plano, el panel lateral despliega el carrusel fotográfico con miniaturas, descripciones oficiales (ES/EN) y visor Lightbox a pantalla completa.
 
 4. VERSIÓN EN INGLÉS EN PIES CUADRADOS (SQ FT), DÓLARES (USD) Y TRM EN VIVO
 --------------------------------------------------------------------------------
