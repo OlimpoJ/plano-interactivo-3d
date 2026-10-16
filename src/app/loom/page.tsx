@@ -345,33 +345,20 @@ function LoomShowroomInner() {
             </button>
           )}
 
-          {/* Language Toggle Pill ES | EN */}
-          <div
-            className="flex items-center rounded-full bg-[#EDE7E0]/92 border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md p-0.5"
+          {/* Selector de Idioma Ultra-Compacto y Discreto (ES / EN) */}
+          <button
+            onClick={() => setLang(lang === "es" ? "en" : "es")}
+            className="flex items-center px-2 py-1 rounded-full bg-[#0A0D0B]/55 hover:bg-[#0A0D0B]/85 border border-white/15 backdrop-blur-md text-[8.5px] lg:text-[9px] font-mono uppercase tracking-wider transition-all cursor-pointer shadow-sm"
             title={isEn ? "Switch Language (ES / EN)" : "Cambiar Idioma (ES / EN)"}
           >
-            <Globe className="w-3.5 h-3.5 text-[#0A0D0B]/55 ml-2 mr-1 hidden lg:block" />
-            <button
-              onClick={() => setLang("es")}
-              className={`px-2 py-0.5 lg:py-1 rounded-full text-[9.5px] lg:text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                lang === "es"
-                  ? "bg-[#B35F27] text-white shadow-sm"
-                  : "text-[#0A0D0B]/70 hover:text-[#0A0D0B]"
-              }`}
-            >
+            <span className={lang === "es" ? "text-[#EDE7E0] font-bold" : "text-[#EDE7E0]/40"}>
               ES
-            </button>
-            <button
-              onClick={() => setLang("en")}
-              className={`px-2 py-0.5 lg:py-1 rounded-full text-[9.5px] lg:text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                lang === "en"
-                  ? "bg-[#B35F27] text-white shadow-sm"
-                  : "text-[#0A0D0B]/70 hover:text-[#0A0D0B]"
-              }`}
-            >
+            </span>
+            <span className="text-[#EDE7E0]/25 mx-1">/</span>
+            <span className={lang === "en" ? "text-[#EDE7E0] font-bold" : "text-[#EDE7E0]/40"}>
               EN
-            </button>
-          </div>
+            </span>
+          </button>
 
           {assignedAdvisor && (
             <button

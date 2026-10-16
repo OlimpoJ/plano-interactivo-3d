@@ -856,7 +856,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
       </div>
 
       {/* Barra Superior Flotante de Controles (Master Plan + Selector de Etapa + Búsqueda Global + Filtros de Estado) */}
-      <div className="absolute top-2.5 left-13 right-28 sm:top-3 sm:left-15 sm:right-46 lg:top-4 lg:left-18 lg:right-64 z-30 flex items-center justify-between gap-1.5 sm:gap-2 pointer-events-none">
+      <div className="absolute top-2.5 left-13 right-24 sm:top-3 sm:left-15 sm:right-40 lg:top-4 lg:left-18 lg:right-56 z-30 flex items-center justify-start gap-1.5 sm:gap-2 pointer-events-none">
         <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto min-w-0">
           <button 
             onClick={onBack}
@@ -945,7 +945,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                   placeholder={isEn ? "Search lot..." : "Buscar lote..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent text-[10px] lg:text-[11px] text-[#0A0D0B] placeholder-[#0A0D0B]/50 focus:outline-none w-16 focus:w-24 sm:w-20 sm:focus:w-28 lg:w-36 xl:w-44 transition-all font-semibold"
+                  className="bg-transparent text-[10px] lg:text-[11px] text-[#0A0D0B] placeholder-[#0A0D0B]/50 focus:outline-none w-16 focus:w-24 sm:w-20 sm:focus:w-28 lg:w-32 xl:w-40 transition-all font-semibold"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery("")} className="text-[#0A0D0B]/40 hover:text-[#0A0D0B] text-xs cursor-pointer shrink-0">
@@ -998,51 +998,54 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
             </div>
           )}
 
-          {/* Filtros Compactos en Línea para Móvil Horizontal y Tablet (sm a lg): Cero segunda fila sobre los lotes */}
+          {/* Filtros de Estado en Línea (sm+ en Móvil Horizontal, Tablet y Desktop): Cero solapamiento con la esquina derecha */}
           {!isAmenities && (
-            <div className="hidden sm:flex lg:hidden items-center gap-1 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 p-1 rounded-full backdrop-blur-md shadow-lg shrink-0">
+            <div className="hidden sm:flex items-center gap-1 lg:gap-1.5 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 p-1 rounded-full backdrop-blur-md shadow-lg shrink-0">
               <button
                 onClick={() => toggleFilter("available")}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[8.5px] lg:text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                   activeFilters.available
                     ? "bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/40"
-                    : "text-white/40 border border-transparent"
+                    : "text-white/40 hover:text-white/70 border border-transparent"
                 }`}
                 title={isEn ? "Toggle Available Lots" : "Mostrar/Ocultar Lotes Disponibles"}
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" />
-                <span>{isEn ? "Avail." : "Disp."} ({stats.available})</span>
+                <span className="h-1.5 w-1.5 lg:h-2 lg:w-2 rounded-full bg-[#10b981]" />
+                <span className="xl:hidden">{isEn ? "Avail." : "Disp."} ({stats.available})</span>
+                <span className="hidden xl:inline">{isEn ? "Available" : "Disponibles"} ({stats.available})</span>
               </button>
 
               <button
                 onClick={() => toggleFilter("blocked")}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[8.5px] lg:text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                   activeFilters.blocked
                     ? "bg-[#3b82f6]/20 text-[#60a5fa] border border-[#3b82f6]/40"
-                    : "text-white/40 border border-transparent"
+                    : "text-white/40 hover:text-white/70 border border-transparent"
                 }`}
                 title={isEn ? "Toggle Blocked Lots" : "Mostrar/Ocultar Lotes Bloqueados"}
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-[#3b82f6]" />
-                <span>{isEn ? "Blk." : "Bloq."} ({stats.blocked})</span>
+                <span className="h-1.5 w-1.5 lg:h-2 lg:w-2 rounded-full bg-[#3b82f6]" />
+                <span className="xl:hidden">{isEn ? "Blk." : "Bloq."} ({stats.blocked})</span>
+                <span className="hidden xl:inline">{isEn ? "Blocked" : "Bloqueados"} ({stats.blocked})</span>
               </button>
 
               <button
                 onClick={() => toggleFilter("sold")}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[8.5px] lg:text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                   activeFilters.sold
                     ? "bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40"
-                    : "text-white/40 border border-transparent"
+                    : "text-white/40 hover:text-white/70 border border-transparent"
                 }`}
                 title={isEn ? "Toggle Sold Lots" : "Mostrar/Ocultar Lotes Vendidos"}
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-[#ef4444]" />
-                <span>{isEn ? "Sold" : "Vend."} ({stats.sold})</span>
+                <span className="h-1.5 w-1.5 lg:h-2 lg:w-2 rounded-full bg-[#ef4444]" />
+                <span className="xl:hidden">{isEn ? "Sold" : "Vend."} ({stats.sold})</span>
+                <span className="hidden xl:inline">{isEn ? "Sold" : "Vendidos"} ({stats.sold})</span>
               </button>
             </div>
           )}
 
-          {/* Botón Integrado de Galería para Alma Beach Club (Alineado sin colisionar con ES|EN) */}
+          {/* Botón Integrado de Galería para Alma Beach Club */}
           {isAmenities && (
             <button
               onClick={() => {
@@ -1075,50 +1078,6 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
             </button>
           )}
         </div>
-
-        {/* Píldoras Interactivas de Filtro por Estado (Disponibles / Bloqueados / Vendidos) - Desktop (lg+) */}
-        {!isAmenities && (
-          <div className="hidden lg:flex items-center gap-1.5 bg-[#0A0D0B]/85 border border-[#EDE7E0]/15 p-1 rounded-full backdrop-blur-md shadow-lg pointer-events-auto shrink-0">
-            <button
-              onClick={() => toggleFilter("available")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                activeFilters.available
-                  ? "bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/40"
-                  : "text-white/40 hover:text-white/70 border border-transparent"
-              }`}
-              title={isEn ? "Toggle Available Lots" : "Mostrar/Ocultar Lotes Disponibles"}
-            >
-              <span className="h-2 w-2 rounded-full bg-[#10b981]" />
-              <span>{isEn ? "Available" : "Disponibles"} ({stats.available})</span>
-            </button>
-
-            <button
-              onClick={() => toggleFilter("blocked")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                activeFilters.blocked
-                  ? "bg-[#3b82f6]/20 text-[#60a5fa] border border-[#3b82f6]/40"
-                  : "text-white/40 hover:text-white/70 border border-transparent"
-              }`}
-              title={isEn ? "Toggle Blocked Lots" : "Mostrar/Ocultar Lotes Bloqueados"}
-            >
-              <span className="h-2 w-2 rounded-full bg-[#3b82f6]" />
-              <span>{isEn ? "Blocked" : "Bloqueados"} ({stats.blocked})</span>
-            </button>
-
-            <button
-              onClick={() => toggleFilter("sold")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                activeFilters.sold
-                  ? "bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40"
-                  : "text-white/40 hover:text-white/70 border border-transparent"
-              }`}
-              title={isEn ? "Toggle Sold Lots" : "Mostrar/Ocultar Lotes Vendidos"}
-            >
-              <span className="h-2 w-2 rounded-full bg-[#ef4444]" />
-              <span>{isEn ? "Sold" : "Vendidos"} ({stats.sold})</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Píldoras Interactivas de Filtro por Estado SOLO en Móvil Vertical estrecho (<640px) */}
