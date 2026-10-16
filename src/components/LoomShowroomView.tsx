@@ -8,7 +8,6 @@ import {
   X, 
   CheckCircle, 
   Maximize2, 
-  MapPin, 
   Layers, 
   Image as ImageIcon, 
   Compass, 
@@ -21,7 +20,6 @@ import {
   ZoomIn,
   MessageCircle
 } from "lucide-react";
-import LoomLotZoomCanvas from "./LoomLotZoomCanvas";
 import LoomReferralModal from "./LoomReferralModal";
 import { 
   initReferralTracking, 
@@ -100,9 +98,6 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
 
   // Índice de elemento activo en la pestaña actual (para el Visor Principal)
   const [activeIndex, setActiveIndex] = useState<number>(0);
-
-  // Modal de vista previa del plano de ubicación mini-mapa
-  const [showMiniMapModal, setShowMiniMapModal] = useState<boolean>(false);
 
   // Lightbox a pantalla completa real
   const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
@@ -725,14 +720,14 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         </button>
 
         {/* Badge Flotante Inferior de Información del Render */}
-        <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-4 min-[2200px]:bottom-14 left-3 sm:left-1/2 sm:-translate-x-1/2 z-20 flex items-center gap-2 sm:gap-3 min-[2200px]:gap-7 px-3 py-1.5 sm:px-4 sm:py-2 min-[2200px]:px-10 min-[2200px]:py-5 bg-[#0A0D0B]/88 backdrop-blur-xl border border-white/15 rounded-full shadow-2xl max-w-[68vw] sm:max-w-[60vw] min-[2200px]:max-w-[80vw]">
+        <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-4 min-[2200px]:bottom-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 sm:gap-3 min-[2200px]:gap-7 px-3.5 py-1.5 sm:px-4 sm:py-2 min-[2200px]:px-10 min-[2200px]:py-5 bg-[#0A0D0B]/88 backdrop-blur-xl border border-white/15 rounded-full shadow-2xl max-w-[90vw] sm:max-w-[65vw] min-[2200px]:max-w-[80vw]">
           <span className="text-[10px] sm:text-xs min-[2200px]:text-xl font-mono font-bold text-[#EBD9AB] uppercase tracking-wider shrink-0">
             {activeTab === "tour360"
               ? `${activeIndex + 1} / ${tour360List.length}`
               : `${activeIndex + 1} / ${activeMediaList.length}`}
           </span>
           <span className="h-3 min-[2200px]:h-7 w-[1px] bg-white/20 shrink-0" />
-          <p className="text-[10px] sm:text-xs min-[2200px]:text-2xl font-serif font-bold text-white truncate max-w-[140px] sm:max-w-[180px] md:max-w-[240px] min-[2200px]:max-w-2xl">
+          <p className="text-[10px] sm:text-xs min-[2200px]:text-2xl font-serif font-bold text-white truncate max-w-[200px] sm:max-w-[220px] md:max-w-[280px] min-[2200px]:max-w-2xl">
             {activeTab === "tour360"
               ? currentTourItem?.label
               : translateMediaTitle(currentMediaItem?.title || "", isEn)}
@@ -747,17 +742,6 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
             </button>
           )}
         </div>
-
-        {/* Botón Flotante Inferior Derecha: Plano de Ubicación */}
-        <button
-          onClick={() => setShowMiniMapModal(true)}
-          className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 sm:bottom-4 sm:right-4 min-[2200px]:bottom-14 min-[2200px]:right-14 z-20 flex items-center gap-1.5 sm:gap-2 min-[2200px]:gap-3 px-3 py-1.5 sm:px-4 sm:py-2 min-[2200px]:px-9 min-[2200px]:py-5 bg-[#EDE7E0] hover:bg-white text-[#0A0D0B] border border-[#0A0D0B]/20 rounded-full shadow-2xl backdrop-blur-md transition-all duration-300 active:scale-95 cursor-pointer font-semibold text-[10px] sm:text-xs min-[2200px]:text-xl uppercase tracking-wider"
-          title={isEn ? "View Lot Location on Map" : "Ver Plano de Ubicación del Lote"}
-        >
-          <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 min-[2200px]:w-8 min-[2200px]:h-8 text-[#B35F27] shrink-0" />
-          <span className="hidden sm:inline">{isEn ? "Stage Location" : "Ubicación en Área"}</span>
-          <span className="sm:hidden">{isEn ? "Map" : "Mapa"}</span>
-        </button>
 
       </div>
 
@@ -1205,51 +1189,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
       </motion.aside>
 
       {/* ========================================== */}
-      {/* 4. MODAL VISTA PREVIA DEL PLANO (MINI-MAP) */}
-      {/* ========================================== */}
-      <AnimatePresence>
-        {showMiniMapModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
-            onClick={() => setShowMiniMapModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-4xl bg-[#EDE7E0] rounded-2xl overflow-hidden shadow-2xl border border-white/20 flex flex-col"
-            >
-              <div className="flex justify-between items-center px-4 py-3 sm:px-6 sm:py-4 border-b border-[#0A0D0B]/10 bg-[#EDE7E0]">
-                <div>
-                  <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-[#B35F27] font-bold block font-mono">
-                    {isEn ? "Master Plan Location" : "Ubicación en Master Plan"}
-                  </span>
-                  <h3 className="text-sm sm:text-base font-serif font-bold text-[#0A0D0B]">
-                    {isEn ? `Lot ${selectedLot.rawId} Map` : `Plano del Lote ${selectedLot.rawId}`} &bull; {formattedStage}
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setShowMiniMapModal(false)}
-                  className="p-2 hover:bg-[#0A0D0B]/10 rounded-full text-[#0A0D0B] transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="w-full h-[60dvh] sm:h-[500px] bg-black/5">
-                <LoomLotZoomCanvas stageId={stageId} selectedLot={selectedLot} />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ========================================== */}
-      {/* 5. MODAL LIGHTBOX COMPLETO (FULLSCREEN IMAGES) */}
+      {/* 4. MODAL LIGHTBOX COMPLETO (FULLSCREEN IMAGES) */}
       {/* ========================================== */}
       <AnimatePresence>
         {lightboxOpen && currentMediaItem && (
