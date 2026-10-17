@@ -111,11 +111,20 @@ export const ADVISORS_REGISTRY: Record<string, Advisor> = {
   },
   "yeniferth-zapata": {
     slug: "yeniferth-zapata",
-    name: "Yeniferth Zapata",
+    name: "Jeniferth Zapata",
     agency: "Patrimofy",
     whatsapp: "573207344910",
-    aliases: ["yeniferth", "yeniferthzapata", "yenifer", "yenifer-zapata"],
+    aliases: ["yeniferth", "yeniferthzapata", "yenifer", "yenifer-zapata", "jeniferth", "jeniferth-zapata", "jeniferthzapata", "jenifer", "jenifer-zapata"],
     role: "Asesora Comercial",
+    active: true,
+  },
+  "diego-estrada": {
+    slug: "diego-estrada",
+    name: "Diego Estrada",
+    agency: "Patrimofy",
+    whatsapp: "573044535662",
+    aliases: ["diego", "diegoestrada"],
+    role: "Dirección Comercial",
     active: true,
   },
 

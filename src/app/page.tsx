@@ -156,7 +156,13 @@ export default function RootShowroomPage() {
             {/* Pie de tarjeta con Botón */}
             <div className="p-6 sm:p-8 pt-0">
               <Link
-                href={isPatrimofy ? "/luwana?ref=patrimofy" : "/luwana"}
+                href={
+                  assignedAdvisor && assignedAdvisor.slug !== "patrimofy" && assignedAdvisor.slug !== "chichaus"
+                    ? `/luwana?asesor=${assignedAdvisor.slug}`
+                    : isPatrimofy
+                    ? "/luwana?ref=patrimofy"
+                    : "/luwana"
+                }
                 className="w-full py-3.5 px-6 bg-[#CBAA85] hover:bg-[#b8956e] text-black font-bold uppercase tracking-widest text-xs rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#CBAA85]/20 group-hover:scale-[1.02] cursor-pointer"
               >
                 <span>Explorar Luwana</span>
@@ -208,7 +214,13 @@ export default function RootShowroomPage() {
             {/* Pie de tarjeta con Botón */}
             <div className="p-6 sm:p-8 pt-0">
               <Link
-                href={isPatrimofy ? "/loom?ref=patrimofy" : "/loom"}
+                href={
+                  assignedAdvisor && assignedAdvisor.slug !== "patrimofy" && assignedAdvisor.slug !== "chichaus"
+                    ? `/loom?asesor=${assignedAdvisor.slug}`
+                    : isPatrimofy
+                    ? "/loom?ref=patrimofy"
+                    : "/loom"
+                }
                 className="w-full py-3.5 px-6 bg-[#B35F27] hover:bg-[#964d1d] text-white font-bold uppercase tracking-widest text-xs rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#B35F27]/25 group-hover:scale-[1.02] cursor-pointer"
               >
                 <span>Explorar Loom</span>
