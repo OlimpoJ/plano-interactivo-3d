@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Compass } from "lucide-react";
 import { useLoomLang } from "@/lib/loomI18n";
@@ -97,7 +97,19 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
     active: boolean;
   } | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0, isRightHalf: false });
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
+    const update = () => setIsMobilePortrait(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  const activeViewBox = isMobilePortrait ? "0 550 3840 1060" : "0 0 3840 2160";
 
   // Estadísticas globales de las etapas calculadas dinámicamente desde el Sheet
   const stageStats = useMemo(() => {
@@ -177,11 +189,11 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
       <div className="absolute top-2.5 left-13 sm:top-3 sm:left-16 lg:top-4 lg:left-18 z-30 pointer-events-auto flex items-center gap-2">
         <button 
           onClick={onBack}
-          className="flex items-center justify-center gap-1.5 px-3 py-1.5 lg:px-3.5 lg:py-2 bg-[#0A0D0B]/80 hover:bg-[#0A0D0B] active:scale-95 border border-[#EDE7E0]/20 rounded-full text-[9.5px] lg:text-[10px] uppercase tracking-wider text-[#EDE7E0] hover:text-[#B35F27] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer"
+          className="flex items-center justify-center gap-1.5 px-3 py-1.5 lg:px-3.5 lg:py-2 bg-[#0A0D0B]/80 hover:bg-[#0A0D0B] active:scale-95 border border-[#EDE7E0]/20 rounded-full text-[0.59375rem] lg:text-[0.625rem] uppercase tracking-wider text-[#EDE7E0] hover:text-[#B35F27] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer"
         >
           ← {isEn ? "Home" : "Inicio"}
         </button>
-        <div className="hidden lg:flex items-center gap-2 px-3.5 py-1.5 bg-[#EDE7E0]/90 border border-[#0A0D0B]/15 rounded-full text-[10px] uppercase tracking-widest text-[#0A0D0B] font-bold backdrop-blur-md shadow-md">
+        <div className="hidden lg:flex items-center gap-2 px-3.5 py-1.5 bg-[#EDE7E0]/90 border border-[#0A0D0B]/15 rounded-full text-[0.625rem] uppercase tracking-widest text-[#0A0D0B] font-bold backdrop-blur-md shadow-md">
           <span className="h-2 w-2 rounded-full bg-[#10b981] animate-pulse" />
           <span>{isEn ? "Master Plan • Select a Stage" : "Master Plan • Selecciona una Etapa"}</span>
         </div>
@@ -214,7 +226,7 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
 
               {/* SVG Visual Overlay (Glassmorphism & Zoom) */}
               <svg 
-                viewBox="0 550 3840 1060" 
+                viewBox={activeViewBox} 
                 preserveAspectRatio="xMidYMid meet"
                 className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10"
               >
@@ -288,7 +300,7 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
               {/* SVG Vectorial Overlay (Rótulos Nativos e Hitboxes) */}
               <div className="absolute inset-0 w-full h-full z-20 pointer-events-none">
                 <svg 
-                  viewBox="0 550 3840 1060" 
+                  viewBox={activeViewBox} 
                   preserveAspectRatio="xMidYMid meet"
                   className="w-full h-full object-contain pointer-events-auto"
                 >
@@ -468,13 +480,16 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
             <AnimatePresence>
               {hoveredStage && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                  className="hidden md:block absolute z-40 pointer-events-none p-3.5 rounded-xl border bg-[#0A0D0B]/92 border-[#B35F27]/50 shadow-2xl backdrop-blur-md min-w-[215px]"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="hidden md:block absolute z-40 pointer-events-none p-3.5 rounded-xl border bg-[#0A0D0B]/92 border-[#B35F27]/50 shadow-2xl backdrop-blur-md min-w-[13.5rem]"
                   style={{
-                    left: mousePos.isRightHalf ? mousePos.x - 230 : mousePos.x + 20,
-                    top: Math.max(20, mousePos.y - 50),
+                    left: mousePos.x,
+                    top: mousePos.y,
+                    transform: mousePos.isRightHalf
+                      ? "translate(calc(-100% - 1.25rem), -50%)"
+                      : "translate(1.25rem, -50%)",
                   }}
                 >
                   <div className="flex justify-between items-center mb-1.5">
@@ -482,7 +497,7 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
                       {hoveredStage.name}
                     </h3>
                     <span 
-                      className={`text-[8px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${
+                      className={`text-[0.5rem] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${
                         hoveredStage.active 
                           ? "bg-[#10b981]/25 text-[#10b981] border border-[#10b981]/40" 
                           : "bg-white/10 text-white/50 border border-white/20"
@@ -510,13 +525,13 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
                           </p>
                         </>
                       )}
-                      <div className="pt-1.5 mt-1.5 border-t border-white/10 text-[10px] text-[#B35F27] font-bold uppercase tracking-wider flex items-center justify-between">
+                      <div className="pt-1.5 mt-1.5 border-t border-white/10 text-[0.625rem] text-[#B35F27] font-bold uppercase tracking-wider flex items-center justify-between">
                         <span>{isEn ? "Click to explore stage" : "Clic para explorar etapa"}</span>
                         <span>→</span>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider font-light mt-1">
+                    <p className="text-white/40 text-[0.625rem] uppercase tracking-wider font-light mt-1">
                       {isEn ? "This stage will be available soon." : "Esta etapa estará disponible pronto."}
                     </p>
                   )}
@@ -525,7 +540,7 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
             </AnimatePresence>
 
         {/* Leyenda de Brújula (Flotante a la Derecha) */}
-        <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/80 text-[9px] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
+        <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/80 text-[0.5625rem] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
           <Compass className="h-3.5 w-3.5 text-[#B35F27] rotate-[45deg]" />
           {isEn ? "North oriented towards the sea (Right / Beach)" : "Norte orientado hacia el mar (Derecha / Playa)"}
         </div>

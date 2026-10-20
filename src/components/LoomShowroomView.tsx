@@ -648,7 +648,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
       <div 
         className={`relative flex-1 h-full bg-[#0A0D0B] overflow-hidden flex items-center justify-center transition-all duration-300 ${
           isPanelOpen 
-            ? "lg:ml-[336px] min-[2200px]:ml-[28vw] 2xl:ml-[30vw] min-[2500px]:ml-[32vw] w-full lg:w-[calc(100%-336px)] min-[2200px]:w-[72vw] 2xl:w-[70vw] min-[2500px]:w-[68vw]" 
+            ? "lg:ml-[22rem] xl:ml-[24rem] w-full lg:w-[calc(100%-22rem)] xl:w-[calc(100%-24rem)]" 
             : "w-full ml-0"
         }`}
       >
@@ -708,30 +708,30 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         <button
           onClick={handlePrevMedia}
           className={`absolute ${
-            !isPanelOpen ? "left-3 sm:left-14 min-[2200px]:left-20" : "left-3 sm:left-4 min-[2200px]:left-8"
-          } top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 min-[2200px]:p-8 rounded-full bg-[#EDE7E0] hover:bg-[#B35F27] border border-[#0A0D0B]/20 hover:border-[#B35F27] text-[#0A0D0B] hover:text-white transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95 cursor-pointer group`}
+            !isPanelOpen ? "left-3 sm:left-14" : "left-3 sm:left-5"
+          } top-1/2 -translate-y-1/2 z-30 p-2 sm:p-3 rounded-full bg-[#EDE7E0] hover:bg-[#B35F27] border border-[#0A0D0B]/20 hover:border-[#B35F27] text-[#0A0D0B] hover:text-white transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95 cursor-pointer group`}
           title={isEn ? "Previous (Left Arrow)" : "Anterior (Flecha Izquierda)"}
         >
-          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 min-[2200px]:w-12 min-[2500px]:w-14 transform group-hover:-translate-x-0.5 transition-transform" />
+          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:-translate-x-0.5 transition-transform" />
         </button>
 
         <button
           onClick={handleNextMedia}
-          className="absolute right-3 sm:right-4 min-[2200px]:right-12 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 min-[2200px]:p-8 rounded-full bg-[#EDE7E0] hover:bg-[#B35F27] border border-[#0A0D0B]/20 hover:border-[#B35F27] text-[#0A0D0B] hover:text-white transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95 cursor-pointer group"
+          className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-3 rounded-full bg-[#EDE7E0] hover:bg-[#B35F27] border border-[#0A0D0B]/20 hover:border-[#B35F27] text-[#0A0D0B] hover:text-white transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95 cursor-pointer group"
           title={isEn ? "Next (Right Arrow)" : "Siguiente (Flecha Derecha)"}
         >
-          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 min-[2200px]:w-12 min-[2500px]:w-14 transform group-hover:translate-x-0.5 transition-transform" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:translate-x-0.5 transition-transform" />
         </button>
 
         {/* Badge Flotante Inferior de Información del Render */}
-        <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-4 min-[2200px]:bottom-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 sm:gap-3 min-[2200px]:gap-7 px-3.5 py-1.5 sm:px-4 sm:py-2 min-[2200px]:px-10 min-[2200px]:py-5 bg-[#0A0D0B]/88 backdrop-blur-xl border border-white/15 rounded-full shadow-2xl max-w-[90vw] sm:max-w-[65vw] min-[2200px]:max-w-[80vw]">
-          <span className="text-[10px] sm:text-xs min-[2200px]:text-xl font-mono font-bold text-[#EBD9AB] uppercase tracking-wider shrink-0">
+        <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 sm:gap-3 px-3.5 py-1.5 sm:px-5 sm:py-2.5 bg-[#0A0D0B]/88 backdrop-blur-xl border border-white/15 rounded-full shadow-2xl max-w-[90vw] sm:max-w-[65vw]">
+          <span className="text-[0.625rem] sm:text-xs font-mono font-bold text-[#EBD9AB] uppercase tracking-wider shrink-0">
             {activeTab === "tour360"
               ? `${activeIndex + 1} / ${tour360List.length}`
               : `${activeIndex + 1} / ${activeMediaList.length}`}
           </span>
-          <span className="h-3 min-[2200px]:h-7 w-[1px] bg-white/20 shrink-0" />
-          <p className="text-[10px] sm:text-xs min-[2200px]:text-2xl font-serif font-bold text-white truncate max-w-[200px] sm:max-w-[220px] md:max-w-[280px] min-[2200px]:max-w-2xl">
+          <span className="h-3.5 w-[1px] bg-white/20 shrink-0" />
+          <p className="text-[0.625rem] sm:text-xs font-serif font-bold text-white truncate max-w-[12.5rem] sm:max-w-[18rem] md:max-w-[24rem]">
             {activeTab === "tour360"
               ? currentTourItem?.label
               : translateMediaTitle(currentMediaItem?.title || "", isEn)}
@@ -739,10 +739,10 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           {activeTab !== "tour360" && (
             <button
               onClick={() => setLightboxOpen(true)}
-              className="p-1 min-[2200px]:p-2 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors cursor-pointer ml-0.5 shrink-0"
+              className="p-1 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors cursor-pointer ml-0.5 shrink-0"
               title={isEn ? "View fullscreen" : "Ver en pantalla completa"}
             >
-              <Maximize2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 min-[2200px]:w-7 min-[2200px]:h-7" />
+              <Maximize2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </button>
           )}
         </div>
@@ -752,23 +752,23 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
       {/* ========================================== */}
       {/* 2. BARRA SUPERIOR DE NAVEGACIÓN FLOTANTE */}
       {/* ========================================== */}
-      <header className="absolute top-0 left-0 right-0 z-30 px-3 sm:px-5 min-[2200px]:px-10 py-3 sm:py-2.5 min-[2200px]:py-6 bg-gradient-to-b from-[#0A0D0B]/90 via-[#0A0D0B]/60 to-transparent backdrop-blur-sm flex justify-between items-center pointer-events-none">
+      <header className="absolute top-0 left-0 right-0 z-30 px-3 sm:px-6 py-3 sm:py-3.5 bg-gradient-to-b from-[#0A0D0B]/90 via-[#0A0D0B]/60 to-transparent backdrop-blur-sm flex justify-between items-center pointer-events-none">
         
         {/* Lado Izquierdo: Título o Volver si panel cerrado */}
-        <div className={`flex items-center gap-1.5 sm:gap-3 min-[2200px]:gap-5 pointer-events-auto transition-all duration-300 ${!isPanelOpen ? "ml-11 sm:ml-14" : ""}`}>
+        <div className={`flex items-center gap-1.5 sm:gap-3 pointer-events-auto transition-all duration-300 ${!isPanelOpen ? "ml-11 sm:ml-14" : ""}`}>
           {!isPanelOpen && (
             <>
               <button
                 onClick={onBack}
-                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 min-[2200px]:px-8 min-[2200px]:py-4 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[10px] sm:text-xs min-[2200px]:text-base font-bold text-[#EDE7E0] uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer whitespace-nowrap"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[0.625rem] sm:text-xs font-bold text-[#EDE7E0] uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer whitespace-nowrap"
               >
-                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 min-[2200px]:w-6 min-[2200px]:h-6" />
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">{isEn ? "Back to Stage" : "Volver a la Etapa"}</span>
                 <span className="sm:hidden">{isEn ? "Back" : "Volver"}</span>
               </button>
               <button
                 onClick={() => setIsPanelOpen(true)}
-                className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 bg-[#EDE7E0]/95 hover:bg-white text-[#0A0D0B] border border-[#0A0D0B]/15 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-md cursor-pointer whitespace-nowrap"
+                className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 bg-[#EDE7E0]/95 hover:bg-white text-[#0A0D0B] border border-[#0A0D0B]/15 rounded-full text-[0.625rem] font-bold uppercase tracking-wider shadow-md cursor-pointer whitespace-nowrap"
               >
                 <Layers className="w-3.5 h-3.5 text-[#B35F27]" />
                 <span>{isEn ? "Lot & Models" : "Lote y Modelos"}</span>
@@ -777,10 +777,10 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           )}
 
           <div className="hidden md:block">
-            <span className="text-[8px] sm:text-[9px] min-[2200px]:text-sm uppercase tracking-[0.3em] text-[#EBD9AB] font-mono font-bold block">
+            <span className="text-[0.5rem] sm:text-[0.5625rem] uppercase tracking-[0.3em] text-[#EBD9AB] font-mono font-bold block">
               {isEn ? "Master Plan Alma Beach • Loom" : "Master Plan Alma Beach • Loom"}
             </span>
-            <h1 className="text-xs sm:text-sm min-[2200px]:text-xl font-serif font-bold text-white tracking-wide">
+            <h1 className="text-xs sm:text-sm font-serif font-bold text-white tracking-wide">
               {isEn ? "Lot" : "Lote"} <span className="text-[#B35F27]">{selectedLot.rawId}</span> &bull; {formattedStage}
             </h1>
           </div>
@@ -788,7 +788,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
 
         {/* Lado Derecho: Estado del Lote & Acciones */}
         <div className="flex items-center gap-3 pointer-events-auto mr-0">
-          <div className="px-2.5 py-1 sm:px-3 sm:py-1 min-[2200px]:px-7 min-[2200px]:py-3 bg-[#699385]/20 border border-[#699385]/40 text-[#699385] text-[10px] sm:text-xs min-[2200px]:text-base font-bold uppercase tracking-widest rounded-full">
+          <div className="px-2.5 py-1 sm:px-3.5 sm:py-1.5 bg-[#699385]/20 border border-[#699385]/40 text-[#699385] text-[0.625rem] sm:text-xs font-bold uppercase tracking-widest rounded-full">
             {translateStatusRaw(selectedLot.statusRaw, isEn, selectedLot.status)}
           </div>
         </div>
@@ -811,38 +811,38 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           x: isPanelOpen ? 0 : "-100%",
         }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed top-0 left-0 bottom-0 z-40 w-[86vw] max-w-[330px] sm:max-w-none sm:w-[300px] lg:w-[336px] min-[2200px]:w-[28vw] 2xl:w-[30vw] min-[2500px]:w-[32vw] min-w-[270px] lg:max-w-[950px] bg-[#EDE7E0] text-[#0A0D0B] shadow-2xl border-r border-[#0A0D0B]/15 flex flex-col justify-between"
+        className="fixed top-0 left-0 bottom-0 z-40 w-[86vw] max-w-[20.625rem] sm:max-w-none sm:w-[19rem] lg:w-[22rem] xl:w-[24rem] bg-[#EDE7E0] text-[#0A0D0B] shadow-2xl border-r border-[#0A0D0B]/15 flex flex-col justify-between"
       >
         {/* Pestaña Flotante Visible para Ocultar/Mostrar el Panel */}
         <button
           onClick={() => setIsPanelOpen(!isPanelOpen)}
-          className="absolute top-1/2 -right-9 min-[2200px]:-right-16 transform -translate-y-1/2 z-50 flex items-center justify-center w-9 h-14 sm:w-10 sm:h-16 min-[2200px]:w-16 min-[2200px]:h-28 rounded-r-xl sm:rounded-r-2xl bg-[#EDE7E0] hover:bg-[#B35F27] border-y border-r border-[#0A0D0B]/20 hover:border-[#B35F27] text-[#0A0D0B] hover:text-white shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer"
+          className="absolute top-1/2 -right-9 sm:-right-10 transform -translate-y-1/2 z-50 flex items-center justify-center w-9 h-14 sm:w-10 sm:h-16 rounded-r-xl sm:rounded-r-2xl bg-[#EDE7E0] hover:bg-[#B35F27] border-y border-r border-[#0A0D0B]/20 hover:border-[#B35F27] text-[#0A0D0B] hover:text-white shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer"
           title={isPanelOpen ? (isEn ? "Hide side panel" : "Ocultar panel lateral") : (isEn ? "Show side panel" : "Mostrar panel lateral")}
         >
           {isPanelOpen ? (
-            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 min-[2200px]:w-10 min-[2200px]:h-10" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           ) : (
-            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 min-[2200px]:w-10 min-[2200px]:h-10" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           )}
         </button>
 
         {/* Scrollable Panel Body */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3.5 lg:p-5 2xl:p-8 min-[2500px]:p-12 space-y-3.5 lg:space-y-5 2xl:space-y-8 min-[2500px]:space-y-10 scrollbar-hide pt-4 lg:pt-5">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3.5 lg:p-5 space-y-3.5 lg:space-y-4 scrollbar-hide pt-4 lg:pt-5">
           
           {/* Botones Superiores de Navegación en el Panel (Alineados 50/50 con las tarjetas inferiores en móvil) */}
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
             <button
               onClick={onBack}
-              className="w-full flex items-center justify-center gap-1.5 px-2.5 py-2.5 lg:px-4 lg:py-3.5 xl:py-4 min-[2500px]:py-5 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-xl text-[10px] lg:text-xs xl:text-sm min-[2500px]:text-lg font-bold text-[#EDE7E0] uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer truncate"
+              className="w-full flex items-center justify-center gap-1.5 px-2.5 py-2.5 lg:px-4 lg:py-3.5 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-xl text-[0.625rem] lg:text-xs font-bold text-[#EDE7E0] uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer truncate"
             >
-              <ChevronLeft className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 min-[2500px]:w-6 min-[2500px]:h-6 shrink-0" />
+              <ChevronLeft className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
               <span className="lg:hidden truncate">{isEn ? "Back to Stage" : "Volver a Etapa"}</span>
               <span className="hidden lg:inline truncate">{isEn ? "Back to Stage" : "Volver a la Etapa"}</span>
             </button>
 
             <button
               onClick={() => setIsPanelOpen(false)}
-              className="lg:hidden w-full flex items-center justify-center gap-1.5 px-2.5 py-2.5 bg-[#0A0D0B] text-[#EDE7E0] rounded-xl text-[10px] font-bold uppercase tracking-wider shadow-md active:scale-95 cursor-pointer truncate"
+              className="lg:hidden w-full flex items-center justify-center gap-1.5 px-2.5 py-2.5 bg-[#0A0D0B] text-[#EDE7E0] rounded-xl text-[0.625rem] font-bold uppercase tracking-wider shadow-md active:scale-95 cursor-pointer truncate"
               title={isEn ? "View Renders" : "Ver Renders"}
             >
               <Eye className="w-3.5 h-3.5 text-[#EBD9AB] shrink-0" />
@@ -851,35 +851,35 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           </div>
           
           {/* Header Specs Card */}
-          <div className="bg-white/80 border border-[#0A0D0B]/10 rounded-2xl p-3.5 lg:p-4 2xl:p-6 min-[2500px]:p-8 shadow-sm space-y-2.5 lg:space-y-3">
+          <div className="bg-white/80 border border-[#0A0D0B]/10 rounded-2xl p-3.5 lg:p-4 shadow-sm space-y-2.5 lg:space-y-3">
             <div className="flex justify-between items-start border-b border-[#0A0D0B]/10 pb-2.5 lg:pb-3">
               <div>
-                <span className="text-[9px] lg:text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-[0.2em] text-[#B35F27] font-mono font-bold block">
+                <span className="text-[0.5625rem] lg:text-[0.625rem] uppercase tracking-[0.2em] text-[#B35F27] font-mono font-bold block">
                   {isEn ? "Technical Sheet" : "Ficha Técnica"}
                 </span>
-                <h2 className="text-lg lg:text-xl 2xl:text-3xl min-[2500px]:text-4xl font-serif font-bold text-[#0A0D0B] whitespace-nowrap">
+                <h2 className="text-lg lg:text-xl font-serif font-bold text-[#0A0D0B] whitespace-nowrap">
                   {isEn ? "Lot" : "Lote"} {selectedLot.rawId}
                 </h2>
               </div>
-              <span className="px-2.5 py-1 2xl:px-4 2xl:py-1.5 min-[2500px]:px-5 min-[2500px]:py-2 text-[9px] 2xl:text-xs min-[2500px]:text-sm font-bold uppercase tracking-widest rounded-full bg-[#699385]/15 text-[#699385] border border-[#699385]/30 whitespace-nowrap">
+              <span className="px-2.5 py-1 text-[0.5625rem] font-bold uppercase tracking-widest rounded-full bg-[#699385]/15 text-[#699385] border border-[#699385]/30 whitespace-nowrap">
                 {formattedStage}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 2xl:gap-4 text-xs 2xl:text-base min-[2500px]:text-lg">
-              <div className="bg-[#EDE7E0]/60 p-2.5 2xl:p-4 min-[2500px]:p-5 rounded-xl border border-[#0A0D0B]/5 min-w-0">
-                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#0A0D0B]/60 block font-medium">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-[#EDE7E0]/60 p-2.5 rounded-xl border border-[#0A0D0B]/5 min-w-0">
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#0A0D0B]/60 block font-medium">
                   {isEn ? "Lot Area" : "Área Lote"}
                 </span>
-                <strong className="text-sm 2xl:text-xl min-[2500px]:text-2xl font-serif font-bold text-[#0A0D0B] block truncate">
+                <strong className="text-sm font-serif font-bold text-[#0A0D0B] block truncate">
                   {translateAreaText(selectedLot.area, isEn)}
                 </strong>
               </div>
-              <div className="bg-[#EDE7E0]/60 p-2.5 2xl:p-4 min-[2500px]:p-5 rounded-xl border border-[#0A0D0B]/5 min-w-0">
-                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#0A0D0B]/60 block font-medium">
+              <div className="bg-[#EDE7E0]/60 p-2.5 rounded-xl border border-[#0A0D0B]/5 min-w-0">
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#0A0D0B]/60 block font-medium">
                   {isEn ? "Location" : "Ubicación"}
                 </span>
-                <strong className="text-xs 2xl:text-base min-[2500px]:text-xl font-semibold text-[#0A0D0B] truncate block mt-0.5">
+                <strong className="text-xs font-semibold text-[#0A0D0B] truncate block mt-0.5">
                   {locationTypeDisplay.replace(/^Lote\s+/i, "")}
                 </strong>
               </div>
@@ -889,16 +889,16 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           {/* ============================================================ */}
           {/* 📐 SECCIÓN: PLANO ARQUITECTÓNICO & MEDIDAS EN EL SHOWROOM   */}
           {/* ============================================================ */}
-          <div className="bg-white/80 border border-[#B35F27]/25 rounded-2xl p-3.5 2xl:p-5 min-[2500px]:p-7 shadow-sm space-y-2.5">
+          <div className="bg-white/80 border border-[#B35F27]/25 rounded-2xl p-3.5 shadow-sm space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-[#B35F27]">
-                <Ruler className="h-4 w-4 2xl:h-5 2xl:w-5" />
-                <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm font-bold uppercase tracking-wider text-[#0A0D0B]">
+                <Ruler className="h-4 w-4" />
+                <span className="text-[0.625rem] font-bold uppercase tracking-wider text-[#0A0D0B]">
                   {isEn ? "Lot Blueprint & Dimensions" : "Plano & Medidas del Lote"}
                 </span>
               </div>
               {blockLetter && (
-                <span className="text-[9px] 2xl:text-xs font-mono font-bold uppercase tracking-wider bg-[#B35F27]/10 text-[#B35F27] border border-[#B35F27]/20 px-2 py-0.5 rounded-md">
+                <span className="text-[0.5625rem] font-mono font-bold uppercase tracking-wider bg-[#B35F27]/10 text-[#B35F27] border border-[#B35F27]/20 px-2 py-0.5 rounded-md">
                   {isEn ? `Blk ${blockLetter} • Lot ${lotNumber}` : `Mz ${blockLetter} • Lote ${lotNumber}`}
                 </span>
               )}
@@ -918,11 +918,11 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
 
               {/* Overlay al pasar el cursor */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-2.5">
-                <span className="text-white text-[10px] 2xl:text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md bg-black/50 px-2.5 py-1 rounded-full border border-white/20">
+                <span className="text-white text-[0.625rem] font-semibold flex items-center gap-1.5 backdrop-blur-md bg-black/50 px-2.5 py-1 rounded-full border border-white/20">
                   <Maximize2 className="h-3 w-3 text-[#EBD9AB]" />
                   {isEn ? "Expand Fullscreen" : "Ampliar Medidas"}
                 </span>
-                <span className="text-[9px] 2xl:text-xs text-[#EBD9AB] font-mono font-bold bg-[#B35F27]/80 px-2 py-0.5 rounded">
+                <span className="text-[0.5625rem] text-[#EBD9AB] font-mono font-bold bg-[#B35F27]/80 px-2 py-0.5 rounded">
                   1080p
                 </span>
               </div>
@@ -936,12 +936,12 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                 className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 text-[#0A0D0B] shadow-md border border-[#0A0D0B]/10 hover:bg-[#B35F27] hover:text-white transition-colors duration-200"
                 title={isEn ? "View dimensions fullscreen" : "Ver medidas a pantalla completa"}
               >
-                <ZoomIn className="h-3.5 w-3.5 2xl:h-4 2xl:w-4" />
+                <ZoomIn className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            <p className="text-[9px] 2xl:text-xs text-[#0A0D0B]/60 leading-tight italic flex items-center gap-1.5 pt-0.5">
-              <Info className="h-3 w-3 2xl:h-4 2xl:w-4 text-[#B35F27] shrink-0" />
+            <p className="text-[0.5625rem] text-[#0A0D0B]/60 leading-tight italic flex items-center gap-1.5 pt-0.5">
+              <Info className="h-3 w-3 text-[#B35F27] shrink-0" />
               <span>
                 {isEn
                   ? "Perimeter dimensions and boundaries per official architectural blueprint (1 m² = 10.76 sq ft)."
@@ -951,35 +951,35 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           </div>
 
           {/* Villa Model Selector Bar */}
-          <div className="bg-white/80 border border-[#0A0D0B]/10 rounded-2xl p-2 2xl:p-4 shadow-sm">
-            <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-[0.2em] text-[#B35F27] font-bold block mb-2 px-2 pt-1">
+          <div className="bg-white/80 border border-[#0A0D0B]/10 rounded-2xl p-2.5 shadow-sm">
+            <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B35F27] font-bold block mb-2 px-1.5 pt-0.5">
               {isEn ? "Villa Model" : "Modelo de Villa"}
             </span>
-            <div className="grid grid-cols-2 gap-2 2xl:gap-4">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setSelectedVilla("luxury")}
-                className={`flex flex-col items-center justify-center p-2.5 2xl:p-4 min-[2500px]:p-6 rounded-xl border text-center transition-all duration-300 cursor-pointer active:scale-95 ${
+                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all duration-300 cursor-pointer active:scale-95 ${
                   selectedVilla === "luxury"
                     ? "bg-[#B35F27] border-[#B35F27] text-[#EDE7E0] shadow-md shadow-[#B35F27]/20"
                     : "bg-[#EDE7E0]/60 border-[#0A0D0B]/10 text-[#0A0D0B]/70 hover:bg-white hover:text-[#0A0D0B]"
                 }`}
               >
-                <span className="text-xs 2xl:text-lg min-[2500px]:text-xl font-serif font-bold uppercase tracking-wider">Luxury</span>
-                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm mt-0.5 font-mono opacity-90">
+                <span className="text-xs font-serif font-bold uppercase tracking-wider">Luxury</span>
+                <span className="text-[0.5625rem] mt-0.5 font-mono opacity-90">
                   {isEn ? "3,800 sq ft • 3 Levels" : "353 m² • 3 Niveles"}
                 </span>
               </button>
 
               <button
                 onClick={() => setSelectedVilla("garden")}
-                className={`flex flex-col items-center justify-center p-2.5 2xl:p-4 min-[2500px]:p-6 rounded-xl border text-center transition-all duration-300 cursor-pointer active:scale-95 ${
+                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all duration-300 cursor-pointer active:scale-95 ${
                   selectedVilla === "garden"
                     ? "bg-[#B35F27] border-[#B35F27] text-[#EDE7E0] shadow-md shadow-[#B35F27]/20"
                     : "bg-[#EDE7E0]/60 border-[#0A0D0B]/10 text-[#0A0D0B]/70 hover:bg-white hover:text-[#0A0D0B]"
                 }`}
               >
-                <span className="text-xs 2xl:text-lg min-[2500px]:text-xl font-serif font-bold uppercase tracking-wider">Garden</span>
-                <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm mt-0.5 font-mono opacity-90">
+                <span className="text-xs font-serif font-bold uppercase tracking-wider">Garden</span>
+                <span className="text-[0.5625rem] mt-0.5 font-mono opacity-90">
                   {isEn ? "2,949 sq ft • Biophilic" : "274 m² • Biofílico"}
                 </span>
               </button>
@@ -987,12 +987,12 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           </div>
 
           {/* Navigation Sub-Tabs List */}
-          <div className="space-y-2 2xl:space-y-4">
-            <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-[0.2em] text-[#B35F27] font-bold block px-1">
+          <div className="space-y-2">
+            <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B35F27] font-bold block px-1">
               {isEn ? "Explore Showroom Media" : "Explorar Medios del Showroom"}
             </span>
 
-            <div className="grid grid-cols-1 gap-1.5 2xl:gap-3">
+            <div className="grid grid-cols-1 gap-1.5">
               {(
                 [
                   {
@@ -1033,14 +1033,14 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`w-full flex items-center justify-between px-3.5 py-2.5 2xl:px-6 2xl:py-4 rounded-xl text-xs 2xl:text-base min-[2500px]:text-lg font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer text-left ${
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer text-left ${
                       isActive
                         ? "bg-[#B35F27] text-[#EDE7E0] shadow-md shadow-[#B35F27]/20"
                         : "bg-white/80 border border-[#0A0D0B]/10 text-[#0A0D0B]/80 hover:bg-white hover:text-[#0A0D0B]"
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 2xl:gap-4 truncate">
-                      <IconComponent className="w-4 h-4 2xl:w-6 2xl:h-6 min-[2500px]:w-7 min-[2500px]:h-7 shrink-0" />
+                    <div className="flex items-center gap-2.5 truncate">
+                      <IconComponent className="w-4 h-4 shrink-0" />
                       <span className="truncate">{tab.label}</span>
                     </div>
                   </button>
@@ -1050,13 +1050,13 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           </div>
 
           {/* Thumbnails Grid for Active Tab Items */}
-          <div className="space-y-2 2xl:space-y-4 pt-1">
-            <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#0A0D0B]/60 font-mono font-bold block px-1">
+          <div className="space-y-2 pt-1">
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#0A0D0B]/60 font-mono font-bold block px-1">
               {isEn ? "Direct View Selection (Tap to View)" : "Selección Directa de Vista (Toca para Ver)"}
             </span>
 
             {activeTab === "tour360" ? (
-              <div className="grid grid-cols-1 gap-2 2xl:gap-3">
+              <div className="grid grid-cols-1 gap-2">
                 {tour360List.map((scene, idx) => (
                   <button
                     key={scene.id}
@@ -1066,22 +1066,22 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                         setIsPanelOpen(false);
                       }
                     }}
-                    className={`flex items-center justify-between p-2.5 2xl:p-4 min-[2500px]:p-5 rounded-xl border text-xs 2xl:text-base text-left transition-all duration-300 cursor-pointer ${
+                    className={`flex items-center justify-between p-2.5 rounded-xl border text-xs text-left transition-all duration-300 cursor-pointer ${
                       activeIndex === idx
                         ? "bg-[#0A0D0B] text-white border-[#0A0D0B] shadow-md"
                         : "bg-white/80 border-[#0A0D0B]/10 text-[#0A0D0B]/80 hover:bg-white"
                     }`}
                   >
-                    <div className="flex items-center gap-2 2xl:gap-3 truncate">
-                      <Sparkles className="w-3.5 h-3.5 2xl:w-5 2xl:h-5 text-[#B35F27]" />
+                    <div className="flex items-center gap-2 truncate">
+                      <Sparkles className="w-3.5 h-3.5 text-[#B35F27]" />
                       <span className="font-semibold truncate">{scene.label}</span>
                     </div>
-                    <span className="text-[9px] 2xl:text-xs min-[2500px]:text-sm font-mono opacity-70 uppercase">{scene.category}</span>
+                    <span className="text-[0.5625rem] font-mono opacity-70 uppercase">{scene.category}</span>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2 2xl:gap-4">
+              <div className="grid grid-cols-3 gap-2">
                 {activeMediaList.map((media, idx) => (
                   <button
                     key={idx}
@@ -1098,8 +1098,8 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
                     }`}
                   >
                     <img src={media.src} alt={translateMediaTitle(media.title, isEn)} loading="lazy" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-1 2xl:p-2">
-                      <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm font-mono text-white font-bold">{media.num}</span>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-1">
+                      <span className="text-[0.5rem] font-mono text-white font-bold">{media.num}</span>
                     </div>
                   </button>
                 ))}
@@ -1108,45 +1108,45 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           </div>
 
           {/* Detailed Financial Breakdown Card */}
-          <div className="bg-[#0A0D0B] text-[#EDE7E0] rounded-2xl p-4 sm:p-5 2xl:p-8 min-[2500px]:p-10 space-y-3 2xl:space-y-6 shadow-lg">
-            <div className="flex justify-between items-baseline border-b border-white/10 pb-2.5 2xl:pb-4">
-              <span className="text-[10px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-[#EBD9AB] font-mono">
+          <div className="bg-[#0A0D0B] text-[#EDE7E0] rounded-2xl p-4 sm:p-5 space-y-3 shadow-lg">
+            <div className="flex justify-between items-baseline border-b border-white/10 pb-2.5">
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#EBD9AB] font-mono">
                 {isEn ? "Total Investment Value (USD)" : "Valor Total Inversión"}
               </span>
-              <span className="text-lg 2xl:text-3xl min-[2500px]:text-4xl font-serif font-bold text-[#EDE7E0]">
+              <span className="text-lg font-serif font-bold text-[#EDE7E0]">
                 {formatCopOrUsd(selectedLot.totalPrice, isEn, trm, isEn)}
               </span>
             </div>
             
-            <div className="grid grid-cols-3 gap-2 2xl:gap-5 text-xs 2xl:text-base min-[2500px]:text-lg pt-1">
+            <div className="grid grid-cols-3 gap-2 text-xs pt-1">
               <div>
-                <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-white/50 block">
+                <span className="text-[0.5rem] uppercase tracking-wider text-white/50 block">
                   {isEn ? "Down Payment" : "Cuota Inicial"}
                 </span>
-                <span className="font-semibold text-white/90 text-[11px] 2xl:text-base min-[2500px]:text-xl">
+                <span className="font-semibold text-white/90 text-[0.6875rem]">
                   {formatCopOrUsd(selectedLot.downPayment, isEn, trm)}
                 </span>
               </div>
               <div>
-                <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-white/50 block">
+                <span className="text-[0.5rem] uppercase tracking-wider text-white/50 block">
                   {isEn ? "Financing" : "Financiación"}
                 </span>
-                <span className="font-semibold text-white/90 text-[11px] 2xl:text-base min-[2500px]:text-xl">
+                <span className="font-semibold text-white/90 text-[0.6875rem]">
                   {formatCopOrUsd(selectedLot.financing, isEn, trm)}
                 </span>
               </div>
               <div>
-                <span className="text-[8px] 2xl:text-xs min-[2500px]:text-sm uppercase tracking-wider text-white/50 block">
+                <span className="text-[0.5rem] uppercase tracking-wider text-white/50 block">
                   {isEn ? "Upon Delivery" : "Contraentrega"}
                 </span>
-                <span className="font-semibold text-white/90 text-[11px] 2xl:text-base min-[2500px]:text-xl">
+                <span className="font-semibold text-white/90 text-[0.6875rem]">
                   {formatCopOrUsd(selectedLot.finalPayment, isEn, trm)}
                 </span>
               </div>
             </div>
 
             {isEn && (
-              <div className="pt-1.5 border-t border-white/10 text-[9px] 2xl:text-xs font-mono text-[#EBD9AB]/75 flex items-center justify-between">
+              <div className="pt-1.5 border-t border-white/10 text-[0.5625rem] font-mono text-[#EBD9AB]/75 flex items-center justify-between">
                 <span>Live Daily TRM (Colombia)</span>
                 <span>1 USD = ${Math.round(trm).toLocaleString("en-US")} COP</span>
               </div>
@@ -1156,9 +1156,9 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         </div>
 
         {/* Sticky Action Footer */}
-        <div className="p-3.5 lg:p-4 max-lg:landscape:p-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] 2xl:p-6 min-[2500px]:p-8 bg-white/90 border-t border-[#0A0D0B]/10 backdrop-blur-md space-y-2 max-lg:landscape:space-y-0 shrink-0">
+        <div className="p-3.5 lg:p-4 max-lg:landscape:p-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white/90 border-t border-[#0A0D0B]/10 backdrop-blur-md space-y-2 max-lg:landscape:space-y-0 shrink-0">
           {assignedAdvisor && (
-            <div className="max-lg:landscape:hidden bg-[#B35F27]/15 border border-[#B35F27]/35 rounded-xl p-2 text-[9.5px] lg:text-[10px] 2xl:text-xs text-[#0A0D0B] uppercase tracking-wider text-center font-semibold flex items-center justify-center gap-1.5">
+            <div className="max-lg:landscape:hidden bg-[#B35F27]/15 border border-[#B35F27]/35 rounded-xl p-2 text-[0.59375rem] lg:text-[0.625rem] text-[#0A0D0B] uppercase tracking-wider text-center font-semibold flex items-center justify-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
               <span className="truncate">
                 {isEn ? "Your Advisor:" : "Tu Asesor:"} <strong>{assignedAdvisor.name}</strong> &bull; {assignedAdvisor.agency}
@@ -1167,12 +1167,12 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
           )}
           <button
             onClick={handleSeparateClick}
-            className="w-full py-2.5 lg:py-3 max-lg:landscape:py-2.5 2xl:py-5 min-[2500px]:py-6 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 text-[#EDE7E0] font-semibold rounded-xl uppercase tracking-wider text-[11px] lg:text-xs 2xl:text-base min-[2500px]:text-xl transition-all duration-300 flex items-center justify-center gap-2 2xl:gap-3 shadow-lg shadow-[#B35F27]/25 cursor-pointer truncate px-3"
+            className="w-full py-2.5 lg:py-3 max-lg:landscape:py-2.5 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 text-[#EDE7E0] font-semibold rounded-xl uppercase tracking-wider text-[0.6875rem] lg:text-xs transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#B35F27]/25 cursor-pointer truncate px-3"
           >
             {assignedAdvisor ? (
-              <MessageCircle className="w-4 h-4 2xl:w-6 2xl:h-6 min-[2500px]:w-7 min-[2500px]:h-7 text-[#25D366] shrink-0" />
+              <MessageCircle className="w-4 h-4 text-[#25D366] shrink-0" />
             ) : (
-              <Phone className="w-4 h-4 2xl:w-6 2xl:h-6 min-[2500px]:w-7 min-[2500px]:h-7 shrink-0" />
+              <Phone className="w-4 h-4 shrink-0" />
             )}
             <span className="truncate">
               {assignedAdvisor

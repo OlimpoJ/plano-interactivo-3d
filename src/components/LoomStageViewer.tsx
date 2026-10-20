@@ -306,7 +306,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
   const currentConfig = STAGE_CONFIGS[stageId] || STAGE_CONFIGS["etapa_1"];
   const isAmenities = stageId === "etapa_6";
   const containerWidthClass = selectedLot 
-    ? "w-full max-lg:landscape:w-[54vw]" 
+    ? "w-full max-lg:landscape:w-[54vw] lg:w-[calc(100%-27rem)]" 
     : "w-full";
   const svgUrl = currentConfig.svgUrl;
   const bgImage = currentConfig.bgImage;
@@ -860,7 +860,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
         <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto min-w-0">
           <button 
             onClick={onBack}
-            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 lg:px-3.5 lg:py-2 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[9.5px] lg:text-[10px] uppercase tracking-wider text-[#EDE7E0] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer shrink-0"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 lg:px-3.5 lg:py-2 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#B35F27] rounded-full text-[0.59375rem] lg:text-[0.625rem] uppercase tracking-wider text-[#EDE7E0] font-bold backdrop-blur-md transition-all duration-300 shadow-lg cursor-pointer shrink-0"
             title={isEn ? "Back to Master Plan" : "Volver al Master Plan"}
           >
             <svg className="w-3.5 h-3.5 text-[#EDE7E0] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -874,7 +874,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           <div ref={stageMenuRef} className="relative shrink-0">
             <button
               onClick={() => setIsStageMenuOpen((prev) => !prev)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3 lg:py-2 bg-[#0A0D0B]/90 hover:bg-[#0A0D0B] text-[#EDE7E0] border border-[#B35F27]/55 rounded-full text-[9.5px] lg:text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-lg transition-all cursor-pointer active:scale-95"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3 lg:py-2 bg-[#0A0D0B]/90 hover:bg-[#0A0D0B] text-[#EDE7E0] border border-[#B35F27]/55 rounded-full text-[0.59375rem] lg:text-[0.625rem] font-bold uppercase tracking-wider backdrop-blur-md shadow-lg transition-all cursor-pointer active:scale-95"
               title={isEn ? "Switch Stage" : "Cambiar de Etapa"}
             >
               <span className="h-2 w-2 rounded-full bg-[#B35F27] shrink-0" />
@@ -895,7 +895,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                   transition={{ duration: 0.16 }}
                   className="absolute top-full left-0 mt-1.5 w-48 bg-[#0A0D0B]/95 border border-[#B35F27]/45 rounded-2xl p-1.5 shadow-2xl backdrop-blur-xl z-50 space-y-0.5"
                 >
-                  <div className="px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.2em] text-[#dbaa67]/75 border-b border-white/10 mb-1">
+                  <div className="px-2.5 py-1 text-[0.5rem] font-mono uppercase tracking-[0.2em] text-[#dbaa67]/75 border-b border-white/10 mb-1">
                     {isEn ? "Select Stage" : "Seleccionar Etapa"}
                   </div>
                   {activeStages.map((stKey) => {
@@ -908,7 +908,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                           onChangeStage(stKey);
                           setIsStageMenuOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[0.625rem] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                           isCurrent
                             ? "bg-[#B35F27] text-[#EDE7E0] shadow-md"
                             : "text-[#EDE7E0]/80 hover:bg-white/10 hover:text-white"
@@ -923,7 +923,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                           <span className="whitespace-nowrap">{label}</span>
                         </span>
                         {isCurrent && (
-                          <span className="text-[10px] text-[#EDE7E0] font-bold">✓</span>
+                          <span className="text-[0.625rem] text-[#EDE7E0] font-bold">✓</span>
                         )}
                       </button>
                     );
@@ -945,7 +945,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                   placeholder={isEn ? "Search lot..." : "Buscar lote..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent text-[10px] lg:text-[11px] text-[#0A0D0B] placeholder-[#0A0D0B]/50 focus:outline-none w-16 focus:w-24 sm:w-20 sm:focus:w-28 lg:w-32 xl:w-40 transition-all font-semibold"
+                  className="bg-transparent text-[0.625rem] lg:text-[0.6875rem] text-[#0A0D0B] placeholder-[#0A0D0B]/50 focus:outline-none w-16 focus:w-24 sm:w-20 sm:focus:w-28 lg:w-32 xl:w-40 transition-all font-semibold"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery("")} className="text-[#0A0D0B]/40 hover:text-[#0A0D0B] text-xs cursor-pointer shrink-0">
@@ -969,18 +969,18 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                           onSelectLot(item.lotData);
                           setSearchQuery("");
                         }}
-                        className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white text-left transition-colors text-[11px] cursor-pointer"
+                        className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white text-left transition-colors text-[0.6875rem] cursor-pointer"
                       >
                         <div>
                           <span className="font-serif font-bold text-[#0A0D0B] block">
                             {isEn ? "Lot" : "Lote"} {item.lotData.rawId || item.lotId}
                           </span>
-                          <span className="text-[9px] text-[#0A0D0B]/60 font-medium">
+                          <span className="text-[0.5625rem] text-[#0A0D0B]/60 font-medium">
                             {getStageDisplayName(item.stageKey, isEn)} &bull; {translateAreaText(item.lotData.area, isEn)}
                           </span>
                         </div>
                         <span
-                          className={`text-[8px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                          className={`text-[0.5rem] uppercase font-bold px-2 py-0.5 rounded-full ${
                             item.lotData.status === "available"
                               ? "text-[#10b981] bg-[#10b981]/15"
                               : item.lotData.status === "blocked" || item.lotData.status === "reserved"
@@ -1003,7 +1003,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
             <div className="hidden sm:flex items-center gap-1 lg:gap-1.5 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 p-1 rounded-full backdrop-blur-md shadow-lg shrink-0">
               <button
                 onClick={() => toggleFilter("available")}
-                className={`flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[8.5px] lg:text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[0.53125rem] lg:text-[0.5625rem] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                   activeFilters.available
                     ? "bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/40"
                     : "text-white/40 hover:text-white/70 border border-transparent"
@@ -1017,7 +1017,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
 
               <button
                 onClick={() => toggleFilter("blocked")}
-                className={`flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[8.5px] lg:text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[0.53125rem] lg:text-[0.5625rem] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                   activeFilters.blocked
                     ? "bg-[#3b82f6]/20 text-[#60a5fa] border border-[#3b82f6]/40"
                     : "text-white/40 hover:text-white/70 border border-transparent"
@@ -1031,7 +1031,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
 
               <button
                 onClick={() => toggleFilter("sold")}
-                className={`flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[8.5px] lg:text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`flex items-center gap-1 lg:gap-1.5 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[0.53125rem] lg:text-[0.5625rem] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                   activeFilters.sold
                     ? "bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40"
                     : "text-white/40 hover:text-white/70 border border-transparent"
@@ -1067,10 +1067,10 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                   });
                 }
               }}
-              className="bg-[#0A0D0B]/90 hover:bg-[#B35F27] border border-[#B35F27]/60 px-3 py-1.5 rounded-full text-[8.5px] sm:text-[9px] font-bold text-[#EDE7E0] tracking-wider uppercase backdrop-blur-md flex items-center gap-1.5 shadow-lg transition-all cursor-pointer shrink-0"
+              className="bg-[#0A0D0B]/90 hover:bg-[#B35F27] border border-[#B35F27]/60 px-3 py-1.5 rounded-full text-[0.53125rem] sm:text-[0.5625rem] font-bold text-[#EDE7E0] tracking-wider uppercase backdrop-blur-md flex items-center gap-1.5 shadow-lg transition-all cursor-pointer shrink-0"
             >
               <span className="h-2 w-2 rounded-full bg-[#B35F27] animate-pulse shrink-0"></span>
-              <span className="truncate max-w-[165px] sm:max-w-none">
+              <span className="truncate max-w-[10.3rem] sm:max-w-none">
                 {isEn
                   ? "Alma Beach Club • View Gallery (23 Renders)"
                   : "Alma Beach Club • Ver Galería (23 Renders)"}
@@ -1146,10 +1146,11 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
             panDragRef.current.moved = true;
           }
-          const maxPan = (mapZoom - 1) * 420;
+          const maxPanX = (mapZoom - 1) * (typeof window !== "undefined" ? window.innerWidth * 0.35 : 420);
+          const maxPanY = (mapZoom - 1) * (typeof window !== "undefined" ? window.innerHeight * 0.35 : 420);
           setMapPan({
-            x: Math.max(-maxPan, Math.min(maxPan, panDragRef.current.originX + dx)),
-            y: Math.max(-maxPan, Math.min(maxPan, panDragRef.current.originY + dy)),
+            x: Math.max(-maxPanX, Math.min(maxPanX, panDragRef.current.originX + dx)),
+            y: Math.max(-maxPanY, Math.min(maxPanY, panDragRef.current.originY + dy)),
           });
         }}
         onMouseUp={() => {
@@ -1273,7 +1274,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                     initial={{ opacity: 0, scale: 0.95, y: 4 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 4 }}
-                    className="absolute z-50 pointer-events-none p-3 rounded-xl border border-[#B35F27]/45 bg-[#0A0D0B]/92 shadow-2xl backdrop-blur-xl text-[11px] text-[#EDE7E0] min-w-[165px]"
+                    className="absolute z-50 pointer-events-none p-3 rounded-xl border border-[#B35F27]/45 bg-[#0A0D0B]/92 shadow-2xl backdrop-blur-xl text-[0.6875rem] text-[#EDE7E0] min-w-[10.3rem]"
                     style={{
                       left: `${hoveredPin.xPercent}%`,
                       top: `${Math.max(8, hoveredPin.yPercent - 11)}%`,
@@ -1295,7 +1296,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                           : `${isEn ? "LOT" : "LOTE"} ${hoveredPin.lotData.rawId}`}
                       </span>
                       <span
-                        className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
+                        className={`text-[0.5rem] font-bold uppercase px-1.5 py-0.5 rounded-full ${
                           hoveredPin.lotData.status === "available"
                             ? "bg-[#10b981]/25 text-[#10b981]"
                             : hoveredPin.lotData.status === "blocked" || hoveredPin.lotData.status === "reserved"
@@ -1308,7 +1309,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                         {translateStatusRaw(hoveredPin.lotData.statusRaw, isEn, hoveredPin.lotData.status)}
                       </span>
                     </div>
-                    <div className="space-y-1 text-[10px]">
+                    <div className="space-y-1 text-[0.625rem]">
                       <p className="flex justify-between gap-4">
                         <span className="text-[#EDE7E0]/60">{isEn ? "Area:" : "Área:"}</span>
                         <span className="font-semibold text-[#EDE7E0]">
@@ -1324,7 +1325,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
                         </p>
                       )}
                       {hoveredPin.lotData.status === "common" && (
-                        <p className="pt-1 border-t border-white/10 text-[9px] font-bold uppercase tracking-wider text-[#dbaa67] text-center">
+                        <p className="pt-1 border-t border-white/10 text-[0.5625rem] font-bold uppercase tracking-wider text-[#dbaa67] text-center">
                           {isEn ? "Click to open photo gallery →" : "Clic para ver galería de fotos →"}
                         </p>
                       )}
@@ -1399,7 +1400,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
               setMapZoom(1);
               setMapPan({ x: 0, y: 0 });
             }}
-            className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#dbaa67] hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            className="px-2 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wider text-[#dbaa67] hover:bg-white/10 rounded-full transition-colors cursor-pointer"
           >
             {mapZoom}x
           </button>
@@ -1407,7 +1408,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
       </div>
 
       {/* Leyenda de Brújula (Flotante a la Derecha) */}
-      <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/75 text-[9px] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
+      <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/75 text-[0.5625rem] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
         <Compass className="h-3.5 w-3.5 text-[#B35F27] rotate-[45deg]" />
         {isEn ? "North oriented towards the sea (Right / Beach)" : "Norte orientado hacia el mar (Derecha / Playa)"}
       </div>

@@ -762,7 +762,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
   const getStatusBadge = (status: string) => {
     if (lotDetails.isAmenity) {
       return (
-        <div className="flex items-center gap-1 bg-[#B35F27]/15 text-[#B35F27] border border-[#B35F27]/40 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+        <div className="flex items-center gap-1 bg-[#B35F27]/15 text-[#B35F27] border border-[#B35F27]/40 px-2.5 py-0.5 rounded-full text-[0.625rem] sm:text-xs font-bold uppercase tracking-wider">
           <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           {isEn ? "Amenity / Common Area" : "Amenidad / Zona Común"}
         </div>
@@ -771,7 +771,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
     switch (status) {
       case "available":
         return (
-          <div className="flex items-center gap-1 bg-emerald-500/15 text-emerald-800 border border-emerald-500/40 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-1 bg-emerald-500/15 text-emerald-800 border border-emerald-500/40 px-2.5 py-0.5 rounded-full text-[0.625rem] sm:text-xs font-bold uppercase tracking-wider">
             <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-600" />
             {isEn ? "Available" : "Disponible"}
           </div>
@@ -779,21 +779,21 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
       case "reserved":
       case "blocked":
         return (
-          <div className="flex items-center gap-1 bg-[#3b82f6]/15 text-[#1e40af] border border-[#3b82f6]/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-1 bg-[#3b82f6]/15 text-[#1e40af] border border-[#3b82f6]/30 px-2.5 py-0.5 rounded-full text-[0.625rem] sm:text-xs font-bold uppercase tracking-wider">
             <AlertCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600" />
             {isEn ? "Blocked" : "Bloqueado"}
           </div>
         );
       case "sold":
         return (
-          <div className="flex items-center gap-1 bg-red-500/15 text-red-700 border border-red-500/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-1 bg-red-500/15 text-red-700 border border-red-500/30 px-2.5 py-0.5 rounded-full text-[0.625rem] sm:text-xs font-bold uppercase tracking-wider">
             <AlertCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-red-600" />
             {isEn ? "Sold" : "Vendido"}
           </div>
         );
       default:
         return (
-          <div className="flex items-center gap-1 bg-black/10 text-[#0A0D0B]/60 border border-[#0A0D0B]/10 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-1 bg-black/10 text-[#0A0D0B]/60 border border-[#0A0D0B]/10 px-2.5 py-0.5 rounded-full text-[0.625rem] sm:text-xs font-bold uppercase tracking-wider">
             <AlertCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             {status.toUpperCase()}
           </div>
@@ -818,7 +818,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: "100%", opacity: 0.8 }}
         transition={{ type: "spring", damping: 25, stiffness: 150 }}
-        className="fixed top-0 right-0 z-40 h-[100dvh] w-[88vw] max-md:portrait:top-auto max-md:portrait:bottom-0 max-md:portrait:left-0 max-md:portrait:right-0 max-md:portrait:w-full max-md:portrait:h-[84dvh] max-md:portrait:rounded-t-3xl max-md:portrait:border-t max-md:portrait:border-l-0 max-lg:landscape:w-[46vw] md:w-[24rem] lg:w-[28rem] bg-[#EDE7E0]/96 border-l border-[#0A0D0B]/15 shadow-2xl backdrop-blur-xl flex flex-col text-[#0A0D0B] justify-between overflow-hidden"
+        className="fixed top-0 right-0 z-40 h-[100dvh] w-[88vw] max-md:portrait:top-auto max-md:portrait:bottom-0 max-md:portrait:left-0 max-md:portrait:right-0 max-md:portrait:w-full max-md:portrait:h-[84dvh] max-md:portrait:rounded-t-3xl max-md:portrait:border-t max-md:portrait:border-l-0 max-lg:landscape:w-[46vw] md:w-[24rem] lg:w-[27rem] bg-[#EDE7E0]/96 border-l border-[#0A0D0B]/15 shadow-2xl backdrop-blur-xl flex flex-col text-[#0A0D0B] justify-between overflow-hidden"
       >
         {/* Barra Superior de Agarre en Móvil Vertical (Bottom Sheet Handle) */}
         <div
@@ -833,7 +833,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
         <div className="px-4 py-3.5 sm:p-5 max-lg:landscape:px-3.5 max-lg:landscape:py-2 border-b border-[#0A0D0B]/10 flex justify-between items-center relative z-10 bg-[#EDE7E0]/80 shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
             <div>
-              <span className="text-[8px] sm:text-[10px] max-lg:landscape:text-[8px] uppercase tracking-[0.2em] text-[#B35F27] font-bold block">LOOM Luxury Residence</span>
+              <span className="text-[0.5rem] sm:text-[0.625rem] max-lg:landscape:text-[0.5rem] uppercase tracking-[0.2em] text-[#B35F27] font-bold block">LOOM Luxury Residence</span>
               <h2 className="text-lg sm:text-2xl max-lg:landscape:text-base font-serif text-[#0A0D0B] font-bold tracking-wide mt-0.5 truncate">
                 {lotDetails.isAmenity ? translateAreaText(lot.rawId, isEn) : `${isEn ? "Lot" : "Lote"} ${lot.rawId}`}
               </h2>
@@ -847,7 +847,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
             {!lotDetails.isAmenity && (
               <button
                 onClick={handleShareLot}
-                className="flex items-center gap-1 px-2.5 py-1.5 hover:bg-black/5 border border-[#0A0D0B]/15 rounded-full text-[9px] font-bold uppercase tracking-wider text-[#0A0D0B]/80 hover:text-[#B35F27] transition-all cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1.5 hover:bg-black/5 border border-[#0A0D0B]/15 rounded-full text-[0.5625rem] font-bold uppercase tracking-wider text-[#0A0D0B]/80 hover:text-[#B35F27] transition-all cursor-pointer"
                 title={isEn ? "Copy direct link to this lot" : "Copiar enlace directo a este lote"}
               >
                 {copiedLink ? (
@@ -879,7 +879,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
           {/* Cinta Compacta de Dimensiones */}
           <div className="grid grid-cols-2 bg-white/80 border border-[#0A0D0B]/10 p-2.5 sm:p-3.5 rounded-xl text-center items-center shadow-sm">
             <div className="border-r border-[#0A0D0B]/10 pr-2">
-              <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-[#0A0D0B]/50 block font-bold">
+              <span className="text-[0.5rem] sm:text-[0.5625rem] uppercase tracking-widest text-[#0A0D0B]/50 block font-bold">
                 {lotDetails.isAmenity ? (isEn ? "Category" : "Categoría") : (isEn ? "Total Area" : "Área Total")}
               </span>
               <span className="text-xs sm:text-base font-serif text-[#0A0D0B] font-bold mt-0.5 block">
@@ -887,7 +887,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
               </span>
             </div>
             <div className="pl-2">
-              <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-[#0A0D0B]/50 block font-bold">
+              <span className="text-[0.5rem] sm:text-[0.5625rem] uppercase tracking-widest text-[#0A0D0B]/50 block font-bold">
                 {lotDetails.isAmenity ? (isEn ? "Zone & Function" : "Vocación") : (isEn ? "Location Type" : "Tipología")}
               </span>
               <span className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#0A0D0B] mt-0.5 block">
@@ -905,16 +905,16 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 text-[#B35F27]">
                   <ImageIcon className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#0A0D0B]">
+                  <span className="text-[0.625rem] sm:text-xs font-bold uppercase tracking-wider text-[#0A0D0B]">
                     {isEn ? "Official Renders Gallery" : "Galería de Renders Oficiales"}
                   </span>
                 </div>
                 {amenityItems.length > 0 ? (
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider bg-[#B35F27]/12 text-[#B35F27] border border-[#B35F27]/25 px-2 py-0.5 rounded-md shrink-0">
+                  <span className="text-[0.5625rem] font-mono font-bold uppercase tracking-wider bg-[#B35F27]/12 text-[#B35F27] border border-[#B35F27]/25 px-2 py-0.5 rounded-md shrink-0">
                     {String(amenitySlideIdx + 1).padStart(2, "0")} / {String(amenityItems.length).padStart(2, "0")}
                   </span>
                 ) : (
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-500/15 text-[#B35F27] border border-[#B35F27]/30 px-2 py-0.5 rounded-md shrink-0">
+                  <span className="text-[0.5625rem] font-mono font-bold uppercase tracking-wider bg-amber-500/15 text-[#B35F27] border border-[#B35F27]/30 px-2 py-0.5 rounded-md shrink-0">
                     {isEn ? "Coming Soon" : "Próximamente"}
                   </span>
                 )}
@@ -941,7 +941,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                     </AnimatePresence>
 
                     {/* Etiqueta superior de categoría */}
-                    <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-[#0A0D0B]/75 backdrop-blur-md border border-white/15 text-[9px] font-bold uppercase tracking-wider text-[#EBD9AB]">
+                    <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-[#0A0D0B]/75 backdrop-blur-md border border-white/15 text-[0.5625rem] font-bold uppercase tracking-wider text-[#EBD9AB]">
                       {isEn ? activeAmenityItem.categoryEn : activeAmenityItem.categoryEs}
                     </div>
 
@@ -985,10 +985,10 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
 
                     {/* Barra inferior sobre la imagen */}
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-2.5 pt-6 flex items-end justify-between">
-                      <span className="text-white text-[11px] font-serif font-bold leading-tight drop-shadow">
+                      <span className="text-white text-[0.6875rem] font-serif font-bold leading-tight drop-shadow">
                         {isEn ? activeAmenityItem.titleEn : activeAmenityItem.titleEs}
                       </span>
-                      <span className="text-[9px] text-[#EBD9AB] font-mono font-bold bg-[#B35F27]/85 px-2 py-0.5 rounded shrink-0 ml-2">
+                      <span className="text-[0.5625rem] text-[#EBD9AB] font-mono font-bold bg-[#B35F27]/85 px-2 py-0.5 rounded shrink-0 ml-2">
                         HD
                       </span>
                     </div>
@@ -1021,7 +1021,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                   )}
 
                   {/* Descripción del render activo */}
-                  <p className="text-[11px] text-[#0A0D0B]/75 leading-relaxed bg-[#EDE7E0]/60 p-2.5 rounded-xl border border-[#0A0D0B]/5">
+                  <p className="text-[0.6875rem] text-[#0A0D0B]/75 leading-relaxed bg-[#EDE7E0]/60 p-2.5 rounded-xl border border-[#0A0D0B]/5">
                     {isEn ? activeAmenityItem.descEn : activeAmenityItem.descEs}
                   </p>
                 </>
@@ -1031,13 +1031,13 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                   <div className="w-11 h-11 rounded-full bg-[#B35F27]/20 border border-[#B35F27]/40 flex items-center justify-center text-[#EBD9AB] mb-2.5">
                     <Trees className="h-5 w-5" />
                   </div>
-                  <span className="text-[9px] uppercase tracking-[0.22em] text-[#EBD9AB] font-mono font-bold">
+                  <span className="text-[0.5625rem] uppercase tracking-[0.22em] text-[#EBD9AB] font-mono font-bold">
                     {isEn ? "BIOCLIMATIC PARKS • 7,384 SQ FT" : "PARQUES BIOCLIMÁTICOS • 686 M²"}
                   </span>
                   <h4 className="text-sm sm:text-base font-serif font-bold text-white mt-1">
                     {isEn ? "Official Renders Coming Soon" : "Renders Oficiales Próximamente"}
                   </h4>
-                  <p className="text-[10px] sm:text-[11px] text-white/70 max-w-xs mt-1 leading-relaxed">
+                  <p className="text-[0.625rem] sm:text-[0.6875rem] text-white/70 max-w-xs mt-1 leading-relaxed">
                     {isEn
                       ? "3D landscape visualizations for each stage park are currently in post-production and will be available in this gallery soon."
                       : "Las visualizaciones 3D de paisajismo para los parques de cada etapa se encuentran en post-producción y estarán habilitadas muy pronto."}
@@ -1056,12 +1056,12 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-[#B35F27]">
                   <Ruler className="h-4 w-4" />
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#0A0D0B]">
+                  <span className="text-[0.625rem] sm:text-xs font-bold uppercase tracking-wider text-[#0A0D0B]">
                     {isEn ? "Lot Blueprint & Dimensions" : "Plano & Medidas del Lote"}
                   </span>
                 </div>
                 {lotDetails.block && (
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider bg-[#B35F27]/10 text-[#B35F27] border border-[#B35F27]/20 px-2 py-0.5 rounded-md">
+                  <span className="text-[0.5625rem] font-mono font-bold uppercase tracking-wider bg-[#B35F27]/10 text-[#B35F27] border border-[#B35F27]/20 px-2 py-0.5 rounded-md">
                     {isEn ? `Blk ${lotDetails.block} • Lot ${lotDetails.number}` : `Mz ${lotDetails.block} • Lote ${lotDetails.number}`}
                   </span>
                 )}
@@ -1081,11 +1081,11 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
 
                 {/* Overlay flotante al pasar el cursor */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-2.5">
-                  <span className="text-white text-[10px] font-semibold flex items-center gap-1.5 backdrop-blur-md bg-black/50 px-2.5 py-1 rounded-full border border-white/20">
+                  <span className="text-white text-[0.625rem] font-semibold flex items-center gap-1.5 backdrop-blur-md bg-black/50 px-2.5 py-1 rounded-full border border-white/20">
                     <Maximize2 className="h-3 w-3 text-[#EBD9AB]" />
                     {isEn ? "Expand dimensions (HD)" : "Ampliar medidas (HD)"}
                   </span>
-                  <span className="text-[9px] text-[#EBD9AB] font-mono font-bold bg-[#B35F27]/80 px-2 py-0.5 rounded">
+                  <span className="text-[0.5625rem] text-[#EBD9AB] font-mono font-bold bg-[#B35F27]/80 px-2 py-0.5 rounded">
                     1080p
                   </span>
                 </div>
@@ -1104,9 +1104,9 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
               </div>
 
               {/* Parámetros dimensionales y nota de cotas */}
-              <div className="grid grid-cols-2 gap-2 text-[10px] sm:text-[11px] pt-0.5">
+              <div className="grid grid-cols-2 gap-2 text-[0.625rem] sm:text-[0.6875rem] pt-0.5">
                 <div className="bg-[#EDE7E0]/60 p-2 rounded-lg border border-[#0A0D0B]/5">
-                  <span className="text-[8px] uppercase tracking-wider text-[#0A0D0B]/50 font-bold block">
+                  <span className="text-[0.5rem] uppercase tracking-wider text-[#0A0D0B]/50 font-bold block">
                     {isEn ? "Registered Area" : "Área Registrada"}
                   </span>
                   <span className="font-serif font-bold text-[#0A0D0B] text-xs block mt-0.5">
@@ -1114,7 +1114,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                   </span>
                 </div>
                 <div className="bg-[#EDE7E0]/60 p-2 rounded-lg border border-[#0A0D0B]/5">
-                  <span className="text-[8px] uppercase tracking-wider text-[#0A0D0B]/50 font-bold block">
+                  <span className="text-[0.5rem] uppercase tracking-wider text-[#0A0D0B]/50 font-bold block">
                     {isEn ? "Location Type" : "Tipología"}
                   </span>
                   <span className="font-semibold text-[#0A0D0B] text-xs capitalize truncate block mt-0.5">
@@ -1123,7 +1123,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                 </div>
               </div>
 
-              <p className="text-[9px] text-[#0A0D0B]/60 leading-tight italic flex items-center gap-1.5 pt-0.5">
+              <p className="text-[0.5625rem] text-[#0A0D0B]/60 leading-tight italic flex items-center gap-1.5 pt-0.5">
                 <Info className="h-3 w-3 text-[#B35F27] shrink-0" />
                 <span>
                   {isEn
@@ -1140,10 +1140,10 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
               {/* Tarjeta de Valor Total */}
               <div className="bg-[#0A0D0B] text-[#EDE7E0] rounded-2xl p-4 sm:p-5 shadow-md space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-[#EBD9AB] font-mono block">
+                  <span className="text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-[0.2em] text-[#EBD9AB] font-mono block">
                     {isEn ? "Total Investment Value (USD)" : "Valor Total de Inversión (COP)"}
                   </span>
-                  <span className="text-[8px] uppercase tracking-wider font-bold bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/35 px-2 py-0.5 rounded-full">
+                  <span className="text-[0.5rem] uppercase tracking-wider font-bold bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/35 px-2 py-0.5 rounded-full">
                     {isEn ? "0% Interest" : "0% Interés"}
                   </span>
                 </div>
@@ -1151,14 +1151,14 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                   {formatCopOrUsd(lot.totalPrice, isEn, trm, isEn)}
                 </p>
                 {lot.pricePerM2 && (
-                  <p className="text-white/50 text-[11px]">
+                  <p className="text-white/50 text-[0.6875rem]">
                     {isEn
                       ? `Price per sq ft: ${formatPricePerAreaUnit(lot.pricePerM2, true, trm)}`
                       : `Valor por m²: ${lot.pricePerM2}`}
                   </p>
                 )}
                 {isEn && (
-                  <p className="text-[#EBD9AB]/75 text-[9px] font-mono pt-0.5">
+                  <p className="text-[#EBD9AB]/75 text-[0.5625rem] font-mono pt-0.5">
                     Live Daily TRM: 1 USD = ${Math.round(trm).toLocaleString("en-US")} COP
                   </p>
                 )}
@@ -1169,10 +1169,10 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                 <div className="bg-white/90 border border-[#B35F27]/30 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[#B35F27] text-xs font-bold uppercase tracking-wider">
-                      <Calculator size={14} />
+                      <Calculator className="w-3.5 h-3.5 shrink-0" />
                       <span>{isEn ? "Payment Plan Simulator (USD)" : "Simulador de Plan de Pagos"}</span>
                     </div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-500/15 px-2 py-0.5 rounded-md">
+                    <span className="text-[0.5625rem] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-500/15 px-2 py-0.5 rounded-md">
                       {downPaymentPct}% / {calculatedFinancing.financePct}% / 10%
                     </span>
                   </div>
@@ -1213,7 +1213,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                         <button
                           key={m}
                           onClick={() => setFinancingMonths(m)}
-                          className={`py-1.5 rounded-lg text-[11px] font-bold uppercase transition-all cursor-pointer ${
+                          className={`py-1.5 rounded-lg text-[0.6875rem] font-bold uppercase transition-all cursor-pointer ${
                             financingMonths === m
                               ? "bg-[#B35F27] text-white shadow-sm"
                               : "bg-[#EDE7E0]/80 text-[#0A0D0B]/70 hover:bg-white"
@@ -1235,7 +1235,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                         {formatCopOrUsd(calculatedFinancing.monthlyAmount, isEn, trm, isEn)}
                       </span>
                     </div>
-                    <div className="flex justify-between items-baseline text-[11px]">
+                    <div className="flex justify-between items-baseline text-[0.6875rem]">
                       <span className="text-[#0A0D0B]/60">
                         {isEn ? "Final Payment Upon Delivery (10%):" : "Pago Contraentrega (10%):"}
                       </span>
@@ -1246,7 +1246,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                   </div>
 
                   {/* Nota de Descuento Pronto Pago / Capital Inicial Fuerte */}
-                  <div className="bg-[#EDE7E0]/80 border border-[#B35F27]/25 rounded-lg p-2 flex items-start gap-2 text-[10px] text-[#0A0D0B]/80 leading-snug">
+                  <div className="bg-[#EDE7E0]/80 border border-[#B35F27]/25 rounded-lg p-2 flex items-start gap-2 text-[0.625rem] text-[#0A0D0B]/80 leading-snug">
                     <Sparkles className="h-3.5 w-3.5 text-[#B35F27] shrink-0 mt-0.5" />
                     <span>
                       {isEn
@@ -1259,7 +1259,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
             </div>
           ) : (
             <div className="bg-white/90 border border-[#B35F27]/25 rounded-xl p-4 space-y-2.5 shadow-sm">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#B35F27] border-b border-[#B35F27]/20 pb-1 font-bold">
+              <h3 className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B35F27] border-b border-[#B35F27]/20 pb-1 font-bold">
                 {lot.status === "blocked"
                   ? isEn ? "Reservation Information" : "Información de Reserva"
                   : lot.status === "sold"
@@ -1292,7 +1292,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                   {(isEn ? lotDetails.amenityGallery.highlightsEn : lotDetails.amenityGallery.highlightsEs).map((feat) => (
                     <div
                       key={feat}
-                      className="flex items-center gap-1.5 bg-[#EDE7E0]/75 border border-[#B35F27]/20 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold text-[#0A0D0B]"
+                      className="flex items-center gap-1.5 bg-[#EDE7E0]/75 border border-[#B35F27]/20 px-2.5 py-1.5 rounded-lg text-[0.625rem] font-semibold text-[#0A0D0B]"
                     >
                       <CheckCircle className="h-3 w-3 text-[#B35F27] shrink-0" />
                       <span className="truncate">{feat}</span>
@@ -1305,14 +1305,14 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
 
           {/* Alerta de Atribución */}
           {assignedAdvisor ? (
-            <div className="bg-[#B35F27]/15 border border-[#B35F27]/35 rounded-xl p-2.5 text-[10px] text-[#0A0D0B] leading-relaxed uppercase tracking-wider text-center font-semibold flex items-center justify-center gap-2">
+            <div className="bg-[#B35F27]/15 border border-[#B35F27]/35 rounded-xl p-2.5 text-[0.625rem] text-[#0A0D0B] leading-relaxed uppercase tracking-wider text-center font-semibold flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
               <span>
                 {isEn ? "Your Advisor:" : "Tu Asesor:"} <strong>{assignedAdvisor.name}</strong> &bull; {assignedAdvisor.agency}
               </span>
             </div>
           ) : referrer ? (
-            <div className="bg-[#B35F27]/10 border border-[#B35F27]/30 rounded-xl p-2.5 text-[9px] sm:text-[10px] text-[#0A0D0B]/80 leading-relaxed uppercase tracking-wider text-center font-medium">
+            <div className="bg-[#B35F27]/10 border border-[#B35F27]/30 rounded-xl p-2.5 text-[0.5625rem] sm:text-[0.625rem] text-[#0A0D0B]/80 leading-relaxed uppercase tracking-wider text-center font-medium">
               {isEn ? "Official advisory by " : "Asesoría comercializada por "}
               <strong className="text-[#0A0D0B] font-bold">{referrer === "patrimofy" ? "Patrimofy" : "Chichaus"}</strong>
             </div>
@@ -1325,7 +1325,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
             amenityItems.length > 0 ? (
               <button
                 onClick={() => setIsPlanLightboxOpen(true)}
-                className="w-full py-3.5 max-lg:landscape:py-2.5 bg-[#B35F27] hover:bg-[#964d1d] text-white font-bold rounded-xl uppercase tracking-[0.14em] text-xs max-lg:landscape:text-[10px] transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#B35F27]/25 cursor-pointer hover:scale-[1.01]"
+                className="w-full py-3.5 max-lg:landscape:py-2.5 bg-[#B35F27] hover:bg-[#964d1d] text-white font-bold rounded-xl uppercase tracking-[0.14em] text-xs max-lg:landscape:text-[0.625rem] transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#B35F27]/25 cursor-pointer hover:scale-[1.01]"
               >
                 <Maximize2 className="h-4 w-4 shrink-0" />
                 <span className="truncate">
@@ -1335,30 +1335,30 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                 </span>
               </button>
             ) : (
-              <div className="w-full py-3 max-lg:landscape:py-2 text-center text-[#B35F27] font-bold uppercase tracking-widest text-[10px] border border-[#B35F27]/30 rounded-xl bg-[#B35F27]/10 shadow-sm">
+              <div className="w-full py-3 max-lg:landscape:py-2 text-center text-[#B35F27] font-bold uppercase tracking-widest text-[0.625rem] border border-[#B35F27]/30 rounded-xl bg-[#B35F27]/10 shadow-sm">
                 {isEn ? "Official Park Renders • Coming Soon" : "Renders de Parques • Próximamente"}
               </div>
             )
           ) : lot.status === "sold" ? (
-            <div className="w-full py-3 max-lg:landscape:py-2 text-center text-red-600 font-bold uppercase tracking-widest text-[10px] border border-red-500/30 rounded-xl bg-red-500/10 shadow-sm">
+            <div className="w-full py-3 max-lg:landscape:py-2 text-center text-red-600 font-bold uppercase tracking-widest text-[0.625rem] border border-red-500/30 rounded-xl bg-red-500/10 shadow-sm">
               {isEn ? "Lot Sold • Not Available" : "Lote Vendido • No disponible"}
             </div>
           ) : lot.status === "blocked" ? (
-            <div className="w-full py-3 max-lg:landscape:py-2 text-center text-blue-700 font-bold uppercase tracking-widest text-[10px] border border-blue-500/30 rounded-xl bg-blue-500/10 shadow-sm">
+            <div className="w-full py-3 max-lg:landscape:py-2 text-center text-blue-700 font-bold uppercase tracking-widest text-[0.625rem] border border-blue-500/30 rounded-xl bg-blue-500/10 shadow-sm">
               {isEn ? "Lot Blocked • Administrative Hold" : "Lote Bloqueado • Reserva Administrativa"}
             </div>
           ) : (
             <div className="space-y-2 max-lg:landscape:space-y-0 max-lg:landscape:grid max-lg:landscape:grid-cols-2 max-lg:landscape:gap-2">
               <button
                 onClick={() => onEnterShowroom(lot)}
-                className="w-full py-3.5 max-lg:landscape:py-2.5 px-2 bg-[#B35F27] hover:bg-[#964d1d] text-white font-bold rounded-xl uppercase tracking-[0.12em] text-xs max-lg:landscape:text-[10px] transition-all duration-300 flex items-center justify-center gap-1.5 shadow-lg shadow-[#B35F27]/25 cursor-pointer hover:scale-[1.01]"
+                className="w-full py-3.5 max-lg:landscape:py-2.5 px-2 bg-[#B35F27] hover:bg-[#964d1d] text-white font-bold rounded-xl uppercase tracking-[0.12em] text-xs max-lg:landscape:text-[0.625rem] transition-all duration-300 flex items-center justify-center gap-1.5 shadow-lg shadow-[#B35F27]/25 cursor-pointer hover:scale-[1.01]"
               >
                 <Layout className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 shrink-0" />
                 <span className="truncate">{isEn ? "3D Showroom" : "Showroom 3D"}</span>
               </button>
               <button
                 onClick={handleSeparateClick}
-                className="w-full py-3 max-lg:landscape:py-2.5 px-2 bg-white hover:bg-white/80 border border-[#0A0D0B]/15 text-[#0A0D0B] font-bold rounded-xl uppercase tracking-[0.12em] text-xs max-lg:landscape:text-[10px] transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                className="w-full py-3 max-lg:landscape:py-2.5 px-2 bg-white hover:bg-white/80 border border-[#0A0D0B]/15 text-[#0A0D0B] font-bold rounded-xl uppercase tracking-[0.12em] text-xs max-lg:landscape:text-[0.625rem] transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
               >
                 {assignedAdvisor ? <MessageCircle className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 text-[#25D366] shrink-0" /> : <Phone className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 text-[#B35F27] shrink-0" />}
                 <span className="truncate">
@@ -1398,7 +1398,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                   {lotDetails.isAmenity ? <ImageIcon className="h-5 w-5" /> : <Ruler className="h-5 w-5" />}
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-[#EBD9AB] font-mono font-bold block truncate">
+                  <span className="text-[0.5rem] sm:text-[0.5625rem] uppercase tracking-[0.2em] text-[#EBD9AB] font-mono font-bold block truncate">
                     {lotDetails.isAmenity
                       ? isEn
                         ? `LOOM • ${lotDetails.amenityGallery?.badgeEn || "COMMON AREA GALLERY"}`
@@ -1432,7 +1432,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                   >
                     <ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </button>
-                  <span className="text-[10px] sm:text-xs font-mono font-bold text-[#EBD9AB] px-1 sm:px-2">
+                  <span className="text-[0.625rem] sm:text-xs font-mono font-bold text-[#EBD9AB] px-1 sm:px-2">
                     {Math.round(lightboxZoom * 100)}%
                   </span>
                   <button
@@ -1508,7 +1508,7 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
             >
               {lotDetails.isAmenity && activeAmenityItem ? (
                 <>
-                  <p className="text-center text-white/85 text-[11px] sm:text-sm max-w-3xl mx-auto leading-relaxed line-clamp-2 sm:line-clamp-none px-2">
+                  <p className="text-center text-white/85 text-[0.6875rem] sm:text-sm max-w-3xl mx-auto leading-relaxed line-clamp-2 sm:line-clamp-none px-2">
                     {isEn ? activeAmenityItem.descEn : activeAmenityItem.descEs}
                   </p>
                   {amenityItems.length > 1 && (
@@ -1542,16 +1542,16 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
               ) : (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-center text-white/70 text-xs">
                   <div className="flex items-center gap-2 flex-wrap justify-center">
-                    <span className="px-2.5 py-1 rounded-full bg-[#B35F27]/20 border border-[#B35F27]/40 text-[#EBD9AB] font-bold text-[10px] uppercase">
+                    <span className="px-2.5 py-1 rounded-full bg-[#B35F27]/20 border border-[#B35F27]/40 text-[#EBD9AB] font-bold text-[0.625rem] uppercase">
                       {isEn ? "Type:" : "Tipología:"} {translateLocationType(lot.location || "Medianero", isEn)}
                     </span>
-                    <span className="text-[10px] sm:text-[11px] text-white/80">
+                    <span className="text-[0.625rem] sm:text-[0.6875rem] text-white/80">
                       {isEn
                         ? "Boundary, depth, and frontage dimensions expressed in linear meters (m)."
                         : "Medidas de linderos, fondos y frentes expresadas en metros lineales (m)."}
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-white/50 hidden sm:inline">
+                  <span className="text-[0.625rem] font-mono text-white/50 hidden sm:inline">
                     {isEn ? "Press Esc to close" : "Presiona Esc para cerrar"}
                   </span>
                 </div>

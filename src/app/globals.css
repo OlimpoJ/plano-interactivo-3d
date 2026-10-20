@@ -192,28 +192,10 @@ h6,
   --font-serif: var(--font-playfair), "Felix Titling", serif;
 }
 
-/* Escalado proporcional para Pantallas Gigantes (4K, 5K, 8K) */
-@media (min-width: 2560px) {
+/* Escalado proporcional fluido para Pantallas Gigantes (2K, 4K, 5K, 8K / Salas de Ventas y Videowalls) */
+@media (min-width: 2000px) {
   html {
-    font-size: 24px !important;
-  }
-}
-
-@media (min-width: 3840px) {
-  html {
-    font-size: 32px !important;
-  }
-}
-
-@media (min-width: 5120px) {
-  html {
-    font-size: 48px !important;
-  }
-}
-
-@media (min-width: 7680px) {
-  html {
-    font-size: 64px !important;
+    font-size: clamp(16px, 0.833333vw, 64px) !important;
   }
 }
 

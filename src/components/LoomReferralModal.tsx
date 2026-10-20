@@ -47,7 +47,7 @@ export default function LoomReferralModal({ isOpen, onClose, lotRawId }: LoomRef
           </button>
 
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#B35F27]/10 border border-[#B35F27]/30 text-[#B35F27] text-[10px] font-bold uppercase tracking-widest rounded-full">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#B35F27]/10 border border-[#B35F27]/30 text-[#B35F27] text-[0.625rem] font-bold uppercase tracking-widest rounded-full">
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>{isEn ? "Official Authorized Agencies" : "Únicas Firmas Comercializadoras"}</span>
             </div>
@@ -97,7 +97,7 @@ export default function LoomReferralModal({ isOpen, onClose, lotRawId }: LoomRef
             </button>
           </div>
 
-          <div className="pt-2 border-t border-[#0A0D0B]/10 flex items-center justify-center gap-1.5 text-[9px] text-[#0A0D0B]/60 uppercase tracking-wider font-semibold">
+          <div className="pt-2 border-t border-[#0A0D0B]/10 flex items-center justify-center gap-1.5 text-[0.5625rem] text-[#0A0D0B]/60 uppercase tracking-wider font-semibold">
             <ShieldCheck className="h-3 w-3 text-[#B35F27]" />
             <span>
               {isEn

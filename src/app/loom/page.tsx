@@ -297,9 +297,9 @@ function LoomShowroomInner() {
         {view === "hero" && (
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] text-[10px] lg:text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-full bg-[#EDE7E0]/90 text-[#0A0D0B] border border-[#0A0D0B]/15 shadow-xl backdrop-blur-md hover:bg-[#EDE7E0] hover:text-[#B35F27] text-[0.625rem] lg:text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer"
           >
-            <ArrowLeft size={14} className="shrink-0" />
+            <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
             <span>
               <span className="hidden sm:inline">{isEn ? "Back to " : "Regresar al "}</span>
               Master Plan
@@ -314,7 +314,7 @@ function LoomShowroomInner() {
           {view === "hero" && (
             <button
               onClick={() => setIsCleanVideoView((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-full border shadow-xl backdrop-blur-md text-[10px] lg:text-[11px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-full border shadow-xl backdrop-blur-md text-[0.625rem] lg:text-[0.6875rem] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
                 isCleanVideoView
                   ? "bg-[#B35F27] text-[#EDE7E0] border-[#B35F27] hover:bg-[#964d1d]"
                   : "bg-[#EDE7E0]/92 text-[#0A0D0B] border-[#0A0D0B]/15 hover:bg-[#EDE7E0] hover:text-[#B35F27]"
@@ -348,7 +348,7 @@ function LoomShowroomInner() {
           {/* Selector de Idioma Ultra-Compacto y Discreto (ES / EN) */}
           <button
             onClick={() => setLang(lang === "es" ? "en" : "es")}
-            className="flex items-center px-2 py-1 rounded-full bg-[#0A0D0B]/55 hover:bg-[#0A0D0B]/85 border border-white/15 backdrop-blur-md text-[8.5px] lg:text-[9px] font-mono uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+            className="flex items-center px-2 py-1 rounded-full bg-[#0A0D0B]/55 hover:bg-[#0A0D0B]/85 border border-white/15 backdrop-blur-md text-[0.53125rem] lg:text-[0.5625rem] font-mono uppercase tracking-wider transition-all cursor-pointer shadow-sm"
             title={isEn ? "Switch Language (ES / EN)" : "Cambiar Idioma (ES / EN)"}
           >
             <span className={lang === "es" ? "text-[#EDE7E0] font-bold" : "text-[#EDE7E0]/40"}>
@@ -363,7 +363,7 @@ function LoomShowroomInner() {
           {assignedAdvisor && (
             <button
               onClick={handleOpenContact}
-              className="hidden sm:flex items-center gap-1.5 lg:gap-2 px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-full bg-[#EDE7E0]/95 text-[#0A0D0B] border border-[#B35F27]/35 shadow-xl backdrop-blur-md text-[9.5px] lg:text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 lg:gap-2 px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-full bg-[#EDE7E0]/95 text-[#0A0D0B] border border-[#B35F27]/35 shadow-xl backdrop-blur-md text-[0.59375rem] lg:text-[0.6875rem] font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 cursor-pointer"
               title={
                 isEn
                   ? `Contact your advisor ${assignedAdvisor.name} via WhatsApp`
@@ -375,7 +375,7 @@ function LoomShowroomInner() {
                 <span className="hidden xl:inline">{isEn ? "Advisor:" : "Asesor:"} </span>
                 <strong className="text-[#B35F27]">{assignedAdvisor.name.split(" ")[0]}</strong>
               </span>
-              <MessageCircle size={13} className="text-[#25D366] shrink-0" />
+              <MessageCircle className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
             </button>
           )}
           <button
@@ -512,31 +512,31 @@ function LoomShowroomInner() {
                 {/* Estadísticas de Disponibilidad (Visibles en Celular Vertical / Ocultas en Celular Horizontal por Altura Reducida) */}
                 <div className={`flex gap-2 sm:gap-4 justify-center my-3 sm:my-6 text-center relative z-10 px-2 ${styles.heroStatsContainer}`}>
                   {/* Lotes Totales */}
-                  <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-white/35 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[75px] sm:min-w-[125px]">
+                  <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-white/35 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[4.7rem] sm:min-w-[7.8rem]">
                     <span className="text-[#F3E5AB] font-bold text-sm sm:text-2xl md:text-3xl block font-serif tracking-wider [text-shadow:_0_1.5px_6px_rgba(0,0,0,0.9)]">
                       <AnimatedCounter endValue={stats.total} />
                     </span>
-                    <span className="text-white font-bold text-[7px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
+                    <span className="text-white font-bold text-[0.4375rem] sm:text-[0.5625rem] md:text-[0.625rem] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
                       {isEn ? "Total Lots" : "Lotes Totales"}
                     </span>
                   </div>
 
                   {/* Disponibles */}
-                  <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-[#7EF3D0]/60 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[75px] sm:min-w-[125px]">
+                  <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-[#7EF3D0]/60 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[4.7rem] sm:min-w-[7.8rem]">
                     <span className="text-[#7EF3D0] font-bold text-sm sm:text-2xl md:text-3xl block font-serif tracking-wider [text-shadow:_0_1.5px_6px_rgba(0,0,0,0.9)]">
                       <AnimatedCounter endValue={stats.available} />
                     </span>
-                    <span className="text-[#7EF3D0] font-bold text-[7px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
+                    <span className="text-[#7EF3D0] font-bold text-[0.4375rem] sm:text-[0.5625rem] md:text-[0.625rem] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
                       {isEn ? "Available" : "Disponibles"}
                     </span>
                   </div>
 
                   {/* Vendidos */}
-                  <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-white/35 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[75px] sm:min-w-[125px]">
+                  <div className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/20 border border-white/35 rounded-xl sm:rounded-2xl backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 flex-1 sm:flex-initial min-w-[4.7rem] sm:min-w-[7.8rem]">
                     <span className="text-white font-bold text-sm sm:text-2xl md:text-3xl block font-serif tracking-wider [text-shadow:_0_1.5px_6px_rgba(0,0,0,0.9)]">
                       <AnimatedCounter endValue={stats.sold} />
                     </span>
-                    <span className="text-white/90 font-bold text-[7px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
+                    <span className="text-white/90 font-bold text-[0.4375rem] sm:text-[0.5625rem] md:text-[0.625rem] uppercase tracking-[0.15em] block mt-0.5 [text-shadow:_0_1px_3px_rgba(0,0,0,0.9)]">
                       {isEn ? "Sold" : "Vendidos"}
                     </span>
                   </div>

@@ -60,7 +60,7 @@ export default function LoomSideMenu({
           <div>
             <div className="flex justify-between items-center pb-5 border-b border-[#0A0D0B]/10">
               <div>
-                <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#B35F27] block">
+                <span className="text-[0.5625rem] font-bold uppercase tracking-[0.25em] text-[#B35F27] block">
                   {isEn ? "Showroom Navigation" : "Navegación Showroom"}
                 </span>
                 <h2 className="text-xl sm:text-2xl font-serif font-semibold text-[#0A0D0B] mt-0.5">
@@ -77,14 +77,14 @@ export default function LoomSideMenu({
 
             {/* Selector de Idioma ES / EN */}
             <div className="mt-4 flex items-center justify-between bg-white/70 border border-[#0A0D0B]/10 rounded-xl px-3.5 py-2">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#0A0D0B]/70">
+              <div className="flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-wider text-[#0A0D0B]/70">
                 <Globe className="h-3.5 w-3.5 text-[#B35F27]" />
                 <span>{isEn ? "Language" : "Idioma"}</span>
               </div>
               <div className="flex items-center gap-1 bg-[#EDE7E0] p-0.5 rounded-lg border border-[#0A0D0B]/10">
                 <button
                   onClick={() => setLang("es")}
-                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-[0.625rem] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     lang === "es"
                       ? "bg-[#B35F27] text-[#EDE7E0] shadow-sm"
                       : "text-[#0A0D0B]/60 hover:text-[#0A0D0B]"
@@ -94,7 +94,7 @@ export default function LoomSideMenu({
                 </button>
                 <button
                   onClick={() => setLang("en")}
-                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-[0.625rem] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     lang === "en"
                       ? "bg-[#B35F27] text-[#EDE7E0] shadow-sm"
                       : "text-[#0A0D0B]/60 hover:text-[#0A0D0B]"
@@ -162,7 +162,7 @@ export default function LoomSideMenu({
                   <Download className="h-4 w-4 text-[#B35F27] group-hover:translate-y-0.5 transition-transform" />
                   <span>{isEn ? "5. Official Brochure" : "5. Brochure Informativo"}</span>
                 </div>
-                <span className="text-[9px] bg-[#B35F27]/10 px-2 py-0.5 rounded font-mono font-bold">PDF</span>
+                <span className="text-[0.5625rem] bg-[#B35F27]/10 px-2 py-0.5 rounded font-mono font-bold">PDF</span>
               </button>
 
               <Link
@@ -190,15 +190,15 @@ export default function LoomSideMenu({
           {/* Footer del Menú Lateral */}
           <div className="pt-4 border-t border-[#0A0D0B]/10 space-y-3">
             <div className="bg-[#B35F27]/10 border border-[#B35F27]/25 p-3 rounded-xl text-center">
-              <span className="text-[9px] uppercase font-bold text-[#B35F27] tracking-widest block">
+              <span className="text-[0.5625rem] uppercase font-bold text-[#B35F27] tracking-widest block">
                 LOOM Luxury Residence
               </span>
-              <span className="text-[10px] text-[#0A0D0B]/70 block mt-0.5">
+              <span className="text-[0.625rem] text-[#0A0D0B]/70 block mt-0.5">
                 by Alma Beach &bull; Cartagena de Indias
               </span>
             </div>
 
-            <p className="text-[9px] text-[#0A0D0B]/40 text-center uppercase tracking-widest">
+            <p className="text-[0.5625rem] text-[#0A0D0B]/40 text-center uppercase tracking-widest">
               &copy; 2026 Loom Residence &bull; All Rights Reserved
             </p>
           </div>
