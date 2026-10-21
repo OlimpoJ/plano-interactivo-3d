@@ -594,9 +594,9 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
     if (match && !isAmenity) {
       block = match[1].toUpperCase();
       number = match[2].padStart(2, '0');
-      imageSrc = `/loom/lots/${block}-${number}.webp`;
+      imageSrc = `/loom/lots/${block}-${number}.webp?v=2`;
     } else if (!isAmenity) {
-      imageSrc = `/loom/lots/${identifier}.webp`;
+      imageSrc = `/loom/lots/${identifier}.webp?v=2`;
     }
 
     let amenityGallery: AmenityGalleryConfig | null = null;

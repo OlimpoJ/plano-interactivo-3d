@@ -514,7 +514,7 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
   const match = lotIdentifier.match(/([A-Za-z])-?(\d+)/);
   const blockLetter = match ? match[1].toUpperCase() : "";
   const lotNumber = match ? match[2].padStart(2, '0') : "";
-  const individualLotPlanSrc = blockLetter && lotNumber ? `/loom/lots/${blockLetter}-${lotNumber}.webp` : `/loom/lots/${lotIdentifier}.webp`;
+  const individualLotPlanSrc = blockLetter && lotNumber ? `/loom/lots/${blockLetter}-${lotNumber}.webp?v=2` : `/loom/lots/${lotIdentifier}.webp?v=2`;
 
   const lotPlanItem = {
     num: "00",
