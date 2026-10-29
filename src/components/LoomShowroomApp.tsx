@@ -76,7 +76,7 @@ const VIDEO_LOGO_END_MS = 9970;
 
 function LoomShowroomInner({
   initialView = "hero",
-  enable3DMaqueta = false,
+  enable3DMaqueta = true,
 }: {
   initialView?: "hero" | "map" | "stage" | "maqueta3d" | "showroom";
   enable3DMaqueta?: boolean;
@@ -682,7 +682,7 @@ function LoomShowroomInner({
 export function LoomShowroomApp({
   defaultLang,
   initialView = "hero",
-  enable3DMaqueta = false,
+  enable3DMaqueta = true,
 }: {
   defaultLang?: LoomLang;
   initialView?: "hero" | "map" | "stage" | "maqueta3d" | "showroom";
