@@ -2,15 +2,22 @@
 
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, Box } from "lucide-react";
 import { useLoomLang } from "@/lib/loomI18n";
 
 interface LoomLocationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onJumpTo3DMaqueta?: () => void;
+  onSelectLotFromEarth?: (lotId: string, stageId?: string) => void;
 }
 
-export default function LoomLocationModal({ isOpen, onClose }: LoomLocationModalProps) {
+export default function LoomLocationModal({
+  isOpen,
+  onClose,
+  onJumpTo3DMaqueta,
+  onSelectLotFromEarth,
+}: LoomLocationModalProps) {
   const { lang, isEn } = useLoomLang();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -24,6 +31,13 @@ export default function LoomLocationModal({ isOpen, onClose }: LoomLocationModal
 
       if (data.type === "PATRIMOFY_EARTH_RETURN_SHOWROOM") {
         onClose();
+      } else if (data.type === "PATRIMOFY_EARTH_SELECT_LOT" && data.lotId) {
+        onClose();
+        if (onSelectLotFromEarth) {
+          onSelectLotFromEarth(String(data.lotId), data.stageId ? String(data.stageId) : undefined);
+        } else if (onJumpTo3DMaqueta) {
+          onJumpTo3DMaqueta();
+        }
       }
     };
 
@@ -68,27 +82,43 @@ export default function LoomLocationModal({ isOpen, onClose }: LoomLocationModal
                 ? "Patrimofy Earth 3D • Loom Luxury Residence"
                 : "Patrimofy Earth 3D • Loom Luxury Residence"
             }
-            src={`/earth/index.html?project=loom&embed=true&lang=${lang}`}
+            src={`/earth/${onJumpTo3DMaqueta ? "index-3d.html" : "index.html"}?project=loom&embed=true&lang=${lang}`}
             className="w-full h-full border-0 block bg-[#07090e]"
             allow="fullscreen; geolocation"
           />
 
-          {/* Discrete Floating Return Button (always accessible even if Dossier Drawer is minimized) */}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={isEn ? "Return to 3D Interactive Plan" : "Volver al Plano Interactivo 3D"}
-            className="fixed top-[6.5rem] md:top-[5.375rem] left-3 md:left-[1.625rem] z-[60] inline-flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-3.5 md:py-2 rounded-xl bg-[#0b0f17]/90 hover:bg-[#121826]/95 text-[#f8fafc] border border-[#d4af37]/45 hover:border-[#d4af37] shadow-[0_10px_30px_rgba(0,0,0,0.65)] hover:shadow-[0_0_18px_rgba(212,175,55,0.35)] backdrop-blur-xl transition-all duration-200 cursor-pointer group"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
-            <span className="text-[0.65625rem] sm:text-xs font-medium tracking-wide">
-              {isEn ? "Return to 3D Plan" : "Volver al Plano 3D"}
-            </span>
-            <span className="hidden md:inline-flex items-center px-1.5 py-0.5 ml-0.5 rounded bg-white/5 border border-white/10 text-[0.5625rem] font-mono text-[#94a3b8] uppercase">
-              ESC
-            </span>
-            <X className="w-3 h-3 text-[#94a3b8] group-hover:text-white md:hidden ml-0.5" />
-          </button>
+          {/* Discrete Floating Return + Jump to 3D Maqueta Buttons */}
+          <div className="fixed top-[6.5rem] md:top-[5.375rem] left-3 md:left-[1.625rem] z-[60] flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={isEn ? "Return to 3D Interactive Plan" : "Volver al Plano Interactivo 3D"}
+              className="inline-flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-3.5 md:py-2 rounded-xl bg-[#0b0f17]/90 hover:bg-[#121826]/95 text-[#f8fafc] border border-[#d4af37]/45 hover:border-[#d4af37] shadow-[0_10px_30px_rgba(0,0,0,0.65)] hover:shadow-[0_0_18px_rgba(212,175,55,0.35)] backdrop-blur-xl transition-all duration-200 cursor-pointer group"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
+              <span className="text-[0.65625rem] sm:text-xs font-medium tracking-wide">
+                {isEn ? "Return to 3D Plan" : "Volver al Plano 3D"}
+              </span>
+              <span className="hidden md:inline-flex items-center px-1.5 py-0.5 ml-0.5 rounded bg-white/5 border border-white/10 text-[0.5625rem] font-mono text-[#94a3b8] uppercase">
+                ESC
+              </span>
+              <X className="w-3 h-3 text-[#94a3b8] group-hover:text-white md:hidden ml-0.5" />
+            </button>
+
+            {onJumpTo3DMaqueta && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onJumpTo3DMaqueta();
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 md:py-2 rounded-xl bg-[#B35F27] hover:bg-[#964d1d] text-[#EDE7E0] border border-[#EBD9AB]/50 shadow-[0_10px_30px_rgba(0,0,0,0.65)] backdrop-blur-xl transition-all duration-200 cursor-pointer text-[0.65625rem] sm:text-xs font-bold uppercase tracking-wider"
+              >
+                <Box className="w-3.5 h-3.5 text-[#EBD9AB]" />
+                <span>{isEn ? "Descend to 3D Maqueta" : "Descender a Maqueta 3D"}</span>
+              </button>
+            )}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

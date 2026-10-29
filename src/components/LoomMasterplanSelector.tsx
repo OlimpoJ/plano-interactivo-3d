@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass } from "lucide-react";
+import { Compass, Box } from "lucide-react";
 import { useLoomLang } from "@/lib/loomI18n";
 
 interface Lot {
@@ -85,9 +85,10 @@ interface LoomMasterplanSelectorProps {
   lots: Lot[];
   onSelectStage: (stageId: string) => void;
   onBack: () => void;
+  onEnter3DMaqueta?: () => void;
 }
 
-export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: LoomMasterplanSelectorProps) {
+export default function LoomMasterplanSelector({ lots, onSelectStage, onBack, onEnter3DMaqueta }: LoomMasterplanSelectorProps) {
   const { isEn } = useLoomLang();
   const [hoveredStage, setHoveredStage] = useState<{
     id: string;
@@ -197,6 +198,15 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack }: 
           <span className="h-2 w-2 rounded-full bg-[#10b981] animate-pulse" />
           <span>{isEn ? "Master Plan • Select a Stage" : "Master Plan • Selecciona una Etapa"}</span>
         </div>
+        {onEnter3DMaqueta && (
+          <button
+            onClick={onEnter3DMaqueta}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 lg:py-2 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 border border-[#EBD9AB]/40 rounded-full text-[0.59375rem] lg:text-[0.625rem] uppercase tracking-wider text-[#EDE7E0] font-extrabold backdrop-blur-md transition-all duration-300 shadow-xl cursor-pointer"
+          >
+            <Box className="w-3.5 h-3.5 text-[#EBD9AB] shrink-0" />
+            <span>{isEn ? "3D Maqueta" : "Maqueta 3D Interactiva"}</span>
+          </button>
+        )}
       </div>
 
       {/* Indicador de exploración táctil en móvil vertical */}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass, ChevronDown } from "lucide-react";
+import { Compass, ChevronDown, Sun, Sunset, Box, Layers } from "lucide-react";
 import {
   useLoomLang,
   translateLocationType,
@@ -11,7 +11,9 @@ import {
   formatCopOrUsd,
   getStageDisplayName,
   inferStageFromLotId,
+  parseSquareMeters,
 } from "@/lib/loomI18n";
+import { AREA_TIERS, getAreaTier, AreaTierKey } from "@/lib/loomLotTelemetry";
 
 interface Lot {
   id: string;
@@ -171,6 +173,7 @@ interface LoomStageViewerProps {
   onSelectLot: (lot: Lot) => void;
   onBack: () => void;
   onChangeStage?: (newStageId: string) => void;
+  onEnter3DMaqueta?: () => void;
 }
 
 interface ParsedPin {
@@ -183,7 +186,7 @@ interface ParsedPin {
   lotData: Lot;
 }
 
-export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLot, onBack, onChangeStage }: LoomStageViewerProps) {
+export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLot, onBack, onChangeStage, onEnter3DMaqueta }: LoomStageViewerProps) {
   const { isEn, trm } = useLoomLang();
   const [svgText, setSvgText] = useState<string>("");
   const [pins, setPins] = useState<ParsedPin[]>([]);
@@ -193,6 +196,9 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
   const stageMenuRef = useRef<HTMLDivElement>(null);
   const [mapZoom, setMapZoom] = useState<number>(1);
   const [mapPan, setMapPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [colorMode, setColorMode] = useState<"status" | "area" | "typology">("status");
+  const [activeAreaFilter, setActiveAreaFilter] = useState<AreaTierKey | "all">("all");
+  const [isSunsetMode, setIsSunsetMode] = useState<boolean>(false);
   const panDragRef = useRef<{
     active: boolean;
     moved: boolean;
@@ -729,11 +735,15 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           lotId.includes("PORTERIA") ||
           status === "common";
 
+        const sqmVal = parseSquareMeters(pin.lotData.area);
+        const areaTier = getAreaTier(sqmVal);
+
         const isFilteredOut =
           !isAmenity &&
           ((status === "available" && !activeFilters.available) ||
             ((status === "blocked" || status === "reserved") && !activeFilters.blocked) ||
-            (status === "sold" && !activeFilters.sold));
+            (status === "sold" && !activeFilters.sold) ||
+            (colorMode === "area" && activeAreaFilter !== "all" && areaTier.key !== activeAreaFilter));
 
         if (isFilteredOut) {
           return `
@@ -751,6 +761,15 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           baseColor = "#B35F27"; // Cobre Terracota para Amenidades
           strokeColorHover = "#8D4619";
           cursor = "pointer";
+        } else if (colorMode === "area") {
+          baseColor = areaTier.fillHex;
+          strokeColorHover = areaTier.strokeHex;
+          cursor = status === "available" ? "pointer" : "not-allowed";
+        } else if (colorMode === "typology") {
+          const isCorner = (pin.lotData.location || "").toUpperCase().includes("ESQUINERO");
+          baseColor = isCorner ? "#f59e0b" : "#14b8a6";
+          strokeColorHover = isCorner ? "#d97706" : "#0d9488";
+          cursor = status === "available" ? "pointer" : "not-allowed";
         } else if (status === "blocked" || status === "reserved") {
           baseColor = "#3b82f6"; // Azul Cobalto para Bloqueados
           strokeColorHover = "#2563eb";
@@ -827,7 +846,7 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
       `;
       })
       .join("");
-  }, [pins, selectedLot, activeFilters, hoveredPin]);
+  }, [pins, selectedLot, activeFilters, hoveredPin, colorMode, activeAreaFilter]);
 
   const toggleFilter = (key: "available" | "blocked" | "sold") => {
     setActiveFilters((prev) => {
@@ -1220,7 +1239,12 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
             <img
               src={bgImage}
               alt={`Fondo ${stageName}`}
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none transition-all duration-700"
+              style={{
+                filter: isSunsetMode
+                  ? "sepia(0.28) saturate(1.45) hue-rotate(-14deg) brightness(0.88) contrast(1.08)"
+                  : "none",
+              }}
               draggable={false}
             />
 
@@ -1374,38 +1398,148 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
           )}
       </div>
 
-      {/* Controles Flotantes de Zoom del Mapa */}
-      <div className="absolute bottom-3 left-3 lg:bottom-5 lg:left-4 z-30 flex items-center gap-1 p-1 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 rounded-full backdrop-blur-md shadow-xl pointer-events-auto">
-        <button
-          onClick={() => setMapZoom((z) => Math.min(2.75, +(z + 0.35).toFixed(2)))}
-          className="p-1.5 text-[#EDE7E0]/85 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-          title={isEn ? "Zoom In (+)" : "Acercar Mapa (+)"}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-        <button
-          onClick={() => setMapZoom((z) => Math.max(1, +(z - 0.35).toFixed(2)))}
-          className="p-1.5 text-[#EDE7E0]/85 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-          title={isEn ? "Zoom Out (-)" : "Alejar Mapa (-)"}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" />
-          </svg>
-        </button>
-        {mapZoom > 1 && (
+      {/* Controles Flotantes de Zoom del Mapa + Maqueta 3D + Modos de Color + Atardecer */}
+      <div className="absolute bottom-3 left-3 lg:bottom-5 lg:left-4 z-30 flex flex-wrap items-center gap-1.5 pointer-events-none">
+        {/* Zoom */}
+        <div className="flex items-center gap-1 p-1 bg-[#0A0D0B]/88 border border-[#EDE7E0]/15 rounded-full backdrop-blur-md shadow-xl pointer-events-auto">
           <button
-            onClick={() => {
-              setMapZoom(1);
-              setMapPan({ x: 0, y: 0 });
-            }}
-            className="px-2 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wider text-[#dbaa67] hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            onClick={() => setMapZoom((z) => Math.min(2.75, +(z + 0.35).toFixed(2)))}
+            className="p-1.5 text-[#EDE7E0]/85 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            title={isEn ? "Zoom In (+)" : "Acercar Mapa (+)"}
           >
-            {mapZoom}x
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setMapZoom((z) => Math.max(1, +(z - 0.35).toFixed(2)))}
+            className="p-1.5 text-[#EDE7E0]/85 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            title={isEn ? "Zoom Out (-)" : "Alejar Mapa (-)"}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" />
+            </svg>
+          </button>
+          {mapZoom > 1 && (
+            <button
+              onClick={() => {
+                setMapZoom(1);
+                setMapPan({ x: 0, y: 0 });
+              }}
+              className="px-2 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wider text-[#dbaa67] hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            >
+              {mapZoom}x
+            </button>
+          )}
+        </div>
+
+        {/* Botón Lanzar Maqueta 3D Interactiva */}
+        {onEnter3DMaqueta && (
+          <button
+            onClick={onEnter3DMaqueta}
+            className="pointer-events-auto flex items-center gap-1.5 px-3.5 py-2 bg-[#B35F27] hover:bg-[#964d1d] text-[#EDE7E0] border border-[#EBD9AB]/40 rounded-full text-[0.625rem] font-extrabold uppercase tracking-wider shadow-xl transition-all cursor-pointer active:scale-95"
+            title={isEn ? "Open 3D Interactive Maqueta with 3D Villas" : "Abrir Maqueta 3D Interactiva con Villas 3D"}
+          >
+            <Box className="w-3.5 h-3.5 text-[#EBD9AB] shrink-0" />
+            <span>{isEn ? "3D Maqueta" : "Maqueta 3D"}</span>
+          </button>
+        )}
+
+        {/* Selector Colorear por: Estado | Área m² | Tipología */}
+        {onEnter3DMaqueta && !isAmenities && (
+          <div className="pointer-events-auto flex items-center gap-1 p-1 bg-[#0A0D0B]/90 border border-[#EDE7E0]/15 rounded-full backdrop-blur-md shadow-xl">
+            <span className="hidden md:inline text-[0.5rem] font-mono uppercase tracking-wider text-[#EBD9AB] pl-2 pr-1 font-bold">
+              {isEn ? "Color:" : "Colorear:"}
+            </span>
+            {(
+              [
+                { id: "status", es: "Estado", en: "Status" },
+                { id: "area", es: "Área m²", en: "Area m²" },
+                { id: "typology", es: "Tipología", en: "Type" },
+              ] as const
+            ).map((m) => (
+              <button
+                key={m.id}
+                onClick={() => {
+                  setColorMode(m.id);
+                  if (m.id !== "area") setActiveAreaFilter("all");
+                }}
+                className={`px-2.5 py-1 rounded-full text-[0.5625rem] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  colorMode === m.id
+                    ? "bg-[#B35F27] text-white shadow"
+                    : "text-[#EDE7E0]/70 hover:text-white"
+                }`}
+              >
+                {isEn ? m.en : m.es}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Toggle Día / Atardecer (Golden Hour) */}
+        {onEnter3DMaqueta && (
+          <button
+            onClick={() => setIsSunsetMode(!isSunsetMode)}
+            className={`pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.5625rem] font-bold uppercase tracking-wider border backdrop-blur-md shadow-xl transition-all cursor-pointer ${
+              isSunsetMode
+                ? "bg-amber-500/25 border-amber-400/60 text-amber-200"
+                : "bg-[#0A0D0B]/88 border-[#EDE7E0]/15 text-[#EDE7E0]/85 hover:text-white"
+            }`}
+            title={isEn ? "Toggle Caribbean Sunset Lighting" : "Cambiar iluminación: Día / Atardecer Caribeño"}
+          >
+            {isSunsetMode ? (
+              <Sunset className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            ) : (
+              <Sun className="w-3.5 h-3.5 text-sky-300 shrink-0" />
+            )}
+            <span className="hidden sm:inline">
+              {isSunsetMode ? (isEn ? "Sunset" : "Atardecer") : (isEn ? "Daylight" : "Día")}
+            </span>
           </button>
         )}
       </div>
+
+      {/* Leyenda Interactiva de Rangos de Área m² (cuando colorMode === 'area') */}
+      {colorMode === "area" && !isAmenities && (
+        <div className="absolute bottom-16 left-3 lg:bottom-18 lg:left-4 z-30 flex flex-wrap items-center gap-1.5 p-2 bg-[#0A0D0B]/92 border border-[#B35F27]/45 rounded-2xl backdrop-blur-xl shadow-2xl pointer-events-auto">
+          {AREA_TIERS.map((tier) => {
+            const isSelectedTier = activeAreaFilter === tier.key;
+            return (
+              <button
+                key={tier.key}
+                onClick={() =>
+                  setActiveAreaFilter(isSelectedTier ? "all" : tier.key)
+                }
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[0.5625rem] font-bold transition-all cursor-pointer ${
+                  isSelectedTier
+                    ? "bg-white/20 border-white text-white shadow"
+                    : "bg-white/5 border-white/10 text-[#EDE7E0]/80 hover:bg-white/10"
+                }`}
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: tier.fillHex }}
+                />
+                <span>{isEn ? tier.labelEn : tier.labelEs}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Leyenda de Tipología (cuando colorMode === 'typology') */}
+      {colorMode === "typology" && !isAmenities && (
+        <div className="absolute bottom-16 left-3 lg:bottom-18 lg:left-4 z-30 flex items-center gap-3 px-3 py-1.5 bg-[#0A0D0B]/92 border border-[#B35F27]/45 rounded-full backdrop-blur-xl shadow-2xl pointer-events-auto text-[0.5625rem] font-bold text-[#EDE7E0]">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]" />
+            {isEn ? "Corner Lot (Esquinero)" : "Lote Esquinero"}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#14b8a6]" />
+            {isEn ? "Interior Lot (Medianero)" : "Lote Medianero"}
+          </span>
+        </div>
+      )}
 
       {/* Leyenda de Brújula (Flotante a la Derecha) */}
       <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/75 text-[0.5625rem] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">

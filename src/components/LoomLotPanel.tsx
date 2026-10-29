@@ -21,7 +21,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Image as ImageIcon,
-  Trees
+  Trees,
+  Compass,
+  Home,
+  ArrowUpRight
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import LoomReferralModal from "./LoomReferralModal";
@@ -38,7 +41,9 @@ import {
   formatCopOrUsd,
   formatPricePerAreaUnit,
   inferStageFromLotId,
+  parseSquareMeters,
 } from "@/lib/loomI18n";
+import { computeLotTelemetry } from "@/lib/loomLotTelemetry";
 
 interface AmenityMediaItem {
   num: string;
@@ -68,9 +73,9 @@ const AMENITY_GALLERIES: Record<AmenityGalleryConfig["key"], AmenityGalleryConfi
     badgeEs: "Alma Beach Club • Salida Directa al Mar",
     badgeEn: "Alma Beach Club • Direct Sea Access",
     summaryEs:
-      "Club de playa privado y circuito de zonas comunes de Loom Luxury Residence con salida directa al Mar Caribe en Punta Canoa. Integra piscinas frente al mar, Sun Beds, Ocean Lounge, Ocean Dining, Sunset Spa, Sunset Dining, Loom Oasis, Lago Loom, cancha de voleibol y senderos Nature Walk.",
+      "Club de playa privado y circuito de zonas comunes de Loom Luxury Residence con salida directa al Mar Caribe en Playa Alma (Zona Norte, Cartagena de Indias). Integra piscinas, Sun Beds, Ocean Lounge, Ocean Dining, Sunset Spa, Sunset Dining, Loom Oasis, Lago Loom, cancha de voleibol y senderos Nature Walk.",
     summaryEn:
-      "Private beach club and common area circuit of Loom Luxury Residence with direct access to the Caribbean Sea in Punta Canoa. Integrates beachfront pools, Sun Beds, Ocean Lounge, Ocean Dining, Sunset Spa, Sunset Dining, Loom Oasis, Loom Lake, beach volleyball court, and Nature Walk trails.",
+      "Private beach club and common area circuit of Loom Luxury Residence with direct access to the Caribbean Sea at Alma Beach (North Zone, Cartagena de Indias). Integrates pools, Sun Beds, Ocean Lounge, Ocean Dining, Sunset Spa, Sunset Dining, Loom Oasis, Loom Lake, beach volleyball court, and Nature Walk trails.",
     highlightsEs: [
       "Salida Directa al Mar",
       "Ocean Lounge & Dining",
@@ -526,9 +531,17 @@ interface LoomLotPanelProps {
   lot: Lot | null;
   onClose: () => void;
   onEnterShowroom: (lot: Lot) => void;
+  onSelectNeighborLot?: (lotId: string) => void;
+  stageLotIds?: string[];
 }
 
-export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotPanelProps) {
+export default function LoomLotPanel({
+  lot,
+  onClose,
+  onEnterShowroom,
+  onSelectNeighborLot,
+  stageLotIds = [],
+}: LoomLotPanelProps) {
   const { isEn, trm } = useLoomLang();
   const [showReferralModal, setShowReferralModal] = useState(false);
   const [downPaymentPct, setDownPaymentPct] = useState<number>(20);
@@ -686,6 +699,13 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
       monthlyAmount,
     };
   }, [parsedPriceNum, downPaymentPct, financingMonths]);
+
+  // Telemetría arquitectónica, orientación solar, colindancias y distancias a zonas comunes
+  const telemetry = useMemo(() => {
+    if (!lot || lotDetails.isAmenity || !onSelectNeighborLot) return null;
+    const sqm = parseSquareMeters(lot.area);
+    return computeLotTelemetry(lot.id, sqm, lot.location, stageLotIds);
+  }, [lot, lotDetails.isAmenity, onSelectNeighborLot, stageLotIds]);
 
   if (!lot) return null;
 
@@ -1131,6 +1151,98 @@ export default function LoomLotPanel({ lot, onClose, onEnterShowroom }: LoomLotP
                     : "Cotas perimetrales y linderos exactos en metros según plano arquitectónico."}
                 </span>
               </p>
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* 🧭 SECCIÓN: TELEMETRÍA BIOCLIMÁTICA, COLINDANCIAS & DISTANCIAS */}
+          {/* ============================================================ */}
+          {!lotDetails.isAmenity && telemetry && (
+            <div className="bg-white/90 border border-[#0A0D0B]/10 rounded-2xl p-3 sm:p-4 shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b border-[#0A0D0B]/10 pb-2">
+                <div className="flex items-center gap-1.5 text-[#B35F27]">
+                  <Compass className="h-4 w-4 shrink-0" />
+                  <span className="text-[0.625rem] sm:text-xs font-bold uppercase tracking-wider text-[#0A0D0B]">
+                    {isEn ? "Bioclimatic Telemetry & Environment" : "Telemetría Bioclimática & Entorno"}
+                  </span>
+                </div>
+                <span className="text-[0.5625rem] font-mono font-bold text-[#0f766e] bg-[#10b981]/10 border border-[#10b981]/25 px-2 py-0.5 rounded-md">
+                  ~{telemetry.frontMeters}m × {telemetry.depthMeters}m
+                </span>
+              </div>
+
+              {/* Orientación Solar y Brisa */}
+              <div className="grid grid-cols-1 gap-1.5 text-[0.625rem]">
+                <div className="bg-[#EDE7E0]/65 px-2.5 py-2 rounded-xl border border-[#0A0D0B]/5 flex items-center justify-between gap-2">
+                  <span className="text-[#0A0D0B]/55 font-bold uppercase tracking-wider shrink-0">
+                    {isEn ? "Solar Axis:" : "Asoleación:"}
+                  </span>
+                  <span className="font-semibold text-[#0A0D0B] text-right truncate">
+                    {isEn ? telemetry.solarOrientationEn : telemetry.solarOrientationEs}
+                  </span>
+                </div>
+                <div className="bg-[#EDE7E0]/65 px-2.5 py-2 rounded-xl border border-[#0A0D0B]/5 flex items-center justify-between gap-2">
+                  <span className="text-[#0A0D0B]/55 font-bold uppercase tracking-wider shrink-0">
+                    {isEn ? "Villas (Maadga):" : "Villas Compatibles:"}
+                  </span>
+                  <span className="font-semibold text-[#B35F27] text-right truncate">
+                    {isEn ? telemetry.compatibleVillas.recommendedEn : telemetry.compatibleVillas.recommendedEs}
+                  </span>
+                </div>
+              </div>
+
+              {/* Colindancias Interactivas (Saltar a Lotes Vecinos) */}
+              {telemetry.neighbors.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[0.5625rem] uppercase tracking-widest text-[#0A0D0B]/55 font-bold block">
+                    {isEn ? "Adjacent Lots (Tap to Inspect):" : "Colindancias Directas (Clic para Inspeccionar):"}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {telemetry.neighbors.map((nb) => (
+                      <button
+                        key={nb.id}
+                        type="button"
+                        onClick={() => onSelectNeighborLot?.(nb.id)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#EDE7E0]/90 hover:bg-[#B35F27] text-[#0A0D0B] hover:text-white border border-[#B35F27]/30 text-[0.625rem] font-bold transition-all cursor-pointer group"
+                      >
+                        <Home className="w-3 h-3 text-[#B35F27] group-hover:text-white shrink-0" />
+                        <span>{isEn ? `Lot ${nb.rawId}` : `Lote ${nb.rawId}`}</span>
+                        <span className="text-[0.5rem] opacity-70 font-normal">
+                          ({isEn ? nb.relationEn : nb.relationEs})
+                        </span>
+                        <ArrowUpRight className="w-3 h-3 opacity-60 group-hover:opacity-100 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Distancias Peatonales a Zonas Comunes */}
+              <div className="space-y-1.5 pt-1 border-t border-[#0A0D0B]/10">
+                <span className="text-[0.5625rem] uppercase tracking-widest text-[#0A0D0B]/55 font-bold block">
+                  {isEn ? "Proximity to Amenities:" : "Cercanía Peatonal a Zonas Comunes:"}
+                </span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {telemetry.distances.map((d) => (
+                    <div
+                      key={d.key}
+                      className="bg-[#EDE7E0]/50 border border-[#0A0D0B]/5 rounded-lg p-2 flex flex-col justify-between"
+                    >
+                      <span className="text-[0.5625rem] font-semibold text-[#0A0D0B]/80 leading-tight line-clamp-1">
+                        {isEn ? d.labelEn : d.labelEs}
+                      </span>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[0.625rem] font-mono font-bold text-[#B35F27]">
+                          ~{d.meters} m
+                        </span>
+                        <span className="text-[0.5rem] font-mono uppercase text-[#0A0D0B]/55">
+                          {d.walkMinutes} min
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

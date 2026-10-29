@@ -1,4 +1,4 @@
-import { LoomShowroomApp } from "@/app/loom/page";
+import { LoomShowroomApp } from "@/components/LoomShowroomApp";
 
 export const metadata = {
   title: "LOOM Luxury Residence — Interactive 3D Masterplan & Showroom",

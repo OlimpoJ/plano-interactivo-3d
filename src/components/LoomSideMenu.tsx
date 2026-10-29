@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Home, Map, Download, MapPin, Phone, Sparkles, Compass, Globe } from "lucide-react";
+import { X, Home, Map, Download, MapPin, Phone, Sparkles, Compass, Globe, Box } from "lucide-react";
 import Link from "next/link";
 import { useLoomLang } from "@/lib/loomI18n";
 
@@ -11,6 +11,7 @@ interface LoomSideMenuProps {
   onNavigateToIntro: () => void;
   onNavigateToMasterplan: () => void;
   onNavigateToShowroom: () => void;
+  onNavigateTo3DMaqueta?: () => void;
   onOpenLocation: () => void;
   onOpenContact: () => void;
 }
@@ -21,6 +22,7 @@ export default function LoomSideMenu({
   onNavigateToIntro,
   onNavigateToMasterplan,
   onNavigateToShowroom,
+  onNavigateTo3DMaqueta,
   onOpenLocation,
   onOpenContact,
 }: LoomSideMenuProps) {
@@ -128,6 +130,24 @@ export default function LoomSideMenu({
                 <Map className="h-4 w-4 text-[#B35F27] group-hover:scale-110 transition-transform" />
                 <span>{isEn ? "2. Master Plan & Stages" : "2. Master Plan & Etapas"}</span>
               </button>
+
+              {onNavigateTo3DMaqueta && (
+                <button
+                  onClick={() => {
+                    onNavigateTo3DMaqueta();
+                    onClose();
+                  }}
+                  className="w-full px-4 py-3 rounded-xl bg-[#B35F27]/12 hover:bg-[#B35F27]/22 border border-[#B35F27]/35 transition-all flex items-center justify-between text-xs sm:text-sm font-bold uppercase tracking-wider text-[#0A0D0B] cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <Box className="h-4 w-4 text-[#B35F27] group-hover:scale-110 transition-transform" />
+                    <span>{isEn ? "3D Interactive Maqueta" : "Maqueta 3D Interactiva"}</span>
+                  </div>
+                  <span className="text-[0.5625rem] bg-[#B35F27] text-white px-2 py-0.5 rounded-full font-mono font-bold">
+                    3D
+                  </span>
+                </button>
+              )}
 
               <button
                 onClick={() => {
