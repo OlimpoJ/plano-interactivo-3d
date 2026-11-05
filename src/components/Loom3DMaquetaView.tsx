@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
   Sun,
   Sunset,
@@ -864,27 +865,25 @@ function createVillaReplicaMaterials(
     metalness: 0.35,
   });
 
-  const carAtlasUrls = [
-    "/loom/vray/vray_car_atlas_0.webp?v=2", // Pearl White + Sunroof
-    "/loom/vray/vray_car_atlas_1.webp?v=2", // Liquid Silver Metallic
-    "/loom/vray/vray_car_atlas_2.webp?v=2", // Titanium Gunmetal + Sunroof
-    "/loom/vray/vray_car_atlas_3.webp?v=2", // Obsidian Sapphire Metallic
-    "/loom/vray/vray_car_atlas_4.webp?v=2", // Champagne Sand Metallic + Sunroof
-    "/loom/vray/vray_car_atlas_5.webp?v=2", // Deep Yacht Blue Metallic
+  const carPaintColors = [
+    "#f5f7fa", // Blanco Perla (Pearl White)
+    "#cbd5e1", // Plata Líquida (Liquid Silver Metallic)
+    "#475569", // Gris Grafito Titanio (Titanium Gunmetal)
+    "#1e3a5f", // Azul Zafiro Bentley (Sapphire Blue Metallic)
+    "#d6cbb5", // Champagne Arena (Champagne Sand Metallic)
+    "#1e232b", // Negro Obsidiana (Obsidian Black Metallic)
+    "#164e35", // Verde Esmeralda (British Racing Emerald)
+    "#8f1d25", // Rojo Carmesí GT (Crimson GT Metallic)
   ];
-  const carPaintPalette = carAtlasUrls.map((url) => {
-    const tex = texLoader.load(url);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.flipY = false; // glTF 2.0 TEXCOORD_0 uses top-left origin (v=0 at top)
-    tex.anisotropy = 8;
-    return new THREE.MeshStandardMaterial({
-      map: tex,
-      color: tintColor,
-      roughness: 0.28,
-      metalness: 0.04,
-      side: THREE.DoubleSide,
-    });
-  });
+  const carPaintPalette = carPaintColors.map(
+    (hex) =>
+      new THREE.MeshStandardMaterial({
+        color: hex,
+        roughness: 0.16,
+        metalness: 0.42,
+        envMapIntensity: 1.35,
+      })
+  );
 
   // Orden de caras en BoxGeometry: [0: +X (Rear), 1: -X (Front), 2: +Y (Top), 3: -Y (Bottom), 4: +Z (Right), 5: -Z (Left)]
   const vrayGroundBoxMats = [
@@ -1157,13 +1156,18 @@ function buildLoomVillaReplica3D(
           const mesh = node as THREE.Mesh;
           mesh.castShadow = true;
           mesh.receiveShadow = true;
-          mesh.material = paintMat;
+          const mName = (mesh.material as THREE.Material)?.name || "";
+          if (mName === "BodyPaint") {
+            mesh.material = paintMat;
+          } else if ((mesh.material as THREE.MeshStandardMaterial)?.isMeshStandardMaterial) {
+            (mesh.material as THREE.MeshStandardMaterial).envMapIntensity = 1.25;
+          }
         }
       });
-      // Sombra de contacto suave bajo el chasis en el adoquín del carport
+      // Sombra de contacto bajo el chasis sobre el adoquín del carport
       addPart(L * 0.175, 0.003, W * 0.165, -L * 0.352, 0.015, carZ, mats.darkBronzeMat, false);
 
-      const carScale = L * 0.041; // Escala real: auto de ~4.75m -> 0.195 * L dentro del carport
+      const carScale = L * 0.0415; // Escala métrica 1:1 (auto de ~4.75m dentro del lote de 23.64m)
       carClone.scale.set(carScale, carScale, carScale);
       carClone.position.set(-L * 0.352, 0.015, carZ);
       // En alzado_01 un vehículo mira de frente a la calle (Math.PI) y otro hacia adentro (0)
@@ -1690,10 +1694,10 @@ export default function Loom3DMaquetaView({
 
     const carLoader = new GLTFLoader();
     const carModelUrls = [
-      "/loom/models/car_suv_luxury.glb?v=2",
-      "/loom/models/car_coupe_gt.glb?v=2",
-      "/loom/models/car_sedan_exec.glb?v=2",
-      "/loom/models/car_pickup_luxury.glb?v=2",
+      "/loom/models/car_suv_luxury.glb?v=3",
+      "/loom/models/car_coupe_gt.glb?v=3",
+      "/loom/models/car_sedan_exec.glb?v=3",
+      "/loom/models/car_pickup_luxury.glb?v=3",
     ];
     Promise.all(
       carModelUrls.map(
@@ -1782,6 +1786,14 @@ export default function Loom3DMaquetaView({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.NoToneMapping;
+
+    // Mapa de entorno IBL (RoomEnvironment) para reflejos reales en pintura automotriz, cromo, rines y vidrios
+    const pmremGen = new THREE.PMREMGenerator(renderer);
+    const roomEnv = new RoomEnvironment();
+    scene.environment = pmremGen.fromScene(roomEnv, 0.04).texture;
+    scene.environmentIntensity = 0.45;
+    pmremGen.dispose();
+    roomEnv.dispose();
 
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
