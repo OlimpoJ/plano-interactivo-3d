@@ -138,13 +138,13 @@ const CAMERA_PRESETS: CameraPreset[] = [
   },
   {
     id: "parques",
-    labelEs: "Parque Lineal • Garden Walk",
-    labelEn: "Linear Park • Garden Walk",
+    labelEs: "Parque Lineal",
+    labelEn: "Linear Park",
     position: [-3.8, 5.5, 7.2],
     target: [-3.5, 0, 0.2],
     renderPreview: {
-      titleEs: "Parque Lineal • Corredor Bioclimático The Garden Walk",
-      titleEn: "Linear Park • The Garden Walk Bioclimatic Corridor",
+      titleEs: "Parque Lineal • Corredor Bioclimático Central",
+      titleEn: "Linear Park • Central Bioclimatic Corridor",
       src: "/loom/renders/amenities/parques/galeria_01_parque_lineal_vista_1.webp",
       badgeEs: "Corredor Ecológico",
       badgeEn: "Ecological Corridor",
@@ -1337,23 +1337,23 @@ export default function Loom3DMaquetaView({
     maloca1.position.set(beachX - 0.36, 0.06, beachZ - 0.18);
     maloca1.rotation.y = -0.52;
     maloca1.castShadow = true;
-    villasGroup.add(maloca1);
+    // maloca1 removida por solicitud del usuario
 
     const maloca2 = new THREE.Mesh(malocaGeo, thatchBambooMat);
     maloca2.position.set(beachX + 0.32, 0.055, beachZ + 0.24);
     maloca2.rotation.y = 0.38;
     maloca2.scale.set(0.88, 0.88, 0.88);
     maloca2.castShadow = true;
-    villasGroup.add(maloca2);
+    // maloca2 removida por solicitud del usuario
 
-    const beachPill = createFloatingPillSprite("'Alma Beach Club'", "#EBD9AB", 1.55, 0.38);
+    const beachPill = createFloatingPillSprite("Alma Beach Club", "#EBD9AB", 1.55, 0.38);
     beachPill.position.set(beachX + 0.15, 0.56, beachZ - 0.05);
     villasGroup.add(beachPill);
 
     const [gwX, gwZ] = svgToWorld(2390, 995);
     const gardenWalkPill = createFloatingPillSprite("The Garden Walk", "#10b981", 1.45, 0.36);
     gardenWalkPill.position.set(gwX, 0.52, gwZ);
-    villasGroup.add(gardenWalkPill);
+    // gardenWalkPill removido por solicitud del usuario
 
     const [chX, chZ] = svgToWorld(2196, 972);
     const clubHousePill = createFloatingPillSprite("Club House & Oasis", "#EBD9AB", 1.55, 0.38);

@@ -254,12 +254,12 @@
       archFeatures.push({
         type: "Feature",
         geometry: { type: "Polygon", coordinates: [makeOctagonRing(2860, 875, 42)] },
-        properties: { color: "#d4aa72", base: 0.5, height: 7.5 },
+        properties: { color: "#d4aa72", base: 0.0, height: 0.0 },
       });
       archFeatures.push({
         type: "Feature",
         geometry: { type: "Polygon", coordinates: [makeOctagonRing(2925, 925, 36)] },
-        properties: { color: "#c2935a", base: 0.5, height: 6.8 },
+        properties: { color: "#c2935a", base: 0.0, height: 0.0 },
       });
 
       // 4. Las 165 Palmeras Cocoteras 3D (Tronco + Corona Tropical)
