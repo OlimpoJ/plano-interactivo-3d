@@ -52,6 +52,11 @@ interface Unified3DLot {
   height: number;
   vertices: [number, number][];
   isAmenity: boolean;
+  backAngle?: number;
+  villaCx?: number;
+  villaCy?: number;
+  villaL?: number;
+  villaW?: number;
 }
 
 interface Landscape3DData {
@@ -784,7 +789,7 @@ export default function Loom3DMaquetaView({
 
   useEffect(() => {
     let isMounted = true;
-    fetch("/loom/loom_unified_3d_lots.json")
+    fetch("/loom/loom_unified_3d_lots.json?v=2")
       .then((r) => r.json())
       .then((data: Unified3DLot[]) => {
         if (isMounted) setUnifiedLots(data);
@@ -1494,7 +1499,7 @@ export default function Loom3DMaquetaView({
       // Con Jacuzzi iluminado en el Rooftop, Pérgola de vigas de teca, Jardinera
       // perimetral en azotea, Celosías de madera en 2do piso y Piscina en jardín
       // ======================================================================
-      if (isShowcaseVilla && !isAmenity && worldVerts.length >= 4) {
+      if (isShowcaseVilla && !isAmenity && worldVerts.length >= 3) {
         let bestLen = 0;
         let lotAngle = -0.68;
         for (let i = 0; i < worldVerts.length; i++) {
@@ -1507,12 +1512,13 @@ export default function Loom3DMaquetaView({
           }
         }
 
-        const L = Math.min(0.45, Math.max(0.26, bestLen * 0.72));
-        const W = L * 0.68;
+        const L = pLot.villaL ? Math.min(0.45, Math.max(0.24, (pLot.villaL / 100) * 0.96)) : Math.min(0.45, Math.max(0.26, bestLen * 0.72));
+        const W = pLot.villaW ? Math.min(0.32, Math.max(0.17, (pLot.villaW / 100) * 0.98)) : L * 0.68;
 
         const villaGrp = new THREE.Group();
-        villaGrp.position.set(wx, extrudeHeight + 0.005, wz);
-        villaGrp.rotation.y = -lotAngle;
+        const [vwx, vwz] = pLot.villaCx !== undefined && pLot.villaCy !== undefined ? svgToWorld(pLot.villaCx, pLot.villaCy) : [wx, wz];
+        villaGrp.position.set(vwx, extrudeHeight + 0.005, vwz);
+        villaGrp.rotation.y = pLot.backAngle !== undefined ? -pLot.backAngle : -lotAngle;
 
         // 1. Plataforma / Deck de Piedra Coralina & Madera (Terraza Social)
         const deck = new THREE.Mesh(unitBox, coralBaseMat);
@@ -1522,14 +1528,18 @@ export default function Loom3DMaquetaView({
         villaGrp.add(deck);
 
         // 2. Piscina Privada Turquesa en el Patio Posterior + Solárium de Teca
+        const poolCoping = new THREE.Mesh(unitBox, stuccoWhiteMat);
+        poolCoping.scale.set(L * 0.34, 0.019, W * 0.74);
+        poolCoping.position.set(L * 0.28, 0.011, 0);
+        villaGrp.add(poolCoping);
         const pool = new THREE.Mesh(unitBox, poolWaterMat);
-        pool.scale.set(L * 0.30, 0.022, W * 0.62);
-        pool.position.set(L * 0.27, 0.013, W * 0.04);
+        pool.scale.set(L * 0.28, 0.024, W * 0.66);
+        pool.position.set(L * 0.28, 0.014, 0);
         villaGrp.add(pool);
 
         const sundeck = new THREE.Mesh(unitBox, teakWoodMat);
-        sundeck.scale.set(L * 0.14, 0.018, W * 0.62);
-        sundeck.position.set(L * 0.06, 0.011, W * 0.04);
+        sundeck.scale.set(L * 0.14, 0.018, W * 0.72);
+        sundeck.position.set(L * 0.06, 0.011, 0);
         villaGrp.add(sundeck);
 
         // 3. Nivel 1: Volumen de Cristal Cálido + Muros en Piedra Coralina
@@ -1586,26 +1596,26 @@ export default function Loom3DMaquetaView({
         villaGrp.add(roofInnerFloor);
 
         // 5b. Jacuzzi / Piscina Iluminada Turquesa en el Rooftop (mitad derecha de la azotea)
-        const roofPoolCoping = new THREE.Mesh(unitBox, stuccoWhiteMat);
+        const roofPoolCoping = new THREE.Mesh(unitBox, teakWoodMat);
         roofPoolCoping.scale.set(L * 0.24, 0.032, W * 0.38);
         roofPoolCoping.position.set(L * 0.05, 0.262, W * 0.11);
         villaGrp.add(roofPoolCoping);
 
-        const roofJacuzzi = new THREE.Mesh(unitBox, poolWaterMat);
+        const roofJacuzzi = new THREE.Mesh(unitBox, stuccoWhiteMat);
         roofJacuzzi.scale.set(L * 0.20, 0.035, W * 0.32);
         roofJacuzzi.position.set(L * 0.05, 0.264, W * 0.11);
         villaGrp.add(roofJacuzzi);
 
         // 5c. Pérgola de Vigas de Madera Teca en el Rooftop (mitad izquierda de la azotea)
         const pergolaFrame = new THREE.Mesh(unitBox, darkBronzeMat);
-        pergolaFrame.scale.set(L * 0.28, 0.065, W * 0.54);
-        pergolaFrame.position.set(-L * 0.20, 0.282, -W * 0.04);
+        pergolaFrame.scale.set(L * 0.36, 0.065, W * 0.62);
+        pergolaFrame.position.set(-L * 0.14, 0.282, 0);
         villaGrp.add(pergolaFrame);
 
         for (let b = -2; b <= 2; b++) {
           const beam = new THREE.Mesh(unitBox, teakWoodMat);
-          beam.scale.set(L * 0.30, 0.012, W * 0.065);
-          beam.position.set(-L * 0.20, 0.318, -W * 0.04 + b * (W * 0.11));
+          beam.scale.set(L * 0.38, 0.012, W * 0.065);
+          beam.position.set(-L * 0.14, 0.318, b * (W * 0.12));
           beam.castShadow = true;
           villaGrp.add(beam);
         }

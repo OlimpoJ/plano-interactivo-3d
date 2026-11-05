@@ -57,7 +57,7 @@
   async function initLoom3DEarthLayer(map) {
     try {
       const [lotsRes, landscapeRes, sheetRes] = await Promise.all([
-        fetch("/loom/loom_unified_3d_lots.json").then((r) => r.json()),
+        fetch("/loom/loom_unified_3d_lots.json?v=2").then((r) => r.json()),
         fetch("/loom/loom_landscape_3d.json").then((r) => r.json()),
         fetch("/api/lots?project=loom")
           .then((r) => r.json())
@@ -162,8 +162,11 @@
             }
           }
 
-          const hL = Math.min(20, Math.max(12, bestLen * 0.34));
-          const hW = hL * 0.68;
+          if (pLot.backAngle !== undefined) angle = pLot.backAngle;
+          const vcx = pLot.villaCx !== undefined ? pLot.villaCx : pLot.cx;
+          const vcy = pLot.villaCy !== undefined ? pLot.villaCy : pLot.cy;
+          const hL = pLot.villaL ? pLot.villaL * 0.48 : Math.min(20, Math.max(12, bestLen * 0.34));
+          const hW = pLot.villaW ? pLot.villaW * 0.48 : hL * 0.68;
           const ca = Math.cos(angle);
           const sa = Math.sin(angle);
 
@@ -172,14 +175,14 @@
             type: "Feature",
             geometry: {
               type: "Polygon",
-              coordinates: [makeOrientedRectRing(pLot.cx, pLot.cy, angle, hL * 0.72, hW * 0.78)],
+              coordinates: [makeOrientedRectRing(vcx, vcy, angle, hL * 0.72, hW * 0.78)],
             },
             properties: { color: "#e3d7c8", base: 1.1, height: 4.6 },
           });
 
           // 2. Piscina Trasera en Jardín (1.1m -> 1.6m)
-          const poolCx = pLot.cx + ca * (hL * 0.52);
-          const poolCy = pLot.cy + sa * (hL * 0.52);
+          const poolCx = vcx + ca * (hL * 0.54);
+          const poolCy = vcy + sa * (hL * 0.54);
           archFeatures.push({
             type: "Feature",
             geometry: {
@@ -190,8 +193,8 @@
           });
 
           // 3. Nivel 2: Volumen en Voladizo con Celosías de Madera Teca (4.6m -> 8.2m)
-          const ufCx = pLot.cx - ca * (hL * 0.12);
-          const ufCy = pLot.cy - sa * (hL * 0.12);
+          const ufCx = vcx - ca * (hL * 0.14);
+          const ufCy = vcy - sa * (hL * 0.14);
           archFeatures.push({
             type: "Feature",
             geometry: {
@@ -230,7 +233,7 @@
               type: "Polygon",
               coordinates: [makeOrientedRectRing(jacCx, jacCy, angle, hL * 0.22, hW * 0.38)],
             },
-            properties: { color: "#22d3ee", base: 8.9, height: 9.75 },
+            properties: { color: "#9e5827", base: 8.9, height: 9.75 },
           });
 
           // 7. Pérgola de Madera Teca en el Rooftop (8.9m -> 10.8m)
