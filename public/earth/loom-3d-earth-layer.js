@@ -2,7 +2,7 @@
  * PATRIMOFY EARTH 3D — CAPA DE MAQUETA 3D GEORREFERENCIADA DE LOOM LUXURY RESIDENCE
  * Monta los 318 lotes interactivos, las Villas 3D (con jacuzzi en rooftop y pérgola de teca),
  * las malocas de Alma Beach Club y las 165 palmeras 3D directamente sobre las coordenadas GPS
- * reales de Loom en Playa Alma (Punta Canoas, Cartagena de Indias).
+ * reales de Loom en Playa Alma (Vía al Mar Km 23, Zona Norte — Cartagena de Indias).
  */
 (function () {
   // 4 esquinas GPS del corredor urbano de Loom (svgX: 100..3180, svgY: 620..1550)

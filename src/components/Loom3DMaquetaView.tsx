@@ -105,16 +105,16 @@ const CAMERA_PRESETS: CameraPreset[] = [
   },
   {
     id: "porteria",
-    labelEs: "Portería • Vía al Mar",
-    labelEn: "Gatehouse • Vía al Mar",
+    labelEs: "Portería • Vía al Mar Km 23",
+    labelEn: "Gatehouse • Vía al Mar Km 23",
     position: [-14.2, 6.4, 8.6],
     target: [-19.4, 0, 0.2],
     renderPreview: {
-      titleEs: "Portería Monumental 24/7 • Conexión Vía al Mar",
-      titleEn: "Monumental 24/7 Gatehouse • Vía al Mar Connection",
+      titleEs: "Portería Monumental 24/7 • Vía al Mar Km 23 (Zona Norte)",
+      titleEn: "Monumental 24/7 Gatehouse • Vía al Mar Km 23 (North Zone)",
       src: "/loom/renders/amenities/porteria/galeria_04_porteria_vista_4.webp",
-      badgeEs: "Vista Acceso Vial",
-      badgeEn: "Road Access View",
+      badgeEs: "Vía al Mar Km 23 • Zona Norte",
+      badgeEn: "Vía al Mar Km 23 • North Zone",
     },
   },
   {
@@ -461,7 +461,7 @@ const TERRAIN_WATER_VERTEX_GLSL = /* glsl */ `
     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     vec2 mUv = vec2(worldPosition.x / 38.4 + 0.5, 0.5 - worldPosition.z / 21.6);
 
-    // Relieve topográfico 3D suave al Oeste de la Vía Punta Canoas / Vía al Mar (mUv.x < -0.045)
+    // Relieve topográfico 3D suave al Oeste de la Vía al Mar Km 23 - Zona Norte (mUv.x < -0.045)
     // y en las colinas costeras lejanas Norte/Sur, manteniendo 100% planos los lotes, vías y playa
     float westFactor = smoothstep(-0.042, -0.14, mUv.x);
     float northSouthHills = max(smoothstep(1.06, 1.32, mUv.y), smoothstep(-0.06, -0.32, mUv.y)) * (1.0 - smoothstep(0.55, 0.72, mUv.x));
@@ -556,7 +556,7 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
     vec3 masks = texture2D(uMasksTex, sampleUv).rgb;
 
     // ========================================================================
-    // CAPA 0: VÍA PUNTA CANOAS / CONEXIÓN VÍA AL MAR + TERRENO REAL EARTH.PATRIMOFY AL OESTE
+    // CAPA 0: VÍA AL MAR KM 23 (ZONA NORTE) + TERRENO REAL EARTH.PATRIMOFY AL OESTE
     // Cubre mUv.x <= 0.020833 (desde col +80 de Portería hasta -1400 px al Oeste)
     // y mUv.y desde -0.25 hasta +1.25 con empalme C0 exacto con el Masterplan
     // ========================================================================
@@ -1367,7 +1367,7 @@ export default function Loom3DMaquetaView({
 
     const [viaX, viaZ] = svgToWorld(-45, 760);
     const viaPill = createFloatingPillSprite(
-      isEn ? "Punta Canoas Hwy • Vía al Mar" : "Vía Punta Canoas • Conexión Vía al Mar",
+      isEn ? "Vía al Mar Km 23 • North Zone" : "Vía al Mar Km 23 • Zona Norte",
       "#fbbf24",
       1.95,
       0.38
