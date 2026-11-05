@@ -170,82 +170,85 @@
           const ca = Math.cos(angle);
           const sa = Math.sin(angle);
 
-          // 1. Nivel 1: Piedra Coralina & Terraza (1.1m -> 4.6m)
+          const pa = angle + Math.PI / 2;
+          const cpa = Math.cos(pa);
+          const spa = Math.sin(pa);
+          const zHouseOff = -hW * 0.25;
+          const hx = vcx + cpa * zHouseOff;
+          const hy = vcy + spa * zHouseOff;
+          const wH = hW * 0.67;
+
+          // 1. Carport Frontal en Adoquín Gris (-X)
           archFeatures.push({
             type: "Feature",
             geometry: {
               type: "Polygon",
-              coordinates: [makeOrientedRectRing(vcx, vcy, angle, hL * 0.72, hW * 0.78)],
+              coordinates: [makeOrientedRectRing(hx - ca * (hL * 0.67), hy - sa * (hL * 0.67), angle, hL * 0.29, wH)],
             },
-            properties: { color: "#e3d7c8", base: 1.1, height: 4.6 },
+            properties: { color: "#989690", base: 1.0, height: 1.35 },
           });
 
-          // 2. Piscina Trasera en Jardín (1.1m -> 1.6m)
-          const poolCx = vcx + ca * (hL * 0.54);
-          const poolCy = vcy + sa * (hL * 0.54);
+          // 2. Bloque Frontal 3 Niveles en Estuco Calizo Arena (#e2d8c9) + Celosía en Voladizo (#8c6747)
           archFeatures.push({
             type: "Feature",
             geometry: {
               type: "Polygon",
-              coordinates: [makeOrientedRectRing(poolCx, poolCy, angle, hL * 0.26, hW * 0.58)],
+              coordinates: [makeOrientedRectRing(hx - ca * (hL * 0.19), hy - sa * (hL * 0.19), angle, hL * 0.21, wH)],
             },
-            properties: { color: "#06b6d4", base: 1.1, height: 1.65 },
+            properties: { color: "#e2d8c9", base: 1.1, height: 9.8 },
+          });
+          archFeatures.push({
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [makeOrientedRectRing(hx - ca * (hL * 0.49), hy - sa * (hL * 0.49), angle, hL * 0.10, wH)],
+            },
+            properties: { color: "#8c6747", base: 3.8, height: 9.6 },
           });
 
-          // 3. Nivel 2: Volumen en Voladizo con Celosías de Madera Teca (4.6m -> 8.2m)
-          const ufCx = vcx - ca * (hL * 0.14);
-          const ufCy = vcy - sa * (hL * 0.14);
+          // 3. Bloque Posterior Niveles 1 y 2 en Estuco Calizo Arena (#e2d8c9) + Pérgola y Antepecho Rooftop
           archFeatures.push({
             type: "Feature",
             geometry: {
               type: "Polygon",
-              coordinates: [makeOrientedRectRing(ufCx, ufCy, angle, hL * 0.66, hW * 0.84)],
+              coordinates: [makeOrientedRectRing(hx + ca * (hL * 0.45), hy + sa * (hL * 0.45), angle, hL * 0.19, wH)],
             },
-            properties: { color: "#9e5827", base: 4.6, height: 8.1 },
+            properties: { color: "#dfd5c5", base: 1.1, height: 8.0 },
+          });
+          archFeatures.push({
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [makeOrientedRectRing(hx + ca * (hL * 0.26), hy + sa * (hL * 0.26), angle, hL * 0.20, wH * 0.94)],
+            },
+            properties: { color: "#966946", base: 8.0, height: 9.7 },
+          });
+          // Jacuzzi en Azotea (+Z del Rooftop posterior)
+          archFeatures.push({
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [makeOrientedRectRing(hx + ca * (hL * 0.58) + cpa * (wH * 0.46), hy + sa * (hL * 0.58) + spa * (wH * 0.46), angle, hL * 0.09, wH * 0.38)],
+            },
+            properties: { color: "#14b8a6", base: 8.0, height: 8.45 },
           });
 
-          // 4. Losa Blanca del Rooftop (8.1m -> 8.9m)
+          // 4. Deck de Teca Posterior + Piscina Posterior a Todo el Ancho del Lote (+X)
           archFeatures.push({
             type: "Feature",
             geometry: {
               type: "Polygon",
-              coordinates: [makeOrientedRectRing(ufCx, ufCy, angle, hL * 0.68, hW * 0.86)],
+              coordinates: [makeOrientedRectRing(vcx + ca * (hL * 0.72), vcy + sa * (hL * 0.72), angle, hL * 0.09, hW * 0.90)],
             },
-            properties: { color: "#fcfaf7", base: 8.1, height: 8.9 },
+            properties: { color: "#9c7a54", base: 1.05, height: 1.45 },
           });
-
-          // 5. Jardinera Verde del Rooftop (8.9m -> 9.4m)
           archFeatures.push({
             type: "Feature",
             geometry: {
               type: "Polygon",
-              coordinates: [makeOrientedRectRing(ufCx, ufCy, angle, hL * 0.62, hW * 0.78)],
+              coordinates: [makeOrientedRectRing(vcx + ca * (hL * 0.86), vcy + sa * (hL * 0.86), angle, hL * 0.075, hW * 0.88)],
             },
-            properties: { color: "#2d5e29", base: 8.9, height: 9.4 },
-          });
-
-          // 6. Jacuzzi Iluminado Turquesa en el Rooftop (8.9m -> 9.7m)
-          const jacCx = ufCx + ca * (hL * 0.22);
-          const jacCy = ufCy + sa * (hL * 0.22);
-          archFeatures.push({
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [makeOrientedRectRing(jacCx, jacCy, angle, hL * 0.22, hW * 0.38)],
-            },
-            properties: { color: "#9e5827", base: 8.9, height: 9.75 },
-          });
-
-          // 7. Pérgola de Madera Teca en el Rooftop (8.9m -> 10.8m)
-          const pergCx = ufCx - ca * (hL * 0.24);
-          const pergCy = ufCy - sa * (hL * 0.24);
-          archFeatures.push({
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [makeOrientedRectRing(pergCx, pergCy, angle, hL * 0.28, hW * 0.56)],
-            },
-            properties: { color: "#b3642b", base: 9.4, height: 10.8 },
+            properties: { color: "#14b8a6", base: 1.05, height: 1.55 },
           });
         }
       });
