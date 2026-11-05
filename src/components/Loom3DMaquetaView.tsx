@@ -780,6 +780,7 @@ interface VillaReplicaMaterials {
   vrayHouseSideRightMat: THREE.MeshStandardMaterial;
   vrayHouseSideLeftMat: THREE.MeshStandardMaterial;
   vrayRearFenceMat: THREE.MeshStandardMaterial;
+  carPaintPalette: THREE.MeshStandardMaterial[];
 }
 
 function createVillaReplicaMaterials(
@@ -837,7 +838,7 @@ function createVillaReplicaMaterials(
     metalness: 0.58,
   });
 
-  const vrayGroundTopMat = makeVrayMat("/loom/vray/vray_ground_plan.webp", 0.62, 0.04);
+  const vrayGroundTopMat = makeVrayMat("/loom/vray/vray_ground_plan.webp?v=2", 0.62, 0.04);
   const vrayRoofSlabMat = makeVrayMat("/loom/vray/vray_roof_slab.webp", 0.68, 0.03);
   const vrayRooftopTopMat = makeVrayMat("/loom/vray/vray_rooftop_plan.webp", 0.52, 0.05);
   const vrayPergolaTopMat = makeVrayMat("/loom/vray/vray_pergola_top.webp", 0.55, 0.06);
@@ -862,6 +863,25 @@ function createVillaReplicaMaterials(
     roughness: 0.2,
     metalness: 0.35,
   });
+
+  const carPaintColors = [
+    "#f4f6f9", // Blanco Perla
+    "#3b4758", // Gris Grafito Metálico
+    "#cbd5e1", // Plata Champagne
+    "#1e3148", // Azul Obsidiana
+    "#9b1c24", // Rojo Carmesí GT
+    "#cdc3b2", // Arena Titanio
+    "#164e35", // Verde Británico
+    "#1c1e22", // Negro Ónix
+  ];
+  const carPaintPalette = carPaintColors.map(
+    (hex) =>
+      new THREE.MeshStandardMaterial({
+        color: hex,
+        roughness: 0.2,
+        metalness: 0.42,
+      })
+  );
 
   // Orden de caras en BoxGeometry: [0: +X (Rear), 1: -X (Front), 2: +Y (Top), 3: -Y (Bottom), 4: +Z (Right), 5: -Z (Left)]
   const vrayGroundBoxMats = [
@@ -1065,6 +1085,7 @@ function createVillaReplicaMaterials(
     vrayHouseSideRightMat,
     vrayHouseSideLeftMat,
     vrayRearFenceMat,
+    carPaintPalette,
   };
 }
 
@@ -1078,7 +1099,9 @@ function buildLoomVillaReplica3D(
   L: number,
   W: number,
   mats: VillaReplicaMaterials,
-  unitBox: THREE.BoxGeometry
+  unitBox: THREE.BoxGeometry,
+  lotIndex: number = 0,
+  carTemplates: THREE.Group[] = []
 ) {
   const H = L * 0.3583; // Proporción exacta 1:1 de los renders V-Ray (847px alto / 2364px largo)
   const zHouse = -W * 0.016; // Centro Z exacto del volumen arquitectónico en luxury_planta_01..04
@@ -1115,10 +1138,37 @@ function buildLoomVillaReplica3D(
   // --------------------------------------------------------------------------
   addPart(L, 0.014, W, 0, 0.007, 0, mats.vrayGroundBoxMats, false);
 
-  // Dos automóviles blancos 3D estacionados en el carport frontal (x ∈ [-0.46*L, -0.26*L])
-  for (const carZ of [zHouse - wHouse * 0.23, zHouse + wHouse * 0.21]) {
-    addPart(L * 0.175, H * 0.135, W * 0.175, -L * 0.355, H * 0.072, carZ, mats.vrayCarBoxMats);
-    addPart(L * 0.095, H * 0.075, W * 0.148, -L * 0.345, H * 0.165, carZ, mats.carGlassMat);
+  // Modelos 3D GLB de vehículos reales de distintas formas (SUV, Coupé GT, Sedán, Pickup) en el carport frontal
+  if (carTemplates.length > 0) {
+    const carSlots = [zHouse - wHouse * 0.225, zHouse + wHouse * 0.215];
+    const hasSecondCar = (lotIndex * 5 + 1) % 7 !== 0; // ~85% con 2 vehículos distintos, ~15% con 1 vehículo
+    const activeSlots = hasSecondCar ? carSlots : [carSlots[lotIndex % 2]];
+
+    activeSlots.forEach((carZ, slotIdx) => {
+      const modelIdx = (lotIndex + slotIdx * 2 + (slotIdx === 1 ? 1 : 0)) % carTemplates.length;
+      const paintMat =
+        mats.carPaintPalette[(lotIndex * 3 + slotIdx * 5) % mats.carPaintPalette.length];
+      const carClone = carTemplates[modelIdx].clone(true);
+      carClone.traverse((node) => {
+        if ((node as THREE.Mesh).isMesh) {
+          const mesh = node as THREE.Mesh;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          const mName = (mesh.material as THREE.Material)?.name || "";
+          if (mName === "BodyPaint") {
+            mesh.material = paintMat;
+          }
+        }
+      });
+      const carScale = L * 0.192;
+      carClone.scale.set(carScale, carScale, carScale);
+      carClone.position.set(-L * 0.352, 0.014, carZ);
+      // Algunos deportivos estacionados de reversa mirando hacia la calle (-X)
+      if (slotIdx === 1 && (lotIndex + modelIdx) % 4 === 0) {
+        carClone.rotation.y = Math.PI;
+      }
+      villaGrp.add(carClone);
+    });
   }
 
   // Relieve 3D de agua cristalina en el espejo de agua lateral (+Z) y en la piscina posterior (+X)
@@ -1616,6 +1666,7 @@ export default function Loom3DMaquetaView({
   const [cameraYaw, setCameraYaw] = useState<number>(0);
   const [unifiedLots, setUnifiedLots] = useState<Unified3DLot[]>([]);
   const [landscapeData, setLandscapeData] = useState<Landscape3DData | null>(null);
+  const [carTemplates, setCarTemplates] = useState<THREE.Group[]>([]);
   const [droneRenderModal, setDroneRenderModal] = useState<CameraPreset["renderPreview"] | null>(null);
 
   useEffect(() => {
@@ -1633,6 +1684,31 @@ export default function Loom3DMaquetaView({
         if (isMounted) setLandscapeData(data);
       })
       .catch((err) => console.error("Error loading 3D landscape data:", err));
+
+    const carLoader = new GLTFLoader();
+    const carModelUrls = [
+      "/loom/models/car_suv_luxury.glb?v=1",
+      "/loom/models/car_coupe_gt.glb?v=1",
+      "/loom/models/car_sedan_exec.glb?v=1",
+      "/loom/models/car_pickup_luxury.glb?v=1",
+    ];
+    Promise.all(
+      carModelUrls.map(
+        (url) =>
+          new Promise<THREE.Group | null>((resolve) => {
+            carLoader.load(
+              url,
+              (gltf) => resolve(gltf.scene),
+              undefined,
+              () => resolve(null)
+            );
+          })
+      )
+    ).then((loadedCars) => {
+      if (isMounted) {
+        setCarTemplates(loadedCars.filter((g): g is THREE.Group => g !== null));
+      }
+    });
 
     return () => {
       isMounted = false;
@@ -2352,7 +2428,7 @@ export default function Loom3DMaquetaView({
         villaGrp.position.set(vwx, extrudeHeight + 0.005, vwz);
         villaGrp.rotation.y = pLot.backAngle !== undefined ? -pLot.backAngle : -lotAngle;
 
-        buildLoomVillaReplica3D(villaGrp, L, W, villaMats, unitBox);
+        buildLoomVillaReplica3D(villaGrp, L, W, villaMats, unitBox, lotIndex, carTemplates);
         villasGroup.add(villaGrp);
       }
 
@@ -2428,7 +2504,7 @@ export default function Loom3DMaquetaView({
         }
       }
     });
-  }, [unifiedLots, lotsMap, stageId, focusMode, colorMode, activeAreaFilter, villaMode, isSunset, selectedLot]);
+  }, [unifiedLots, lotsMap, stageId, focusMode, colorMode, activeAreaFilter, villaMode, isSunset, selectedLot, carTemplates]);
 
   useEffect(() => {
     sceneRefs.current.desiredPos.set(...activePreset.position);
