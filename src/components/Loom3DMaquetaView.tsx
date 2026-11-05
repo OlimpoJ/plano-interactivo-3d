@@ -105,16 +105,16 @@ const CAMERA_PRESETS: CameraPreset[] = [
   },
   {
     id: "porteria",
-    labelEs: "Portería • Vía al Mar Km 23",
-    labelEn: "Gatehouse • Vía al Mar Km 23",
+    labelEs: "Portería Loom • Vía del Mar Km 23",
+    labelEn: "Loom Gatehouse • Vía del Mar Km 23",
     position: [-14.2, 6.4, 8.6],
     target: [-19.4, 0, 0.2],
     renderPreview: {
-      titleEs: "Portería Monumental 24/7 • Vía al Mar Km 23 (Zona Norte)",
-      titleEn: "Monumental 24/7 Gatehouse • Vía al Mar Km 23 (North Zone)",
+      titleEs: "Portería Loom • Vía del Mar Kilómetro 23",
+      titleEn: "Loom Gatehouse • Vía del Mar Kilometer 23",
       src: "/loom/renders/amenities/porteria/galeria_04_porteria_vista_4.webp",
-      badgeEs: "Vía al Mar Km 23 • Zona Norte",
-      badgeEn: "Vía al Mar Km 23 • North Zone",
+      badgeEs: "Vía del Mar Kilómetro 23",
+      badgeEn: "Vía del Mar Kilometer 23",
     },
   },
   {
@@ -188,11 +188,11 @@ function createFloatingPillSprite(
   ctx.stroke();
 
   // Texto editorial limpio
-  ctx.font = "bold 36px sans-serif";
+  ctx.font = "bold 32px sans-serif";
   ctx.fillStyle = "#F8FAFC";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, 256, 66);
+  ctx.fillText(text, 256, 66, w - 40);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.needsUpdate = true;
@@ -1360,19 +1360,19 @@ export default function Loom3DMaquetaView({
     lakePill.position.set(lakeX, 0.48, lakeZ);
     villasGroup.add(lakePill);
 
-    const [porteriaX, porteriaZ] = svgToWorld(142, 1075);
-    const porteriaPill = createFloatingPillSprite("Portería Monumental", "#EBD9AB", 1.48, 0.36);
-    porteriaPill.position.set(porteriaX, 0.52, porteriaZ);
+    const [porteriaX, porteriaZ] = svgToWorld(92, 1095);
+    const porteriaPill = createFloatingPillSprite(isEn ? "Loom Gatehouse" : "Portería Loom", "#EBD9AB", 1.38, 0.35);
+    porteriaPill.position.set(porteriaX, 0.38, porteriaZ);
     villasGroup.add(porteriaPill);
 
-    const [viaX, viaZ] = svgToWorld(-45, 760);
+    const [viaX, viaZ] = svgToWorld(-136, 830);
     const viaPill = createFloatingPillSprite(
-      isEn ? "Vía al Mar Km 23 • North Zone" : "Vía al Mar Km 23 • Zona Norte",
+      isEn ? "Vía del Mar Kilometer 23" : "Vía del Mar Kilómetro 23",
       "#fbbf24",
       1.95,
       0.38
     );
-    viaPill.position.set(viaX, 0.62, viaZ);
+    viaPill.position.set(viaX, 0.45, viaZ);
     villasGroup.add(viaPill);
 
     unifiedLots.forEach((pLot, lotIndex) => {
