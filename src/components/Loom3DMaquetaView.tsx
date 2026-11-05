@@ -1167,7 +1167,7 @@ function buildLoomVillaReplica3D(
         }
       });
       // Sombra de contacto bajo el chasis sobre el adoquín del carport
-      addPart(L * 0.175, 0.003, W * 0.165, -L * 0.352, 0.015, carZ, mats.darkBronzeMat, false);
+      addPart(L * 0.142, 0.002, W * 0.118, -L * 0.352, 0.0145, carZ, mats.darkBronzeMat, false);
 
       const carScale = L * 0.0415; // Escala métrica 1:1 (auto de ~4.75m dentro del lote de 23.64m)
       carClone.scale.set(carScale, carScale, carScale);
@@ -1520,6 +1520,21 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
       if (isBeachSand > 0.05) {
         float sandSparkle = texture2D(uDetailTex, mUv * 130.0).b - 0.5;
         finalCol += sandSparkle * 0.042 * isBeachSand * closeFactor;
+      }
+
+      // Pavimento arquitectónico de alta definición en las vías internas (elimina tono marrón borroso)
+      float isWarmGrayRoad = (1.0 - smoothstep(0.08, 0.22, grassMask))
+                           * (1.0 - isBeachSand)
+                           * smoothstep(0.08, 0.13, baseCol.r)
+                           * (1.0 - smoothstep(0.24, 0.34, baseCol.r))
+                           * (1.0 - smoothstep(0.045, 0.095, abs(baseCol.r - baseCol.g - 0.035)))
+                           * inMaster;
+      if (isWarmGrayRoad > 0.05) {
+        float roadGrain1 = texture2D(uDetailTex, mUv * 165.0).b - 0.5;
+        float roadGrain2 = texture2D(uDetailTex, mUv * 340.0).a - 0.5;
+        vec3 slateAsphalt = mix(baseCol, vec3(0.22, 0.23, 0.245), 0.62);
+        slateAsphalt += (roadGrain1 * 0.028 + roadGrain2 * 0.018) * (0.35 + 0.65 * closeFactor);
+        finalCol = mix(finalCol, slateAsphalt, isWarmGrayRoad * 0.88);
       }
     }
 
@@ -1878,7 +1893,7 @@ export default function Loom3DMaquetaView({
     const loader = new THREE.TextureLoader();
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
 
-    const masterTex = loader.load("/loom/loom_masterplan_bg.webp", (t) => {
+    const masterTex = loader.load("/loom/loom_masterplan_bg.webp?v=5", (t) => {
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = maxAniso;
     });
@@ -2382,6 +2397,59 @@ export default function Loom3DMaquetaView({
     );
     viaPill.position.set(viaX, 0.45, viaZ);
     villasGroup.add(viaPill);
+
+    // Vehículos 3D reales entrando y saliendo del proyecto sobre las vías principales limpias
+    if (carTemplates.length > 0) {
+      const roadTrafficSpecs: { svgX: number; svgY: number; angleDeg: number; modelIdx: number; paintIdx: number }[] = [
+        // 1. Entrando por Portería Loom hacia la glorieta de acceso principal
+        { svgX: 221,  svgY: 1074, angleDeg: -38.0,  modelIdx: 0, paintIdx: 0 },
+        // 2. Saliendo hacia Portería Loom / Vía al Mar Km 23
+        { svgX: 29,   svgY: 1105, angleDeg: -92.0,  modelIdx: 3, paintIdx: 2 },
+        // 3. Entrando por el Bulevar Principal Norte (Etapa 1 / Etapa 2 -> Este)
+        { svgX: 389,  svgY: 879,  angleDeg: -3.0,   modelIdx: 1, paintIdx: 4 },
+        // 4. Saliendo por el Bulevar Principal Norte (Etapa 2 -> hacia Portería)
+        { svgX: 766,  svgY: 858,  angleDeg: 177.0,  modelIdx: 2, paintIdx: 1 },
+        // 5. Circulando por la Avenida Diagonal frente al Club House & Tenis (Etapa 4)
+        { svgX: 2162, svgY: 1025, angleDeg: 51.0,   modelIdx: 0, paintIdx: 5 },
+        // 6. Bulevar Norte frente al Club House (Etapa 4 -> rumbo a Playa Alma)
+        { svgX: 2443, svgY: 765,  angleDeg: -3.0,   modelIdx: 1, paintIdx: 3 },
+        // 7. Saliendo de la Avenida del Lago Central (Etapa 5 -> rumbo al Bulevar Norte)
+        { svgX: 2531, svgY: 998,  angleDeg: -102.0, modelIdx: 3, paintIdx: 0 },
+      ];
+
+      roadTrafficSpecs.forEach((rc) => {
+        const [rx, rz] = svgToWorld(rc.svgX, rc.svgY);
+        const tpl = carTemplates[rc.modelIdx % carTemplates.length];
+        const paintMat = villaMats.carPaintPalette[rc.paintIdx % villaMats.carPaintPalette.length];
+        const roadCar = tpl.clone(true);
+        roadCar.traverse((node) => {
+          if ((node as THREE.Mesh).isMesh) {
+            const m = node as THREE.Mesh;
+            m.castShadow = false;
+            m.receiveShadow = false;
+            if (((m.material as THREE.Material)?.name || "") === "BodyPaint") {
+              m.material = paintMat;
+            }
+          }
+        });
+        const roadCarScale = 0.0315;
+        const rotRad = (-rc.angleDeg * Math.PI) / 180;
+        roadCar.scale.set(roadCarScale, roadCarScale, roadCarScale);
+        roadCar.position.set(rx, 0.005, rz);
+        roadCar.rotation.y = rotRad;
+        roadCar.matrixAutoUpdate = false;
+        roadCar.updateMatrix();
+        villasGroup.add(roadCar);
+
+        const shadowMesh = new THREE.Mesh(unitBox, villaMats.darkBronzeMat);
+        shadowMesh.scale.set(0.105, 0.002, 0.044);
+        shadowMesh.position.set(rx, 0.004, rz);
+        shadowMesh.rotation.y = rotRad;
+        shadowMesh.matrixAutoUpdate = false;
+        shadowMesh.updateMatrix();
+        villasGroup.add(shadowMesh);
+      });
+    }
 
     unifiedLots.forEach((pLot, lotIndex) => {
       const lotData = lotsMap[pLot.id];
@@ -2956,7 +3024,7 @@ export default function Loom3DMaquetaView({
         </div>
         <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden border border-white/10 bg-[#051415]">
           <img
-            src="/loom/loom_masterplan_bg.webp"
+            src="/loom/loom_masterplan_bg.webp?v=5"
             alt="Masterplan Radar"
             className="w-full h-full object-cover opacity-85"
           />
