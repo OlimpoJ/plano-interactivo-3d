@@ -235,6 +235,32 @@ function svgToWorld(svgX: number, svgY: number): [number, number] {
   return [wx, wz];
 }
 
+function glslSmoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+// Calcula la elevación exacta del terreno 3D (idéntica a TERRAIN_WATER_VERTEX_GLSL)
+// para impedir físicamente que la cámara o el pivote atraviesen el suelo o las colinas del Oeste
+function getTerrainElevationAt(wx: number, wz: number): number {
+  const mUvX = wx / 38.4 + 0.5;
+  const mUvY = 0.5 - wz / 21.6;
+  const westFactor = glslSmoothstep(-0.042, -0.14, mUvX);
+  const northSouthHills =
+    Math.max(glslSmoothstep(1.06, 1.32, mUvY), glslSmoothstep(-0.06, -0.32, mUvY)) *
+    (1.0 - glslSmoothstep(0.55, 0.72, mUvX));
+  const reliefMask = Math.max(0.0, Math.min(1.0, westFactor + northSouthHills * 0.75));
+  if (reliefMask <= 0.0001) return 0.0;
+
+  const h1 = Math.sin(wx * 0.24 + wz * 0.19) * Math.cos(wz * 0.16 - wx * 0.11);
+  const h2 = Math.sin(wx * 0.58 - wz * 0.47) * 0.38;
+  const h3 = Math.cos(wx * 1.15 + wz * 0.92) * 0.16;
+  const clearingDist = Math.hypot((mUvX + 0.13) * 2.4, (mUvY - 0.44) * 1.6);
+  const terraceMound = (1.0 - glslSmoothstep(0.10, 0.34, clearingDist)) * 0.38;
+  const rawElev = Math.max(0.0, (h1 + h2 + h3) * 0.5 + 0.42) * 1.15 + terraceMound;
+  return rawElev * reliefMask;
+}
+
 // ============================================================================
 // GENERADOR DE RUIDO FBM ORGÁNICO (PERLIN/VALUE NOISE 512x512 CONTINUO Y SIN COSTURAS)
 // Evita por completo las rayas artificiales y genera ondas de agua hiperrealistas
@@ -746,6 +772,88 @@ function createTeakDeckTexture(): THREE.CanvasTexture {
   return tex;
 }
 
+interface CanonicalVillaMeshSpec {
+  geo: THREE.BufferGeometry;
+  mat: THREE.Material | THREE.Material[];
+  castShadow: boolean;
+}
+
+interface NormalizedBoxSpec {
+  sx: number;
+  sy: number;
+  sz: number;
+  px: number;
+  py: number;
+  pz: number;
+  rotY?: number;
+  rotZ?: number;
+}
+
+function mergeNormalizedBoxes(specs: NormalizedBoxSpec[]): THREE.BufferGeometry {
+  const baseBox = new THREE.BoxGeometry(1, 1, 1);
+  const basePos = baseBox.attributes.position;
+  const baseNorm = baseBox.attributes.normal;
+  const baseUv = baseBox.attributes.uv;
+  const baseIdx = baseBox.index!;
+
+  const vCount = basePos.count;
+  const iCount = baseIdx.count;
+  const totalV = vCount * specs.length;
+  const totalI = iCount * specs.length;
+
+  const positions = new Float32Array(totalV * 3);
+  const normals = new Float32Array(totalV * 3);
+  const uvs = new Float32Array(totalV * 2);
+  const indices = new Uint16Array(totalI);
+
+  const mat4 = new THREE.Matrix4();
+  const normMat = new THREE.Matrix3();
+  const posVec = new THREE.Vector3();
+  const normVec = new THREE.Vector3();
+  const quat = new THREE.Quaternion();
+  const euler = new THREE.Euler();
+  const scaleVec = new THREE.Vector3();
+  const transVec = new THREE.Vector3();
+
+  specs.forEach((s, bIdx) => {
+    euler.set(0, s.rotY || 0, s.rotZ || 0);
+    quat.setFromEuler(euler);
+    transVec.set(s.px, s.py, s.pz);
+    scaleVec.set(s.sx, s.sy, s.sz);
+    mat4.compose(transVec, quat, scaleVec);
+    normMat.getNormalMatrix(mat4);
+
+    const vOffset = bIdx * vCount;
+    for (let i = 0; i < vCount; i++) {
+      posVec.fromBufferAttribute(basePos, i).applyMatrix4(mat4);
+      positions[(vOffset + i) * 3] = posVec.x;
+      positions[(vOffset + i) * 3 + 1] = posVec.y;
+      positions[(vOffset + i) * 3 + 2] = posVec.z;
+
+      normVec.fromBufferAttribute(baseNorm, i).applyMatrix3(normMat).normalize();
+      normals[(vOffset + i) * 3] = normVec.x;
+      normals[(vOffset + i) * 3 + 1] = normVec.y;
+      normals[(vOffset + i) * 3 + 2] = normVec.z;
+
+      uvs[(vOffset + i) * 2] = baseUv.getX(i);
+      uvs[(vOffset + i) * 2 + 1] = baseUv.getY(i);
+    }
+
+    const iOffset = bIdx * iCount;
+    for (let i = 0; i < iCount; i++) {
+      indices[iOffset + i] = baseIdx.getX(i) + vOffset;
+    }
+  });
+
+  baseBox.dispose();
+  const merged = new THREE.BufferGeometry();
+  merged.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  merged.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
+  merged.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  merged.setIndex(new THREE.BufferAttribute(indices, 1));
+  return merged;
+}
+
 interface VillaReplicaMaterials {
   limestoneStuccoMat: THREE.MeshStandardMaterial;
   limestoneWarmMat: THREE.MeshStandardMaterial;
@@ -782,6 +890,7 @@ interface VillaReplicaMaterials {
   vrayHouseSideLeftMat: THREE.MeshStandardMaterial;
   vrayRearFenceMat: THREE.MeshStandardMaterial;
   carPaintPalette: THREE.MeshStandardMaterial[];
+  canonicalVillaMeshes: CanonicalVillaMeshSpec[];
 }
 
 function createVillaReplicaMaterials(
@@ -1088,11 +1197,157 @@ function createVillaReplicaMaterials(
     vrayHouseSideLeftMat,
     vrayRearFenceMat,
     carPaintPalette,
+    canonicalVillaMeshes: [],
   };
 }
 
+function getOrBuildCanonicalVillaMeshes(mats: VillaReplicaMaterials): CanonicalVillaMeshSpec[] {
+  if (mats.canonicalVillaMeshes.length > 0) return mats.canonicalVillaMeshes;
+
+  // Espacio Canónico Normalizado: L = 1, H = 1, W = 1 (se escala por [L, H, W] en cada lote)
+  const zH = -0.016;
+  const wH = 0.653;
+  const zP = 0.395;
+  const jacX = 0.275;
+  const jacZ = zH + wH * 0.22;
+  const sofaX = 0.275;
+  const sofaZ = zH - wH * 0.22;
+  const palmX = 0.005;
+  const palmZ = zH + wH * 0.12;
+  const rWallH = 0.14;
+  const rWallY = 0.755;
+
+  const singleBox = (
+    sx: number,
+    sy: number,
+    sz: number,
+    px: number,
+    py: number,
+    pz: number,
+    mat: THREE.Material | THREE.Material[],
+    castShadow: boolean
+  ): CanonicalVillaMeshSpec => ({
+    geo: mergeNormalizedBoxes([{ sx, sy, sz, px, py, pz }]),
+    mat,
+    castShadow,
+  });
+
+  const specs: CanonicalVillaMeshSpec[] = [
+    // Cajas multi-material ortográficas V-Ray
+    singleBox(1.0, 0.054, 1.0, 0, 0.027, 0, mats.vrayGroundBoxMats, false),
+    singleBox(0.032, 0.35, 0.205, -0.222, 0.175, zP, mats.vrayGatePortalMats, false),
+    singleBox(0.173, 0.99, wH, -0.1485, 0.495, zH, mats.vrayFrontBlockMats, true),
+    singleBox(0.097, 0.63, wH * 0.995, -0.2835, 0.675, zH, mats.vrayLatticeBoxMats, true),
+    singleBox(0.676, 1.0, 0.012, 0.006, 0.5, zH + wH * 0.502, mats.vrayHouseSideRightMat, false),
+    singleBox(0.676, 1.0, 0.012, 0.006, 0.5, zH - wH * 0.502, mats.vrayHouseSideLeftMat, false),
+    singleBox(0.21, 0.68, wH, 0.17, 0.34, zH, mats.vrayRearBlockMats, true),
+    singleBox(0.008, 0.11, wH * 0.98, 0.332, 0.41, zH, mats.balconyGlassMat, false),
+    singleBox(0.279, 0.025, wH, 0.2045, 0.685, zH, mats.vrayRooftopFloorMats, false),
+    singleBox(0.267, 0.026, wH * 0.98, 0.0715, 0.975, zH, mats.vrayPergolaTopMats, true),
+    singleBox(0.022, rWallH, wH, 0.333, rWallY, zH, mats.vrayRearParapetMats, false),
+    singleBox(0.142, rWallH, 0.022, 0.273, rWallY, zH - wH * 0.485, mats.vrayRearParapetMats, false),
+    singleBox(0.142, rWallH, 0.022, 0.273, rWallY, zH + wH * 0.485, mats.vrayRearParapetMats, false),
+
+    // Buffers fusionados por material (reduce 27 draw calls por villa a solo 9 draw calls)
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.54, sy: 0.07, sz: 0.085, px: 0.05, py: 0.035, pz: 0.435 },
+        { sx: 0.082, sy: 0.085, sz: 0.88, px: 0.435, py: 0.0425, pz: 0 },
+        { sx: 0.078, sy: 0.082, sz: wH * 0.34, px: jacX, py: 0.732, pz: jacZ },
+      ]),
+      mat: mats.poolWaterMat,
+      castShadow: false,
+    },
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.055, sy: 0.062, sz: 0.068, px: 0.362, py: 0.07, pz: 0.08 },
+        { sx: 0.055, sy: 0.062, sz: 0.068, px: 0.362, py: 0.07, pz: 0.22 },
+        { sx: 0.038, sy: 0.038, sz: wH * 0.16, px: sofaX - 0.005, py: 0.71, pz: sofaZ },
+      ]),
+      mat: mats.teakSlatsMat,
+      castShadow: false,
+    },
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.04, sy: 0.046, sz: 0.062, px: 0.368, py: 0.101, pz: 0.08 },
+        { sx: 0.018, sy: 0.046, sz: 0.062, px: 0.344, py: 0.14, pz: 0.08, rotZ: -0.45 },
+        { sx: 0.04, sy: 0.046, sz: 0.062, px: 0.368, py: 0.101, pz: 0.22 },
+        { sx: 0.018, sy: 0.046, sz: 0.062, px: 0.344, py: 0.14, pz: 0.22, rotZ: -0.45 },
+        { sx: 0.024, sy: 0.058, sz: wH * 0.38, px: sofaX + 0.032, py: 0.72, pz: sofaZ },
+        { sx: 0.082, sy: 0.058, sz: 0.028, px: sofaX, py: 0.72, pz: sofaZ - wH * 0.17 },
+        { sx: 0.082, sy: 0.058, sz: 0.028, px: sofaX, py: 0.72, pz: sofaZ + wH * 0.17 },
+      ]),
+      mat: mats.creamCushionMat,
+      castShadow: false,
+    },
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.495, sy: 0.33, sz: 0.022, px: 0.012, py: 0.165, pz: -0.482 },
+        { sx: 0.495, sy: 0.33, sz: 0.022, px: 0.012, py: 0.165, pz: 0.482 },
+        { sx: 0.045, sy: 0.105, sz: wH * 0.38, px: 0.135, py: 0.745, pz: zH + wH * 0.14 },
+        { sx: 0.095, sy: 0.075, sz: wH * 0.4, px: jacX, py: 0.728, pz: jacZ },
+      ]),
+      mat: mats.limestoneWarmMat,
+      castShadow: false,
+    },
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.22, sy: 0.31, sz: 0.026, px: 0.375, py: 0.155, pz: -0.482 },
+        { sx: 0.22, sy: 0.31, sz: 0.026, px: 0.375, py: 0.155, pz: 0.482 },
+        { sx: 0.026, sy: 0.31, sz: 0.98, px: 0.486, py: 0.155, pz: 0 },
+      ]),
+      mat: mats.vrayRearFenceMat,
+      castShadow: false,
+    },
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.075, sy: 0.035, sz: 0.22, px: -0.222, py: 0.355, pz: zP },
+        { sx: 0.127, sy: 0.028, sz: wH * 0.34, px: 0.0015, py: 0.34, pz: zH - wH * 0.31 },
+        { sx: 0.127, sy: 0.028, sz: wH * 0.34, px: 0.0015, py: 0.675, pz: zH - wH * 0.31 },
+        { sx: 0.06, sy: 0.032, sz: wH, px: 0.305, py: 0.34, pz: zH },
+      ]),
+      mat: mats.limestoneStuccoMat,
+      castShadow: false,
+    },
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.102, sy: 0.026, sz: wH + 0.011, px: -0.2835, py: 0.355, pz: zH },
+        { sx: 0.022, sy: 0.028, sz: wH + 0.016, px: -0.332, py: 0.982, pz: zH },
+        { sx: 0.012, sy: 0.014, sz: wH * 0.99, px: 0.332, py: 0.468, pz: zH },
+        { sx: 0.267, sy: 0.03, sz: 0.018, px: 0.0715, py: 0.975, pz: zH - wH * 0.485 },
+        { sx: 0.267, sy: 0.03, sz: 0.018, px: 0.0715, py: 0.975, pz: zH + wH * 0.485 },
+        { sx: 0.016, sy: 0.29, sz: 0.018, px: 0.202, py: 0.83, pz: zH - wH * 0.485 },
+        { sx: 0.016, sy: 0.29, sz: 0.018, px: 0.202, py: 0.83, pz: zH + wH * 0.485 },
+      ]),
+      mat: mats.darkBronzeMat,
+      castShadow: false,
+    },
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.026, sy: 0.042, sz: wH * 0.96, px: -0.334, py: 0.945, pz: zH },
+        { sx: 0.026, sy: 0.04, sz: wH * 0.98, px: 0.338, py: 0.81, pz: zH },
+        { sx: 0.14, sy: 0.04, sz: 0.026, px: 0.273, py: 0.81, pz: zH - wH * 0.49 },
+        { sx: 0.14, sy: 0.04, sz: 0.026, px: 0.273, py: 0.81, pz: zH + wH * 0.49 },
+      ]),
+      mat: mats.roofHedgeMat,
+      castShadow: false,
+    },
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.018, sy: 0.58, sz: 0.018, px: palmX, py: 0.29, pz: palmZ },
+        { sx: 0.015, sy: 0.6, sz: 0.015, px: palmX + 0.006, py: 0.86, pz: palmZ + 0.005, rotZ: -0.05 },
+      ]),
+      mat: mats.palmTrunkMat,
+      castShadow: true,
+    },
+  ];
+
+  mats.canonicalVillaMeshes = specs;
+  return specs;
+}
+
 // ============================================================================
-// RÉPLICA ARQUITECTÓNICA 3D CON PROYECCIÓN ORTOGRÁFICA V-RAY 1:1
+// RÉPLICA ARQUITECTÓNICA 3D CON PROYECCIÓN ORTOGRÁFICA V-RAY 1:1 (GEOMETRÍA CANÓNICA FUSIONADA)
 // Basada directamente en luxury_planta_01..04.webp, alzado_01..04.webp y axonometria_01.webp
 // Escala real V-Ray: Lote 23.64m x 11.10m, Altura 8.47m (H / L = 0.3583)
 // ============================================================================
@@ -1105,47 +1360,44 @@ function buildLoomVillaReplica3D(
   lotIndex: number = 0,
   carTemplates: THREE.Group[] = []
 ) {
-  const H = L * 0.3583; // Proporción exacta 1:1 de los renders V-Ray (847px alto / 2364px largo)
-  const zHouse = -W * 0.016; // Centro Z exacto del volumen arquitectónico en luxury_planta_01..04
-  const wHouse = W * 0.653; // Ancho exacto del volumen arquitectónico (725px / 1110px)
-  const zPath = W * 0.395; // Corredor peatonal lateral derecho (+Z) con espejo de agua y huellas
+  const H = L * 0.3583;
+  const zHouse = -W * 0.016;
+  const wHouse = W * 0.653;
 
-  const addPart = (
-    sx: number,
-    sy: number,
-    sz: number,
-    px: number,
-    py: number,
-    pz: number,
-    mat: THREE.Material | THREE.Material[],
-    castShadow: boolean = false,
-    rotY: number = 0,
-    rotZ: number = 0
-  ) => {
-    const m = new THREE.Mesh(unitBox, mat);
-    m.scale.set(sx, sy, sz);
-    m.position.set(px, py, pz);
-    if (rotY !== 0) m.rotation.y = rotY;
-    if (rotZ !== 0) m.rotation.z = rotZ;
-    m.castShadow = castShadow;
+  // 1. Cuerpo arquitectónico canónico con buffers pre-fusionados (0 nuevas geometrías por villa)
+  const canonicalSpecs = getOrBuildCanonicalVillaMeshes(mats);
+  const bodyGrp = new THREE.Group();
+  bodyGrp.scale.set(L, H, W);
+  bodyGrp.matrixAutoUpdate = false;
+  bodyGrp.updateMatrix();
+
+  for (let i = 0; i < canonicalSpecs.length; i++) {
+    const spec = canonicalSpecs[i];
+    const m = new THREE.Mesh(spec.geo, spec.mat);
+    m.castShadow = spec.castShadow;
     m.receiveShadow = true;
     m.matrixAutoUpdate = false;
-    m.updateMatrix();
-    villaGrp.add(m);
-    return m;
-  };
+    bodyGrp.add(m);
+  }
+  villaGrp.add(bodyGrp);
 
-  // --------------------------------------------------------------------------
-  // 1. PLANTA BAJA FOTOGRÁFICA V-RAY COMPLETA (vray_ground_plan.webp)
-  // Incluye adoquín de carport, jardines tropicales, huellas en espejo de agua,
-  // deck posterior con asoleadoras y piscina turquesa a todo el ancho del lote
-  // --------------------------------------------------------------------------
-  addPart(L, 0.014, W, 0, 0.007, 0, mats.vrayGroundBoxMats, false);
+  // 2. Corona de palmera interior en el patio bioclimático central
+  if (mats.palmCrownTexMat) {
+    const palmX = L * 0.005;
+    const palmZ = zHouse + wHouse * 0.12;
+    const crownMesh = new THREE.Mesh(mats.palmCrownGeo, mats.palmCrownTexMat);
+    crownMesh.position.set(palmX + L * 0.01, H * 1.15, palmZ + W * 0.006);
+    crownMesh.scale.set(L * 0.46, L * 0.46, L * 0.46);
+    crownMesh.castShadow = true;
+    crownMesh.matrixAutoUpdate = false;
+    crownMesh.updateMatrix();
+    villaGrp.add(crownMesh);
+  }
 
-  // Modelos 3D GLB de vehículos reales de distintas formas (SUV, Coupé GT, Sedán, Pickup) en el carport frontal
+  // 3. Modelos 3D GLB de vehículos reales de distintas formas en el carport frontal
   if (carTemplates.length > 0) {
     const carSlots = [zHouse - wHouse * 0.225, zHouse + wHouse * 0.215];
-    const hasSecondCar = (lotIndex * 5 + 1) % 7 !== 0; // ~85% con 2 vehículos distintos, ~15% con 1 vehículo
+    const hasSecondCar = (lotIndex * 5 + 1) % 7 !== 0;
     const activeSlots = hasSecondCar ? carSlots : [carSlots[lotIndex % 2]];
 
     activeSlots.forEach((carZ, slotIdx) => {
@@ -1166,13 +1418,17 @@ function buildLoomVillaReplica3D(
           }
         }
       });
-      // Sombra de contacto bajo el chasis sobre el adoquín del carport
-      addPart(L * 0.142, 0.002, W * 0.118, -L * 0.352, 0.0145, carZ, mats.darkBronzeMat, false);
 
-      const carScale = L * 0.0415; // Escala métrica 1:1 (auto de ~4.75m dentro del lote de 23.64m)
+      const shadowMesh = new THREE.Mesh(unitBox, mats.darkBronzeMat);
+      shadowMesh.scale.set(L * 0.142, 0.002, W * 0.118);
+      shadowMesh.position.set(-L * 0.352, 0.0145, carZ);
+      shadowMesh.matrixAutoUpdate = false;
+      shadowMesh.updateMatrix();
+      villaGrp.add(shadowMesh);
+
+      const carScale = L * 0.0415;
       carClone.scale.set(carScale, carScale, carScale);
       carClone.position.set(-L * 0.352, 0.015, carZ);
-      // En alzado_01 un vehículo mira de frente a la calle (Math.PI) y otro hacia adentro (0)
       if ((lotIndex + slotIdx) % 2 === 0) {
         carClone.rotation.y = Math.PI;
       }
@@ -1181,129 +1437,151 @@ function buildLoomVillaReplica3D(
       villaGrp.add(carClone);
     });
   }
+}
 
-  // Relieve 3D de agua cristalina en el espejo de agua lateral (+Z) y en la piscina posterior (+X)
-  addPart(L * 0.54, 0.018, W * 0.085, L * 0.05, 0.009, W * 0.435, mats.poolWaterMat, false);
-  addPart(L * 0.082, 0.022, W * 0.88, L * 0.435, 0.011, 0, mats.poolWaterMat, false);
+// ============================================================================
+// VOLÚMENES ARQUITECTÓNICOS 3D DE AMENIDADES PRINCIPALES
+// 1. Portería Loom (Vía del Mar Km 23)
+// 2. Club House & Oasis + 2 Canchas de Tenis / Pádel (Etapa 4)
+// 3. Alma Beach Club (Etapa 5 • Salida Directa al Mar Caribe)
+// ============================================================================
+function buildMasterplanAmenities3D(
+  villasGroup: THREE.Group,
+  mats: VillaReplicaMaterials,
+  unitBox: THREE.BoxGeometry
+) {
+  const addBox = (
+    parent: THREE.Group,
+    sx: number,
+    sy: number,
+    sz: number,
+    px: number,
+    py: number,
+    pz: number,
+    mat: THREE.Material | THREE.Material[],
+    castShadow = true,
+    rotY = 0
+  ) => {
+    const m = new THREE.Mesh(unitBox, mat);
+    m.scale.set(sx, sy, sz);
+    m.position.set(px, py, pz);
+    if (rotY !== 0) m.rotation.y = rotY;
+    m.castShadow = castShadow;
+    m.receiveShadow = true;
+    m.matrixAutoUpdate = false;
+    m.updateMatrix();
+    parent.add(m);
+  };
 
-  // 2 Asoleadoras 3D sobre el sundeck de teca frente a la piscina posterior (+X)
-  for (const lz of [W * 0.08, W * 0.22]) {
-    addPart(L * 0.055, 0.016, W * 0.068, L * 0.362, 0.018, lz, mats.teakSlatsMat);
-    addPart(L * 0.04, 0.012, W * 0.062, L * 0.368, 0.026, lz, mats.creamCushionMat);
-    addPart(L * 0.018, 0.012, W * 0.062, L * 0.344, 0.036, lz, mats.creamCushionMat, true, 0, -0.45);
+  // 1. PORTERÍA LOOM (Acceso Monumental en Piedra Caliza, Pérgola Bronce/Teca y Espejo de Agua)
+  const [portX, portZ] = svgToWorld(126, 1086);
+  const porteriaGrp = new THREE.Group();
+  porteriaGrp.position.set(portX, 0.005, portZ);
+  porteriaGrp.rotation.y = (11 * Math.PI) / 180;
+  porteriaGrp.matrixAutoUpdate = false;
+  porteriaGrp.updateMatrix();
+
+  // Cubierta monumental en voladizo sobre ambos carriles de acceso
+  addBox(porteriaGrp, 0.56, 0.032, 0.88, 0, 0.255, 0, mats.limestoneStuccoMat, true);
+  addBox(porteriaGrp, 0.58, 0.014, 0.90, 0, 0.274, 0, mats.darkBronzeMat, false);
+  addBox(porteriaGrp, 0.44, 0.026, 0.74, 0, 0.292, 0, mats.roofHedgeMat, false);
+  // Caseta central de control y lobby de seguridad acristalado
+  addBox(porteriaGrp, 0.34, 0.24, 0.16, 0, 0.12, 0, mats.limestoneWarmMat, true);
+  addBox(porteriaGrp, 0.28, 0.18, 0.172, 0, 0.12, 0, mats.glassWindowMat, false);
+  // Muros aleros laterales en piedra coralina + espejo de agua de bienvenida
+  addBox(porteriaGrp, 0.48, 0.24, 0.055, 0, 0.12, -0.41, mats.limestoneWarmMat, true);
+  addBox(porteriaGrp, 0.48, 0.24, 0.055, 0, 0.12, 0.41, mats.limestoneWarmMat, true);
+  addBox(porteriaGrp, 0.42, 0.016, 0.12, 0.02, 0.008, -0.49, mats.poolWaterMat, false);
+  // Talanqueras de control vehicular
+  addBox(porteriaGrp, 0.018, 0.012, 0.24, -0.14, 0.075, -0.21, mats.creamCushionMat, false);
+  addBox(porteriaGrp, 0.018, 0.012, 0.24, 0.14, 0.075, 0.21, mats.creamCushionMat, false);
+  villasGroup.add(porteriaGrp);
+
+  // 2. CLUB HOUSE & OASIS + 2 CANCHAS DE TENIS (Etapa 4)
+  const [chMainX, chMainZ] = svgToWorld(2512, 858);
+  const clubGrp = new THREE.Group();
+  clubGrp.position.set(chMainX, 0.005, chMainZ);
+  clubGrp.rotation.y = (-12 * Math.PI) / 180;
+  clubGrp.matrixAutoUpdate = false;
+  clubGrp.updateMatrix();
+
+  // Plataforma sundeck en madera teca y gran piscina resort turquesa
+  addBox(clubGrp, 1.45, 0.018, 1.75, 0, 0.009, 0, mats.teakDeckMat, false);
+  addBox(clubGrp, 0.62, 0.024, 1.18, 0.26, 0.014, 0.06, mats.poolWaterMat, false);
+  // Pabellón principal del Club House (2 niveles bioclimáticos con cubierta de pérgola V-Ray)
+  addBox(clubGrp, 0.48, 0.29, 1.24, -0.34, 0.145, 0, mats.limestoneStuccoMat, true);
+  addBox(clubGrp, 0.50, 0.21, 1.12, -0.32, 0.135, 0, mats.glassWindowMat, false);
+  addBox(clubGrp, 0.62, 0.028, 1.38, -0.30, 0.302, 0, mats.vrayPergolaTopMats, true);
+  addBox(clubGrp, 0.48, 0.032, 1.22, -0.34, 0.328, 0, mats.roofHedgeMat, false);
+  // Pabellón lounge norte junto a la piscina
+  addBox(clubGrp, 0.42, 0.21, 0.44, 0.22, 0.105, -0.66, mats.limestoneWarmMat, true);
+  addBox(clubGrp, 0.48, 0.024, 0.50, 0.22, 0.22, -0.66, mats.vrayPergolaTopMats, true);
+  // Hilera de camas balinesas / asoleadoras frente a la piscina del Club House
+  for (let i = -3; i <= 3; i++) {
+    addBox(clubGrp, 0.085, 0.022, 0.095, -0.08, 0.024, i * 0.16, mats.creamCushionMat, false);
   }
+  villasGroup.add(clubGrp);
 
-  // --------------------------------------------------------------------------
-  // 2. MUROS PERIMETRALES EN PIEDRA CALIZA V-RAY, PORTAL PEATONAL Y CERRAMIENTO POSTERIOR
-  // --------------------------------------------------------------------------
-  // Muros laterales en estuco calizo (x ∈ [-0.235*L, +0.26*L]) como en axonometria_01 y alzado_02
-  addPart(L * 0.495, H * 0.33, W * 0.022, L * 0.012, H * 0.165, -W * 0.482, mats.limestoneWarmMat);
-  addPart(L * 0.495, H * 0.33, W * 0.022, L * 0.012, H * 0.165, W * 0.482, mats.limestoneWarmMat);
+  // 2 Canchas de Tenis Reglamentarias 3D con malla perimetral, líneas y red central
+  const courtMat = new THREE.MeshStandardMaterial({
+    color: "#1e5b4a",
+    roughness: 0.72,
+    metalness: 0.04,
+  });
+  const courtOuterMat = new THREE.MeshStandardMaterial({
+    color: "#2d443b",
+    roughness: 0.78,
+    metalness: 0.04,
+  });
+  const courtCoords: [number, number][] = [
+    [2148, 1055],
+    [2152, 1168],
+  ];
+  courtCoords.forEach(([cxSvg, cySvg]) => {
+    const [cxW, czW] = svgToWorld(cxSvg, cySvg);
+    const cGrp = new THREE.Group();
+    cGrp.position.set(cxW, 0.005, czW);
+    cGrp.rotation.y = (-3 * Math.PI) / 180;
+    cGrp.matrixAutoUpdate = false;
+    cGrp.updateMatrix();
 
-  // Cerramiento posterior y lateral del patio de piscina con textura V-Ray de bambú y vegetación
-  addPart(L * 0.22, H * 0.31, W * 0.026, L * 0.375, H * 0.155, -W * 0.482, mats.vrayRearFenceMat);
-  addPart(L * 0.22, H * 0.31, W * 0.026, L * 0.375, H * 0.155, W * 0.482, mats.vrayRearFenceMat);
-  addPart(L * 0.026, H * 0.31, W * 0.98, L * 0.486, H * 0.155, 0, mats.vrayRearFenceMat);
+    const cL = 0.88;
+    const cW = 0.46;
+    addBox(cGrp, cL, 0.016, cW, 0, 0.008, 0, courtOuterMat, false);
+    addBox(cGrp, cL * 0.82, 0.018, cW * 0.76, 0, 0.009, 0, courtMat, false);
+    // Red central de tenis y postes
+    addBox(cGrp, 0.008, 0.045, cW * 0.80, 0, 0.036, 0, mats.creamCushionMat, true);
+    addBox(cGrp, 0.014, 0.052, 0.014, 0, 0.038, -cW * 0.40, mats.darkBronzeMat, false);
+    addBox(cGrp, 0.014, 0.052, 0.014, 0, 0.038, cW * 0.40, mats.darkBronzeMat, false);
+    // Cerramiento perimetral en bronce oscuro
+    addBox(cGrp, cL, 0.012, 0.012, 0, 0.095, -cW * 0.49, mats.darkBronzeMat, false);
+    addBox(cGrp, cL, 0.012, 0.012, 0, 0.095, cW * 0.49, mats.darkBronzeMat, false);
+    addBox(cGrp, 0.012, 0.012, cW, -cL * 0.49, 0.095, 0, mats.darkBronzeMat, false);
+    addBox(cGrp, 0.012, 0.012, cW, cL * 0.49, 0.095, 0, mats.darkBronzeMat, false);
+    villasGroup.add(cGrp);
+  });
 
-  // Portal peatonal lateral derecho (+Z) con portón de madera V-Ray y dintel en voladizo (alzado_01)
-  addPart(L * 0.032, H * 0.35, W * 0.205, -L * 0.222, H * 0.175, zPath, mats.vrayGatePortalMats);
-  addPart(L * 0.075, H * 0.035, W * 0.22, -L * 0.222, H * 0.355, zPath, mats.limestoneStuccoMat);
+  // 3. ALMA BEACH CLUB (Etapa 5 • Frente a Playa Alma)
+  const [almaX, almaZ] = svgToWorld(2915, 895);
+  const almaGrp = new THREE.Group();
+  almaGrp.position.set(almaX, 0.005, almaZ);
+  almaGrp.rotation.y = (-8 * Math.PI) / 180;
+  almaGrp.matrixAutoUpdate = false;
+  almaGrp.updateMatrix();
 
-  // --------------------------------------------------------------------------
-  // 3. VOLUMEN FRONTAL DE 3 NIVELES + CAJA DE 4 CELOSÍAS V-RAY EN VOLADIZO
-  // --------------------------------------------------------------------------
-  // Bloque Frontal Principal (x ∈ [-0.235*L, -0.062*L], y ∈ [0, H]) con cubierta V-Ray y fachadas reales
-  addPart(L * 0.173, H * 0.99, wHouse, -L * 0.1485, H * 0.495, zHouse, mats.vrayFrontBlockMats, true);
-
-  // Caja en Voladizo de las 4 Celosías Perforadas V-Ray sobre el Carport (x ∈ [-0.332*L, -0.235*L], y ∈ [0.36*H, 0.99*H])
-  addPart(L * 0.097, H * 0.63, wHouse * 0.995, -L * 0.2835, H * 0.675, zHouse, mats.vrayLatticeBoxMats, true);
-  // Vigas perimetrales de bronce negro del marco en voladizo y jardinera colgante superior
-  addPart(L * 0.102, H * 0.026, wHouse + 0.004, -L * 0.2835, H * 0.355, zHouse, mats.darkBronzeMat);
-  addPart(L * 0.022, H * 0.028, wHouse + 0.006, -L * 0.332, H * 0.982, zHouse, mats.darkBronzeMat);
-  addPart(L * 0.026, H * 0.042, wHouse * 0.96, -L * 0.334, H * 0.945, zHouse, mats.roofHedgeMat, false);
-
-  // --------------------------------------------------------------------------
-  // 4. FACHADAS LATERALES CONTINUAS V-RAY CON CORTE ALPHA (alzado_02 y alzado_04)
-  // Proyectan con precisión fotográfica los ventanales, escaleras flotantes,
-  // barandas del patio central, enredaderas colgantes y balcón de vidrio
-  // --------------------------------------------------------------------------
-  addPart(L * 0.676, H, 0.004, L * 0.006, H * 0.5, zHouse + wHouse * 0.502, mats.vrayHouseSideRightMat, false);
-  addPart(L * 0.676, H, 0.004, L * 0.006, H * 0.5, zHouse - wHouse * 0.502, mats.vrayHouseSideLeftMat, false);
-
-  // --------------------------------------------------------------------------
-  // 5. PATIO CENTRAL BIOCLIMÁTICO Y PALMERA REAL V-RAY (x ∈ [-0.062*L, +0.065*L])
-  // --------------------------------------------------------------------------
-  // Puente conector interior y barandas del patio central
-  addPart(L * 0.127, H * 0.028, wHouse * 0.34, L * 0.0015, H * 0.34, zHouse - wHouse * 0.31, mats.limestoneStuccoMat);
-  addPart(L * 0.127, H * 0.028, wHouse * 0.34, L * 0.0015, H * 0.675, zHouse - wHouse * 0.31, mats.limestoneStuccoMat);
-
-  // Palmera tropical del patio central que atraviesa la pérgola superior (axonometria_01 y luxury_planta_04)
-  const palmX = L * 0.005;
-  const palmZ = zHouse + wHouse * 0.12;
-  addPart(L * 0.018, H * 0.58, W * 0.018, palmX, H * 0.29, palmZ, mats.palmTrunkMat);
-  addPart(L * 0.015, H * 0.6, W * 0.015, palmX + L * 0.006, H * 0.86, palmZ + W * 0.005, mats.palmTrunkMat, true, 0, -0.05);
-  if (mats.palmCrownTexMat) {
-    const crownMesh = new THREE.Mesh(mats.palmCrownGeo, mats.palmCrownTexMat);
-    crownMesh.position.set(palmX + L * 0.01, H * 1.15, palmZ + W * 0.006);
-    crownMesh.scale.set(L * 0.46, L * 0.46, L * 0.46);
-    crownMesh.castShadow = true;
-    crownMesh.matrixAutoUpdate = false;
-    crownMesh.updateMatrix();
-    villaGrp.add(crownMesh);
+  // Deck orgánico frente al mar, piscina infinity costera y pabellones en madera teca
+  addBox(almaGrp, 0.92, 0.018, 1.65, 0, 0.009, 0, mats.teakDeckMat, false);
+  addBox(almaGrp, 0.38, 0.024, 1.15, 0.18, 0.014, 0, mats.poolWaterMat, false);
+  addBox(almaGrp, 0.38, 0.22, 0.72, -0.18, 0.11, -0.32, mats.limestoneWarmMat, true);
+  addBox(almaGrp, 0.44, 0.026, 0.82, -0.16, 0.23, -0.32, mats.vrayPergolaTopMats, true);
+  addBox(almaGrp, 0.34, 0.20, 0.56, -0.18, 0.10, 0.42, mats.limestoneWarmMat, true);
+  addBox(almaGrp, 0.40, 0.026, 0.64, -0.16, 0.21, 0.42, mats.vrayPergolaTopMats, true);
+  // Cabañas / Daybeds de playa mirando al Mar Caribe
+  for (let i = -2; i <= 2; i++) {
+    addBox(almaGrp, 0.095, 0.024, 0.095, 0.44, 0.022, i * 0.26, mats.creamCushionMat, true);
+    addBox(almaGrp, 0.105, 0.012, 0.105, 0.44, 0.095, i * 0.26, mats.teakSlatsMat, false);
   }
-
-  // --------------------------------------------------------------------------
-  // 6. VOLUMEN POSTERIOR (NIVELES 1 Y 2: x ∈ [+0.065*L, +0.275*L], y ∈ [0, 0.68*H])
-  // --------------------------------------------------------------------------
-  addPart(L * 0.21, H * 0.68, wHouse, L * 0.17, H * 0.34, zHouse, mats.vrayRearBlockMats, true);
-
-  // Balcón en voladizo del Nivel 2 hacia la piscina (x ∈ [+0.275*L, +0.335*L]) con baranda de vidrio templado
-  addPart(L * 0.06, H * 0.032, wHouse, L * 0.305, H * 0.34, zHouse, mats.limestoneStuccoMat);
-  addPart(L * 0.008, H * 0.11, wHouse * 0.98, L * 0.332, H * 0.41, zHouse, mats.balconyGlassMat, false);
-  addPart(L * 0.012, H * 0.014, wHouse * 0.99, L * 0.332, H * 0.468, zHouse, mats.darkBronzeMat, false);
-
-  // --------------------------------------------------------------------------
-  // 7. TERRAZA ROOFTOP 3ER NIVEL V-RAY (luxury_planta_03 y luxury_planta_04)
-  // Piso fotográfico V-Ray con barra + taburetes, sala en U y jacuzzi turquesa,
-  // cubierto en su mitad frontal por la pérgola de madera V-Ray y rodeado de antepechos huecos
-  // --------------------------------------------------------------------------
-  // Losa de piso del Rooftop (x ∈ [+0.065*L, +0.344*L], y = 0.685*H) con textura real luxury_planta_03
-  addPart(L * 0.279, H * 0.025, wHouse, L * 0.2045, H * 0.685, zHouse, mats.vrayRooftopFloorMats);
-
-  // Pérgola bioclimática V-Ray en el Nivel 3 (x ∈ [-0.062*L, +0.205*L], y = 0.975*H)
-  addPart(L * 0.267, H * 0.026, wHouse * 0.98, L * 0.0715, H * 0.975, zHouse, mats.vrayPergolaTopMats, true);
-  // Vigas laterales y columnas de soporte en bronce negro para la pérgola del Rooftop
-  addPart(L * 0.267, H * 0.03, W * 0.018, L * 0.0715, H * 0.975, zHouse - wHouse * 0.485, mats.darkBronzeMat);
-  addPart(L * 0.267, H * 0.03, W * 0.018, L * 0.0715, H * 0.975, zHouse + wHouse * 0.485, mats.darkBronzeMat);
-  addPart(L * 0.016, H * 0.29, W * 0.018, L * 0.202, H * 0.83, zHouse - wHouse * 0.485, mats.darkBronzeMat);
-  addPart(L * 0.016, H * 0.29, W * 0.018, L * 0.202, H * 0.83, zHouse + wHouse * 0.485, mats.darkBronzeMat);
-
-  // Barra de mármol 3D bajo la pérgola (x ≈ +0.13*L)
-  addPart(L * 0.045, H * 0.105, wHouse * 0.38, L * 0.135, H * 0.745, zHouse + wHouse * 0.14, mats.limestoneWarmMat);
-
-  // Muros de antepecho perimetrales HUECOS en la mitad abierta del Rooftop (x ∈ [+0.202*L, +0.344*L])
-  const rWallH = H * 0.14;
-  const rWallY = H * 0.755;
-  addPart(L * 0.022, rWallH, wHouse, L * 0.333, rWallY, zHouse, mats.vrayRearParapetMats);
-  addPart(L * 0.142, rWallH, W * 0.022, L * 0.273, rWallY, zHouse - wHouse * 0.485, mats.vrayRearParapetMats);
-  addPart(L * 0.142, rWallH, W * 0.022, L * 0.273, rWallY, zHouse + wHouse * 0.485, mats.vrayRearParapetMats);
-  // Jardineras verdes perimetrales en el borde superior del Rooftop (axonometria_01, alzado_03)
-  addPart(L * 0.026, H * 0.04, wHouse * 0.98, L * 0.338, H * 0.81, zHouse, mats.roofHedgeMat, false);
-  addPart(L * 0.14, H * 0.04, W * 0.026, L * 0.273, H * 0.81, zHouse - wHouse * 0.49, mats.roofHedgeMat, false);
-  addPart(L * 0.14, H * 0.04, W * 0.026, L * 0.273, H * 0.81, zHouse + wHouse * 0.49, mats.roofHedgeMat, false);
-
-  // Jacuzzi / Plunge Pool 3D elevado en la esquina derecha (+Z) del Rooftop y Sala en U en la esquina izquierda (-Z)
-  const jacX = L * 0.275;
-  const jacZ = zHouse + wHouse * 0.22;
-  addPart(L * 0.095, H * 0.075, wHouse * 0.4, jacX, H * 0.728, jacZ, mats.limestoneWarmMat);
-  addPart(L * 0.078, H * 0.082, wHouse * 0.34, jacX, H * 0.732, jacZ, mats.poolWaterMat, false);
-
-  const sofaX = L * 0.275;
-  const sofaZ = zHouse - wHouse * 0.22;
-  addPart(L * 0.024, H * 0.058, wHouse * 0.38, sofaX + L * 0.032, H * 0.72, sofaZ, mats.creamCushionMat);
-  addPart(L * 0.082, H * 0.058, W * 0.028, sofaX, H * 0.72, sofaZ - wHouse * 0.17, mats.creamCushionMat);
-  addPart(L * 0.082, H * 0.058, W * 0.028, sofaX, H * 0.72, sofaZ + wHouse * 0.17, mats.creamCushionMat);
-  addPart(L * 0.038, H * 0.038, wHouse * 0.16, sofaX - L * 0.005, H * 0.71, sofaZ, mats.teakSlatsMat);
+  villasGroup.add(almaGrp);
 }
 
 const SKY_DOME_VERTEX_GLSL = /* glsl */ `
@@ -1802,6 +2080,18 @@ export default function Loom3DMaquetaView({
     isFlying: false,
   });
 
+  const animatedTrafficRef = useRef<
+    {
+      carObj: THREE.Object3D;
+      shadowObj: THREE.Object3D;
+      waypoints: [number, number][];
+      segLengths: number[];
+      totalLength: number;
+      speed: number;
+      phaseOffset: number;
+    }[]
+  >([]);
+
   const lotsMapRef = useRef(lotsMap);
   lotsMapRef.current = lotsMap;
   const onSelectLotRef = useRef(onSelectLot);
@@ -1845,8 +2135,11 @@ export default function Loom3DMaquetaView({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
-    controls.maxPolarAngle = Math.PI / 2 - 0.04;
-    controls.minDistance = 0.55;
+    // Paneo estrictamente horizontal paralelo al suelo (impide hundir el pivote bajo tierra con clic derecho)
+    controls.screenSpacePanning = false;
+    controls.maxPolarAngle = Math.PI / 2 - 0.085;
+    controls.minPolarAngle = 0.05;
+    controls.minDistance = 0.65;
     controls.maxDistance = 54;
     controls.addEventListener("start", () => {
       sceneRefs.current.isFlying = false;
@@ -1912,6 +2205,7 @@ export default function Loom3DMaquetaView({
     const terrainShaderMat = new THREE.ShaderMaterial({
       vertexShader: TERRAIN_WATER_VERTEX_GLSL,
       fragmentShader: TERRAIN_WATER_FRAGMENT_GLSL,
+      side: THREE.DoubleSide,
       uniforms: {
         uMasterTex: { value: masterTex },
         uWestEarthTex: { value: westEarthTex },
@@ -2097,7 +2391,51 @@ export default function Loom3DMaquetaView({
         }
       }
 
+      // Bloqueo físico de suelo y colinas 3D: el pivote y la cámara jamás pueden bajar del terreno
+      controls.target.x = THREE.MathUtils.clamp(controls.target.x, -26.0, 26.0);
+      controls.target.z = THREE.MathUtils.clamp(controls.target.z, -16.0, 16.0);
+      const targetGroundY = getTerrainElevationAt(controls.target.x, controls.target.z);
+      controls.target.y = THREE.MathUtils.clamp(controls.target.y, targetGroundY + 0.02, 2.4);
+
       controls.update();
+
+      const camGroundY = getTerrainElevationAt(camera.position.x, camera.position.z);
+      const minSafeCamY = Math.max(0.42, camGroundY + 0.42);
+      if (camera.position.y < minSafeCamY) {
+        camera.position.y = minSafeCamY;
+      }
+
+      // Animación a 60 FPS del tráfico vehicular 3D entrando/saliendo por las avenidas de Loom
+      const trafficList = animatedTrafficRef.current;
+      for (let i = 0; i < trafficList.length; i++) {
+        const item = trafficList[i];
+        if (item.totalLength <= 0.001) continue;
+        const dist = ((elapsed * item.speed + item.phaseOffset) % item.totalLength + item.totalLength) % item.totalLength;
+        let acc = 0;
+        let segIdx = 0;
+        for (let s = 0; s < item.segLengths.length; s++) {
+          if (dist <= acc + item.segLengths[s] || s === item.segLengths.length - 1) {
+            segIdx = s;
+            break;
+          }
+          acc += item.segLengths[s];
+        }
+        const segLen = Math.max(0.0001, item.segLengths[segIdx]);
+        const t = Math.max(0, Math.min(1, (dist - acc) / segLen));
+        const [x0, z0] = item.waypoints[segIdx];
+        const [x1, z1] = item.waypoints[segIdx + 1];
+        const cx = x0 + (x1 - x0) * t;
+        const cz = z0 + (z1 - z0) * t;
+        const headingRad = -Math.atan2(z1 - z0, x1 - x0);
+
+        item.carObj.position.set(cx, 0.005, cz);
+        item.carObj.rotation.y = headingRad;
+        item.carObj.updateMatrix();
+
+        item.shadowObj.position.set(cx, 0.004, cz);
+        item.shadowObj.rotation.y = headingRad;
+        item.shadowObj.updateMatrix();
+      }
 
       if (elapsed - lastYawUpdate > 0.12) {
         lastYawUpdate = elapsed;
@@ -2252,6 +2590,49 @@ export default function Loom3DMaquetaView({
           crownInst.instanceMatrix.needsUpdate = true;
           grp.add(crownInst);
         }
+
+        // Árboles nativos costeros y de The Garden Walk (landscapeData.trees) vía InstancedMesh (2 draw calls)
+        const treeCount = landscapeData.trees ? landscapeData.trees.length : 0;
+        if (treeCount > 0) {
+          const foliageTex = createTropicalFoliageTexture();
+          const treeCrownGeo = new THREE.IcosahedronGeometry(0.16, 2);
+          treeCrownGeo.scale(1.25, 0.82, 1.15);
+          treeCrownGeo.translate(0, 0.22, 0);
+          const treeCrownMat = new THREE.MeshStandardMaterial({
+            map: foliageTex,
+            bumpMap: foliageTex,
+            bumpScale: 0.012,
+            color: isSunset ? "#b5a07c" : "#659148",
+            roughness: 0.82,
+          });
+          const treeTrunkGeo = new THREE.CylinderGeometry(0.016, 0.026, 0.18, 6);
+          treeTrunkGeo.translate(0, 0.09, 0);
+          const treeTrunkMat = new THREE.MeshStandardMaterial({
+            color: "#5c4430",
+            roughness: 0.88,
+          });
+
+          const treeCrownInst = new THREE.InstancedMesh(treeCrownGeo, treeCrownMat, treeCount);
+          const treeTrunkInst = new THREE.InstancedMesh(treeTrunkGeo, treeTrunkMat, treeCount);
+          treeCrownInst.castShadow = true;
+          treeCrownInst.receiveShadow = true;
+
+          landscapeData.trees.forEach(([sx, sy, sc, rot], idx) => {
+            const [wx, wz] = svgToWorld(sx, sy);
+            const s = sc * 0.88;
+            dummy.position.set(wx, 0, wz);
+            dummy.rotation.set(0, rot, 0);
+            dummy.scale.set(s, s, s);
+            dummy.updateMatrix();
+            treeCrownInst.setMatrixAt(idx, dummy.matrix);
+            treeTrunkInst.setMatrixAt(idx, dummy.matrix);
+          });
+          treeCrownInst.instanceMatrix.needsUpdate = true;
+          treeTrunkInst.instanceMatrix.needsUpdate = true;
+          grp.add(treeTrunkInst);
+          grp.add(treeCrownInst);
+        }
+
         if (sceneRefs.current.renderer) {
           sceneRefs.current.renderer.shadowMap.needsUpdate = true;
         }
@@ -2398,27 +2779,95 @@ export default function Loom3DMaquetaView({
     viaPill.position.set(viaX, 0.45, viaZ);
     villasGroup.add(viaPill);
 
-    // Vehículos 3D reales entrando y saliendo del proyecto sobre las vías principales limpias
+    // Volúmenes arquitectónicos 3D de Portería Loom, Club House & Canchas de Tenis y Alma Beach Club
+    buildMasterplanAmenities3D(villasGroup, villaMats, unitBox);
+
+    // Vehículos 3D reales en movimiento continuo a 60 FPS entrando y saliendo por las avenidas de Loom
+    animatedTrafficRef.current = [];
     if (carTemplates.length > 0) {
-      const roadTrafficSpecs: { svgX: number; svgY: number; angleDeg: number; modelIdx: number; paintIdx: number }[] = [
-        // 1. Entrando por Portería Loom hacia la glorieta de acceso principal
-        { svgX: 221,  svgY: 1074, angleDeg: -38.0,  modelIdx: 0, paintIdx: 0 },
-        // 2. Saliendo hacia Portería Loom / Vía al Mar Km 23
-        { svgX: 29,   svgY: 1105, angleDeg: -92.0,  modelIdx: 3, paintIdx: 2 },
-        // 3. Entrando por el Bulevar Principal Norte (Etapa 1 / Etapa 2 -> Este)
-        { svgX: 389,  svgY: 879,  angleDeg: -3.0,   modelIdx: 1, paintIdx: 4 },
-        // 4. Saliendo por el Bulevar Principal Norte (Etapa 2 -> hacia Portería)
-        { svgX: 766,  svgY: 858,  angleDeg: 177.0,  modelIdx: 2, paintIdx: 1 },
-        // 5. Circulando por la Avenida Diagonal frente al Club House & Tenis (Etapa 4)
-        { svgX: 2162, svgY: 1025, angleDeg: 51.0,   modelIdx: 0, paintIdx: 5 },
-        // 6. Bulevar Norte frente al Club House (Etapa 4 -> rumbo a Playa Alma)
-        { svgX: 2443, svgY: 765,  angleDeg: -3.0,   modelIdx: 1, paintIdx: 3 },
-        // 7. Saliendo de la Avenida del Lago Central (Etapa 5 -> rumbo al Bulevar Norte)
-        { svgX: 2531, svgY: 998,  angleDeg: -102.0, modelIdx: 3, paintIdx: 0 },
+      const roadRoutesSpecs: {
+        svgPoints: [number, number][];
+        modelIdx: number;
+        paintIdx: number;
+        speed: number;
+        phase: number;
+      }[] = [
+        // 1. Entrando por Portería Loom hacia el Bulevar Principal Norte
+        {
+          svgPoints: [[18, 1106], [140, 1085], [221, 1074], [340, 882], [920, 848]],
+          modelIdx: 0,
+          paintIdx: 0,
+          speed: 0.34,
+          phase: 0.5,
+        },
+        // 2. Saliendo desde el Bulevar Norte hacia Portería Loom / Vía del Mar Km 23
+        {
+          svgPoints: [[880, 858], [345, 892], [216, 1080], [125, 1094], [-18, 1112]],
+          modelIdx: 3,
+          paintIdx: 2,
+          speed: 0.32,
+          phase: 2.1,
+        },
+        // 3. Recorriendo el Bulevar Principal Norte (Etapa 1 -> Etapa 4 Club House)
+        {
+          svgPoints: [[350, 882], [1150, 836], [1955, 790], [2680, 748]],
+          modelIdx: 1,
+          paintIdx: 4,
+          speed: 0.42,
+          phase: 1.2,
+        },
+        // 4. Regresando por el Bulevar Principal Norte (Club House -> Etapa 1)
+        {
+          svgPoints: [[2650, 758], [1950, 798], [1150, 845], [360, 892]],
+          modelIdx: 2,
+          paintIdx: 1,
+          speed: 0.38,
+          phase: 4.8,
+        },
+        // 5. Avenida Diagonal Club House & Canchas de Tenis (Etapa 4 rumbo Sur)
+        {
+          svgPoints: [[1962, 795], [2162, 1025], [2385, 1285]],
+          modelIdx: 0,
+          paintIdx: 5,
+          speed: 0.30,
+          phase: 1.7,
+        },
+        // 6. Bulevar Costero frente al Club House hacia Alma Beach Club
+        {
+          svgPoints: [[1980, 788], [2443, 762], [2840, 738]],
+          modelIdx: 1,
+          paintIdx: 3,
+          speed: 0.36,
+          phase: 3.3,
+        },
+        // 7. Avenida del Lago Central (Etapa 5 saliendo hacia el Bulevar Norte)
+        {
+          svgPoints: [[2556, 1118], [2531, 998], [2505, 858]],
+          modelIdx: 3,
+          paintIdx: 0,
+          speed: 0.28,
+          phase: 0.9,
+        },
+        // 8. Avenida del Lago Central Oriental (Etapa 5 rumbo al Oasis del Lago)
+        {
+          svgPoints: [[2690, 842], [2725, 1008], [2762, 1168]],
+          modelIdx: 2,
+          paintIdx: 6,
+          speed: 0.29,
+          phase: 2.4,
+        },
       ];
 
-      roadTrafficSpecs.forEach((rc) => {
-        const [rx, rz] = svgToWorld(rc.svgX, rc.svgY);
+      roadRoutesSpecs.forEach((rc) => {
+        const waypoints = rc.svgPoints.map(([sx, sy]) => svgToWorld(sx, sy));
+        const segLengths: number[] = [];
+        let totalLength = 0;
+        for (let i = 0; i < waypoints.length - 1; i++) {
+          const d = Math.hypot(waypoints[i + 1][0] - waypoints[i][0], waypoints[i + 1][1] - waypoints[i][1]);
+          segLengths.push(d);
+          totalLength += d;
+        }
+
         const tpl = carTemplates[rc.modelIdx % carTemplates.length];
         const paintMat = villaMats.carPaintPalette[rc.paintIdx % villaMats.carPaintPalette.length];
         const roadCar = tpl.clone(true);
@@ -2433,23 +2882,33 @@ export default function Loom3DMaquetaView({
           }
         });
         const roadCarScale = 0.0315;
-        const rotRad = (-rc.angleDeg * Math.PI) / 180;
+        const [rx0, rz0] = waypoints[0];
         roadCar.scale.set(roadCarScale, roadCarScale, roadCarScale);
-        roadCar.position.set(rx, 0.005, rz);
-        roadCar.rotation.y = rotRad;
+        roadCar.position.set(rx0, 0.005, rz0);
         roadCar.matrixAutoUpdate = false;
         roadCar.updateMatrix();
         villasGroup.add(roadCar);
 
         const shadowMesh = new THREE.Mesh(unitBox, villaMats.darkBronzeMat);
         shadowMesh.scale.set(0.105, 0.002, 0.044);
-        shadowMesh.position.set(rx, 0.004, rz);
-        shadowMesh.rotation.y = rotRad;
+        shadowMesh.position.set(rx0, 0.004, rz0);
         shadowMesh.matrixAutoUpdate = false;
         shadowMesh.updateMatrix();
         villasGroup.add(shadowMesh);
+
+        animatedTrafficRef.current.push({
+          carObj: roadCar,
+          shadowObj: shadowMesh,
+          waypoints,
+          segLengths,
+          totalLength,
+          speed: rc.speed,
+          phaseOffset: rc.phase,
+        });
       });
     }
+
+    const batchedBorderSegments = new Map<string, { col: string; op: number; coords: number[] }>();
 
     unifiedLots.forEach((pLot, lotIndex) => {
       const lotData = lotsMap[pLot.id];
@@ -2549,22 +3008,19 @@ export default function Loom3DMaquetaView({
       lotsGroup.add(mesh);
 
       if (borderPoints.length >= 3) {
-        const lineGeo = new THREE.BufferGeometry().setFromPoints(borderPoints);
         const lCol = isSelected ? "#fde047" : fillColor;
         const lOp = dimmed ? 0.22 : 0.92;
         const lKey = `${lCol}_${lOp}`;
-        let lineMat = lineMatPool.get(lKey);
-        if (!lineMat) {
-          lineMat = new THREE.LineBasicMaterial({
-            color: lCol,
-            transparent: true,
-            opacity: lOp,
-          });
-          lineMatPool.set(lKey, lineMat);
+        let bucket = batchedBorderSegments.get(lKey);
+        if (!bucket) {
+          bucket = { col: lCol, op: lOp, coords: [] };
+          batchedBorderSegments.set(lKey, bucket);
         }
-        const borderLoop = new THREE.LineLoop(lineGeo, lineMat);
-        borderLoop.matrixAutoUpdate = false;
-        villasGroup.add(borderLoop);
+        for (let i = 0; i < borderPoints.length; i++) {
+          const pA = borderPoints[i];
+          const pB = borderPoints[(i + 1) % borderPoints.length];
+          bucket.coords.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z);
+        }
       }
 
       // Etiqueta píldora en el lote seleccionado (ej. 'B-22 • 252') o en lotes abiertos destacados
@@ -2614,6 +3070,25 @@ export default function Loom3DMaquetaView({
         villasGroup.add(villaGrp);
       }
 
+    });
+
+    // Renderizar todos los bordes perimetrales de los 318 lotes en 3-4 llamadas agrupadas (LineSegments)
+    batchedBorderSegments.forEach((bucket, lKey) => {
+      if (bucket.coords.length === 0) return;
+      const segGeo = new THREE.BufferGeometry();
+      segGeo.setAttribute("position", new THREE.Float32BufferAttribute(bucket.coords, 3));
+      let lineMat = lineMatPool.get(lKey);
+      if (!lineMat) {
+        lineMat = new THREE.LineBasicMaterial({
+          color: bucket.col,
+          transparent: true,
+          opacity: bucket.op,
+        });
+        lineMatPool.set(lKey, lineMat);
+      }
+      const lineSegs = new THREE.LineSegments(segGeo, lineMat);
+      lineSegs.matrixAutoUpdate = false;
+      villasGroup.add(lineSegs);
     });
 
     if (sceneRefs.current.renderer) {
