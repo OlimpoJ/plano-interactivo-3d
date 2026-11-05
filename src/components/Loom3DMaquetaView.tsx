@@ -864,24 +864,27 @@ function createVillaReplicaMaterials(
     metalness: 0.35,
   });
 
-  const carPaintColors = [
-    "#f4f6f9", // Blanco Perla
-    "#3b4758", // Gris Grafito Metálico
-    "#cbd5e1", // Plata Champagne
-    "#1e3148", // Azul Obsidiana
-    "#9b1c24", // Rojo Carmesí GT
-    "#cdc3b2", // Arena Titanio
-    "#164e35", // Verde Británico
-    "#1c1e22", // Negro Ónix
+  const carAtlasUrls = [
+    "/loom/vray/vray_car_atlas_0.webp?v=2", // Pearl White + Sunroof
+    "/loom/vray/vray_car_atlas_1.webp?v=2", // Liquid Silver Metallic
+    "/loom/vray/vray_car_atlas_2.webp?v=2", // Titanium Gunmetal + Sunroof
+    "/loom/vray/vray_car_atlas_3.webp?v=2", // Obsidian Sapphire Metallic
+    "/loom/vray/vray_car_atlas_4.webp?v=2", // Champagne Sand Metallic + Sunroof
+    "/loom/vray/vray_car_atlas_5.webp?v=2", // Deep Yacht Blue Metallic
   ];
-  const carPaintPalette = carPaintColors.map(
-    (hex) =>
-      new THREE.MeshStandardMaterial({
-        color: hex,
-        roughness: 0.2,
-        metalness: 0.42,
-      })
-  );
+  const carPaintPalette = carAtlasUrls.map((url) => {
+    const tex = texLoader.load(url);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.flipY = false; // glTF 2.0 TEXCOORD_0 uses top-left origin (v=0 at top)
+    tex.anisotropy = 8;
+    return new THREE.MeshStandardMaterial({
+      map: tex,
+      color: tintColor,
+      roughness: 0.28,
+      metalness: 0.04,
+      side: THREE.DoubleSide,
+    });
+  });
 
   // Orden de caras en BoxGeometry: [0: +X (Rear), 1: -X (Front), 2: +Y (Top), 3: -Y (Bottom), 4: +Z (Right), 5: -Z (Left)]
   const vrayGroundBoxMats = [
@@ -1147,24 +1150,24 @@ function buildLoomVillaReplica3D(
     activeSlots.forEach((carZ, slotIdx) => {
       const modelIdx = (lotIndex + slotIdx * 2 + (slotIdx === 1 ? 1 : 0)) % carTemplates.length;
       const paintMat =
-        mats.carPaintPalette[(lotIndex * 3 + slotIdx * 5) % mats.carPaintPalette.length];
+        mats.carPaintPalette[(lotIndex * 3 + slotIdx * 5 + modelIdx) % mats.carPaintPalette.length];
       const carClone = carTemplates[modelIdx].clone(true);
       carClone.traverse((node) => {
         if ((node as THREE.Mesh).isMesh) {
           const mesh = node as THREE.Mesh;
           mesh.castShadow = true;
           mesh.receiveShadow = true;
-          const mName = (mesh.material as THREE.Material)?.name || "";
-          if (mName === "BodyPaint") {
-            mesh.material = paintMat;
-          }
+          mesh.material = paintMat;
         }
       });
-      const carScale = L * 0.192;
+      // Sombra de contacto suave bajo el chasis en el adoquín del carport
+      addPart(L * 0.175, 0.003, W * 0.165, -L * 0.352, 0.015, carZ, mats.darkBronzeMat, false);
+
+      const carScale = L * 0.041; // Escala real: auto de ~4.75m -> 0.195 * L dentro del carport
       carClone.scale.set(carScale, carScale, carScale);
-      carClone.position.set(-L * 0.352, 0.014, carZ);
-      // Algunos deportivos estacionados de reversa mirando hacia la calle (-X)
-      if (slotIdx === 1 && (lotIndex + modelIdx) % 4 === 0) {
+      carClone.position.set(-L * 0.352, 0.015, carZ);
+      // En alzado_01 un vehículo mira de frente a la calle (Math.PI) y otro hacia adentro (0)
+      if ((lotIndex + slotIdx) % 2 === 0) {
         carClone.rotation.y = Math.PI;
       }
       villaGrp.add(carClone);
@@ -1687,10 +1690,10 @@ export default function Loom3DMaquetaView({
 
     const carLoader = new GLTFLoader();
     const carModelUrls = [
-      "/loom/models/car_suv_luxury.glb?v=1",
-      "/loom/models/car_coupe_gt.glb?v=1",
-      "/loom/models/car_sedan_exec.glb?v=1",
-      "/loom/models/car_pickup_luxury.glb?v=1",
+      "/loom/models/car_suv_luxury.glb?v=2",
+      "/loom/models/car_coupe_gt.glb?v=2",
+      "/loom/models/car_sedan_exec.glb?v=2",
+      "/loom/models/car_pickup_luxury.glb?v=2",
     ];
     Promise.all(
       carModelUrls.map(
