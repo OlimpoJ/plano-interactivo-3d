@@ -1154,8 +1154,8 @@ function buildLoomVillaReplica3D(
       carClone.traverse((node) => {
         if ((node as THREE.Mesh).isMesh) {
           const mesh = node as THREE.Mesh;
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
+          mesh.castShadow = false;
+          mesh.receiveShadow = false;
           const mName = (mesh.material as THREE.Material)?.name || "";
           if (mName === "BodyPaint") {
             mesh.material = paintMat;
@@ -1694,10 +1694,10 @@ export default function Loom3DMaquetaView({
 
     const carLoader = new GLTFLoader();
     const carModelUrls = [
-      "/loom/models/car_suv_luxury.glb?v=3",
-      "/loom/models/car_coupe_gt.glb?v=3",
-      "/loom/models/car_sedan_exec.glb?v=3",
-      "/loom/models/car_pickup_luxury.glb?v=3",
+      "/loom/models/car_suv_luxury.glb?v=4",
+      "/loom/models/car_coupe_gt.glb?v=4",
+      "/loom/models/car_sedan_exec.glb?v=4",
+      "/loom/models/car_pickup_luxury.glb?v=4",
     ];
     Promise.all(
       carModelUrls.map(
