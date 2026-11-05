@@ -105,13 +105,13 @@ const CAMERA_PRESETS: CameraPreset[] = [
   },
   {
     id: "porteria",
-    labelEs: "Portería • Etapa 1",
-    labelEn: "Gatehouse • Stage 1",
-    position: [-16.5, 5.8, 7.8],
-    target: [-12.5, 0, 0.5],
+    labelEs: "Portería • Vía al Mar",
+    labelEn: "Gatehouse • Vía al Mar",
+    position: [-14.2, 6.4, 8.6],
+    target: [-19.4, 0, 0.2],
     renderPreview: {
-      titleEs: "Portería Monumental 24/7 • Acceso Principal",
-      titleEn: "Monumental 24/7 Gatehouse • Main Access",
+      titleEs: "Portería Monumental 24/7 • Conexión Vía al Mar",
+      titleEn: "Monumental 24/7 Gatehouse • Vía al Mar Connection",
       src: "/loom/renders/amenities/porteria/galeria_04_porteria_vista_4.webp",
       badgeEs: "Vista Acceso Vial",
       badgeEn: "Road Access View",
@@ -454,10 +454,33 @@ const SKY_DOME_FRAGMENT_GLSL = /* glsl */ `
 const TERRAIN_WATER_VERTEX_GLSL = /* glsl */ `
   varying vec2 vUv;
   varying vec3 vWorldPos;
+  varying float vReliefShade;
 
   void main() {
     vUv = uv;
     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+    vec2 mUv = vec2(worldPosition.x / 38.4 + 0.5, 0.5 - worldPosition.z / 21.6);
+
+    // Relieve topográfico 3D suave al Oeste de la Vía Punta Canoas / Vía al Mar (mUv.x < -0.045)
+    // y en las colinas costeras lejanas Norte/Sur, manteniendo 100% planos los lotes, vías y playa
+    float westFactor = smoothstep(-0.042, -0.14, mUv.x);
+    float northSouthHills = max(smoothstep(1.06, 1.32, mUv.y), smoothstep(-0.06, -0.32, mUv.y)) * (1.0 - smoothstep(0.55, 0.72, mUv.x));
+    float reliefMask = clamp(westFactor + northSouthHills * 0.75, 0.0, 1.0);
+
+    float h1 = sin(worldPosition.x * 0.24 + worldPosition.z * 0.19) * cos(worldPosition.z * 0.16 - worldPosition.x * 0.11);
+    float h2 = sin(worldPosition.x * 0.58 - worldPosition.z * 0.47) * 0.38;
+    float h3 = cos(worldPosition.x * 1.15 + worldPosition.z * 0.92) * 0.16;
+    // Meseta aterrazada frente a la Portería (similar al movimiento de tierras de earth.patrimofy)
+    float clearingDist = length(vec2((mUv.x + 0.13) * 2.4, (mUv.y - 0.44) * 1.6));
+    float terraceMound = (1.0 - smoothstep(0.10, 0.34, clearingDist)) * 0.38;
+
+    float rawElev = max(0.0, (h1 + h2 + h3) * 0.5 + 0.42) * 1.15 + terraceMound;
+    worldPosition.y += rawElev * reliefMask;
+
+    // Sombreado direccional sutil por pendiente de las colinas 3D
+    float slopeX = cos(worldPosition.x * 0.24 + worldPosition.z * 0.19) * 0.24 + cos(worldPosition.x * 0.58 - worldPosition.z * 0.47) * 0.22;
+    vReliefShade = clamp(slopeX * reliefMask * 0.45, -0.18, 0.22);
+
     vWorldPos = worldPosition.xyz;
     gl_Position = projectionMatrix * viewMatrix * worldPosition;
   }
@@ -465,6 +488,7 @@ const TERRAIN_WATER_VERTEX_GLSL = /* glsl */ `
 
 const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
   uniform sampler2D uMasterTex;
+  uniform sampler2D uWestEarthTex;
   uniform sampler2D uMasksTex;
   uniform sampler2D uDetailTex;
   uniform float uTime;
@@ -474,6 +498,7 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
 
   varying vec2 vUv;
   varying vec3 vWorldPos;
+  varying float vReliefShade;
 
   // Muestreo FBM multicapa sin costuras ni rayas artificiales
   vec3 sampleWaterFBM(vec2 uv, float t) {
@@ -501,9 +526,7 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
     float inMaster = step(0.0, mUv.x) * step(mUv.x, 1.0) * step(0.0, mUv.y) * step(mUv.y, 1.0);
 
     // Continuación C0 sin costuras hacia el Norte (mUv.y > 1), Sur (mUv.y < 0),
-    // Oeste interior (mUv.x < 0) y Mar Caribe profundo al Este (mUv.x > 1).
-    // Muestrea exclusivamente las franjas naturales vírgenes (bosque + playa + rompiente + mar)
-    // de los extremos Norte [0.84..0.996] y Sur [0.004..0.16] del propio Masterplan.
+    // y Mar Caribe profundo al Este (mUv.x > 1).
     float sampleY = clamp(mUv.y, 0.004, 0.996);
     if (mUv.y > 1.0) {
       float dy = mUv.y - 1.0;
@@ -516,27 +539,55 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
     }
 
     float sampleX = clamp(mUv.x, 0.004, 0.996);
-    if (mUv.x < 0.0) {
-      float dx = -mUv.x;
-      float triX = 1.0 - abs(fract(dx * 2.1) * 2.0 - 1.0);
-      sampleX = 0.004 + triX * 0.075;
-    } else if (mUv.x > 1.0) {
+    if (mUv.x > 1.0) {
       float dx = mUv.x - 1.0;
       float triX = 1.0 - abs(fract(dx * 1.75) * 2.0 - 1.0);
       sampleX = 0.996 - triX * 0.058;
     }
 
-    // Deformación orgánica FBM únicamente en el bosque exterior (sampleX < 0.75)
-    // para que la playa (sampleX >= 0.75) mantenga alineación milimétrica con el Masterplan
+    // Deformación orgánica FBM únicamente en el bosque exterior Norte/Sur (sampleX < 0.75)
     float outDistY = max(0.0, max(-mUv.y, mUv.y - 1.0));
-    float outDistX = max(0.0, -mUv.x);
-    float outerForestFactor = clamp((outDistY + outDistX) * 4.0, 0.0, 1.0) * (1.0 - smoothstep(0.70, 0.78, sampleX));
+    float outerForestFactor = clamp(outDistY * 4.0, 0.0, 1.0) * step(0.02, mUv.x) * (1.0 - smoothstep(0.70, 0.78, sampleX));
     vec2 fbmForestWarp = (texture2D(uDetailTex, mUv * 3.2).rg - 0.5) * 0.06 * outerForestFactor;
 
     vec2 sampleUv = clamp(vec2(sampleX, sampleY) + fbmForestWarp, 0.003, 0.997);
 
     vec3 baseCol = texture2D(uMasterTex, sampleUv).rgb;
     vec3 masks = texture2D(uMasksTex, sampleUv).rgb;
+
+    // ========================================================================
+    // CAPA 0: VÍA PUNTA CANOAS / CONEXIÓN VÍA AL MAR + TERRENO REAL EARTH.PATRIMOFY AL OESTE
+    // Cubre mUv.x <= 0.020833 (desde col +80 de Portería hasta -1400 px al Oeste)
+    // y mUv.y desde -0.25 hasta +1.25 con empalme C0 exacto con el Masterplan
+    // ========================================================================
+    float westBlend = 1.0 - smoothstep(0.0115, 0.0202, mUv.x);
+    if (westBlend > 0.001) {
+      float rawWestU = (mUv.x * 3840.0 + 1400.0) / 1480.0;
+      float rawWestV = (mUv.y + 0.25) / 1.5;
+
+      // Espejo C0 suave en el extremo lejano occidental (rawWestU < 0) y extremos N/S
+      float wU = rawWestU;
+      if (wU < 0.0) {
+        float du = -wU;
+        wU = 0.004 + (1.0 - abs(fract(du * 0.85) * 2.0 - 1.0)) * 0.42;
+      }
+      float wV = rawWestV;
+      if (wV > 1.0) {
+        float dv = wV - 1.0;
+        wV = 0.996 - (1.0 - abs(fract(dv * 1.2) * 2.0 - 1.0)) * 0.14;
+      } else if (wV < 0.0) {
+        float dv = -wV;
+        wV = 0.004 + (1.0 - abs(fract(dv * 1.2) * 2.0 - 1.0)) * 0.14;
+      }
+
+      vec3 westCol = texture2D(uWestEarthTex, clamp(vec2(wU, wV), 0.002, 0.998)).rgb;
+      // Micro-grano de tierra/vegetación al acercar la cámara y sombreado de relieve 3D
+      float microGrain = (texture2D(uDetailTex, mUv * 75.0).b - 0.5) * 0.04;
+      westCol = westCol * (1.0 + vReliefShade) + microGrain * (1.0 - smoothstep(4.0, 26.0, length(vWorldPos - uCameraPos)));
+
+      baseCol = mix(baseCol, westCol, westBlend);
+      masks *= (1.0 - westBlend);
+    }
 
     // Canales de la máscara PNG sin pérdida (loom_terrain_masks.png):
     // R = Mar Caribe y Piscinas de los Clubs (0 en todos los lotes y vías)
@@ -876,17 +927,23 @@ export default function Loom3DMaquetaView({
       t.anisotropy = maxAniso;
     });
 
+    const westEarthTex = loader.load("/loom/loom_west_earth_via.webp?v=1", (t) => {
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = maxAniso;
+    });
+
     const masksTex = loader.load("/loom/loom_terrain_masks.png?v=2", (t) => {
       t.anisotropy = maxAniso;
     });
 
-    // Terreno Costero Extendido (172m x 118m en escala 3D) para conectar Mar Caribe, Playa Alma y Bosque hasta el horizonte
-    const terrainGeo = new THREE.PlaneGeometry(WORLD_W * 4.5, WORLD_D * 5.5);
+    // Terreno Costero Extendido (172m x 118m en escala 3D) con subdivisión 220x220 para relieve topográfico
+    const terrainGeo = new THREE.PlaneGeometry(WORLD_W * 4.5, WORLD_D * 5.5, 220, 220);
     const terrainShaderMat = new THREE.ShaderMaterial({
       vertexShader: TERRAIN_WATER_VERTEX_GLSL,
       fragmentShader: TERRAIN_WATER_FRAGMENT_GLSL,
       uniforms: {
         uMasterTex: { value: masterTex },
+        uWestEarthTex: { value: westEarthTex },
         uMasksTex: { value: masksTex },
         uDetailTex: { value: detailTex },
         uTime: { value: 0 },
@@ -1302,6 +1359,21 @@ export default function Loom3DMaquetaView({
     const lakePill = createFloatingPillSprite("Lago Central • Oasis", "#22d3ee", 1.48, 0.36);
     lakePill.position.set(lakeX, 0.48, lakeZ);
     villasGroup.add(lakePill);
+
+    const [porteriaX, porteriaZ] = svgToWorld(142, 1075);
+    const porteriaPill = createFloatingPillSprite("Portería Monumental", "#EBD9AB", 1.48, 0.36);
+    porteriaPill.position.set(porteriaX, 0.52, porteriaZ);
+    villasGroup.add(porteriaPill);
+
+    const [viaX, viaZ] = svgToWorld(-45, 760);
+    const viaPill = createFloatingPillSprite(
+      isEn ? "Punta Canoas Hwy • Vía al Mar" : "Vía Punta Canoas • Conexión Vía al Mar",
+      "#fbbf24",
+      1.95,
+      0.38
+    );
+    viaPill.position.set(viaX, 0.62, viaZ);
+    villasGroup.add(viaPill);
 
     unifiedLots.forEach((pLot, lotIndex) => {
       const lotData = lotsMap[pLot.id];
