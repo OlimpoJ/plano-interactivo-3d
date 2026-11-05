@@ -767,6 +767,19 @@ interface VillaReplicaMaterials {
   palmFrondMat: THREE.MeshStandardMaterial;
   palmCrownTexMat: THREE.MeshStandardMaterial | null;
   palmCrownGeo: THREE.BufferGeometry;
+  // Materiales Ortográficos V-Ray Reales (axonometria_01, alzado_01..04, luxury_planta_01..04)
+  vrayGroundBoxMats: THREE.MeshStandardMaterial[];
+  vrayFrontBlockMats: THREE.MeshStandardMaterial[];
+  vrayLatticeBoxMats: THREE.MeshStandardMaterial[];
+  vrayRearBlockMats: THREE.MeshStandardMaterial[];
+  vrayRooftopFloorMats: THREE.MeshStandardMaterial[];
+  vrayPergolaTopMats: THREE.MeshStandardMaterial[];
+  vrayRearParapetMats: THREE.MeshStandardMaterial[];
+  vrayGatePortalMats: THREE.MeshStandardMaterial[];
+  vrayCarBoxMats: THREE.MeshStandardMaterial[];
+  vrayHouseSideRightMat: THREE.MeshStandardMaterial;
+  vrayHouseSideLeftMat: THREE.MeshStandardMaterial;
+  vrayRearFenceMat: THREE.MeshStandardMaterial;
 }
 
 function createVillaReplicaMaterials(
@@ -782,32 +795,166 @@ function createVillaReplicaMaterials(
   const deckTex = createTeakDeckTexture();
   const palmCrownGeo = createRealisticPalmCrownGeometry();
 
+  const texLoader = new THREE.TextureLoader();
+  const loadVrayTex = (url: string) => {
+    const t = texLoader.load(url);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    return t;
+  };
+
+  const tintColor = isSunset ? "#f2dec4" : "#ffffff";
+  const makeVrayMat = (url: string, roughness = 0.55, metalness = 0.04, alphaTest = 0) =>
+    new THREE.MeshStandardMaterial({
+      map: loadVrayTex(url),
+      color: tintColor,
+      roughness,
+      metalness,
+      ...(alphaTest > 0 ? { alphaTest, transparent: true, side: THREE.DoubleSide } : {}),
+    });
+
+  const limestoneStuccoMat = new THREE.MeshStandardMaterial({
+    map: limestoneTex,
+    bumpMap: limestoneTex,
+    bumpScale: 0.005,
+    color: isSunset ? "#ebd8c0" : "#f7f3eb",
+    roughness: 0.72,
+    metalness: 0.04,
+  });
+
+  const limestoneWarmMat = new THREE.MeshStandardMaterial({
+    map: limestoneTex,
+    bumpMap: limestoneTex,
+    bumpScale: 0.006,
+    color: isSunset ? "#dec8ae" : "#ede4d6",
+    roughness: 0.78,
+    metalness: 0.03,
+  });
+
+  const darkBronzeMat = new THREE.MeshStandardMaterial({
+    color: "#231c18",
+    roughness: 0.32,
+    metalness: 0.58,
+  });
+
+  const vrayGroundTopMat = makeVrayMat("/loom/vray/vray_ground_plan.webp", 0.62, 0.04);
+  const vrayRoofSlabMat = makeVrayMat("/loom/vray/vray_roof_slab.webp", 0.68, 0.03);
+  const vrayRooftopTopMat = makeVrayMat("/loom/vray/vray_rooftop_plan.webp", 0.52, 0.05);
+  const vrayPergolaTopMat = makeVrayMat("/loom/vray/vray_pergola_top.webp", 0.55, 0.06);
+  const vrayFrontWallMat = makeVrayMat("/loom/vray/vray_front_wall.webp", 0.5, 0.08);
+  const vrayFrontSideRightMat = makeVrayMat("/loom/vray/vray_front_side_right.webp", 0.52, 0.06);
+  const vrayFrontSideLeftMat = makeVrayMat("/loom/vray/vray_front_side_left.webp", 0.52, 0.06);
+  const vrayLatticeFrontMat = makeVrayMat("/loom/vray/vray_lattice_front.webp", 0.46, 0.08);
+  const vrayLatticeSideMat = makeVrayMat("/loom/vray/vray_lattice_side.webp", 0.46, 0.08);
+  const vrayRearL1L2Mat = makeVrayMat("/loom/vray/vray_rear_l1l2.webp", 0.38, 0.14);
+  const vrayRearSideRightMat = makeVrayMat("/loom/vray/vray_rear_side_right.webp", 0.5, 0.08);
+  const vrayRearSideLeftMat = makeVrayMat("/loom/vray/vray_rear_side_left.webp", 0.5, 0.08);
+  const vrayRearParapetMat = makeVrayMat("/loom/vray/vray_rear_parapet.webp", 0.58, 0.04);
+  const vrayGatePortalMat = makeVrayMat("/loom/vray/vray_gate_portal.webp", 0.52, 0.06);
+  const vrayCarTopMat = makeVrayMat("/loom/vray/vray_car_top.webp", 0.24, 0.35);
+  const vrayHouseSideRightMat = makeVrayMat("/loom/vray/vray_house_side_right.webp", 0.48, 0.06, 0.35);
+  const vrayHouseSideLeftMat = makeVrayMat("/loom/vray/vray_house_side_left.webp", 0.48, 0.06, 0.35);
+  const vrayRearFenceMat = makeVrayMat("/loom/vray/vray_rear_fence.webp", 0.78, 0.02);
+  const vrayPalmCrownMat = makeVrayMat("/loom/vray/vray_palm_crown_alpha.webp", 0.55, 0.02, 0.24);
+
+  const carBodyWhiteMat = new THREE.MeshStandardMaterial({
+    color: isSunset ? "#efe2d0" : "#f5f7fa",
+    roughness: 0.2,
+    metalness: 0.35,
+  });
+
+  // Orden de caras en BoxGeometry: [0: +X (Rear), 1: -X (Front), 2: +Y (Top), 3: -Y (Bottom), 4: +Z (Right), 5: -Z (Left)]
+  const vrayGroundBoxMats = [
+    limestoneWarmMat,
+    limestoneWarmMat,
+    vrayGroundTopMat,
+    limestoneWarmMat,
+    limestoneWarmMat,
+    limestoneWarmMat,
+  ];
+
+  const vrayFrontBlockMats = [
+    vrayFrontWallMat,
+    vrayFrontWallMat,
+    vrayRoofSlabMat,
+    limestoneStuccoMat,
+    vrayFrontSideRightMat,
+    vrayFrontSideLeftMat,
+  ];
+
+  const vrayLatticeBoxMats = [
+    vrayLatticeFrontMat,
+    vrayLatticeFrontMat,
+    vrayRoofSlabMat,
+    limestoneStuccoMat,
+    vrayLatticeSideMat,
+    vrayLatticeSideMat,
+  ];
+
+  const vrayRearBlockMats = [
+    vrayRearL1L2Mat,
+    vrayRearL1L2Mat,
+    vrayRooftopTopMat,
+    limestoneStuccoMat,
+    vrayRearSideRightMat,
+    vrayRearSideLeftMat,
+  ];
+
+  const vrayRooftopFloorMats = [
+    limestoneStuccoMat,
+    limestoneStuccoMat,
+    vrayRooftopTopMat,
+    limestoneStuccoMat,
+    limestoneStuccoMat,
+    limestoneStuccoMat,
+  ];
+
+  const vrayPergolaTopMats = [
+    darkBronzeMat,
+    darkBronzeMat,
+    vrayPergolaTopMat,
+    vrayPergolaTopMat,
+    darkBronzeMat,
+    darkBronzeMat,
+  ];
+
+  const vrayRearParapetMats = [
+    vrayRearParapetMat,
+    vrayRearParapetMat,
+    limestoneStuccoMat,
+    limestoneStuccoMat,
+    vrayRearParapetMat,
+    vrayRearParapetMat,
+  ];
+
+  const vrayGatePortalMats = [
+    vrayGatePortalMat,
+    vrayGatePortalMat,
+    limestoneStuccoMat,
+    limestoneStuccoMat,
+    limestoneStuccoMat,
+    limestoneStuccoMat,
+  ];
+
+  const vrayCarBoxMats = [
+    carBodyWhiteMat,
+    carBodyWhiteMat,
+    vrayCarTopMat,
+    carBodyWhiteMat,
+    carBodyWhiteMat,
+    carBodyWhiteMat,
+  ];
+
   return {
-    // Estuco calizo arena con textura travertino/coralina y relieve (bumpMap)
-    limestoneStuccoMat: new THREE.MeshStandardMaterial({
-      map: limestoneTex,
-      bumpMap: limestoneTex,
-      bumpScale: 0.006,
-      color: isSunset ? "#ebd8c0" : "#ffffff",
-      roughness: 0.78,
-      metalness: 0.04,
-    }),
-    limestoneWarmMat: new THREE.MeshStandardMaterial({
-      map: limestoneTex,
-      bumpMap: limestoneTex,
-      bumpScale: 0.008,
-      color: isSunset ? "#dec8ae" : "#f2e9dc",
-      roughness: 0.84,
-      metalness: 0.03,
-    }),
-    // Celosía bioclimática perforada con relieve 3D (bumpMap) y contraluz cálido
+    limestoneStuccoMat,
+    limestoneWarmMat,
     perforatedLatticeMat: new THREE.MeshStandardMaterial({
       map: latticeTex,
       bumpMap: latticeTex,
-      bumpScale: 0.012,
+      bumpScale: 0.01,
       color: isSunset ? "#f2d6b3" : "#ffffff",
-      roughness: 0.48,
-      metalness: 0.1,
+      roughness: 0.46,
+      metalness: 0.08,
     }),
     cobblestoneMat: new THREE.MeshStandardMaterial({
       map: cobbleTex,
@@ -831,37 +978,30 @@ function createVillaReplicaMaterials(
       roughness: 0.48,
       metalness: 0.08,
     }),
-    darkBronzeMat: new THREE.MeshStandardMaterial({
-      color: "#261d18",
-      roughness: 0.32,
-      metalness: 0.58,
-    }),
-    // Ventanales arquitectónicos con perfilería bronce, cortinas de lino y reflejo de cielo
+    darkBronzeMat,
     glassWindowMat: new THREE.MeshStandardMaterial({
       map: windowTex,
       emissive: isSunset ? "#f59e0b" : "#fef08a",
       emissiveMap: windowTex,
-      emissiveIntensity: isSunset ? 0.65 : 0.22,
+      emissiveIntensity: isSunset ? 0.55 : 0.18,
       roughness: 0.08,
       metalness: 0.45,
     }),
     balconyGlassMat: new THREE.MeshStandardMaterial({
       color: "#bae6fd",
       transparent: true,
-      opacity: 0.48,
+      opacity: 0.46,
       roughness: 0.05,
       metalness: 0.45,
     }),
-    // Agua cristalina con cáusticas solares y mosaico Bali
     poolWaterMat: new THREE.MeshStandardMaterial({
       map: poolTex,
       emissive: "#06b6d4",
       emissiveMap: poolTex,
-      emissiveIntensity: isSunset ? 0.55 : 0.35,
+      emissiveIntensity: isSunset ? 0.5 : 0.32,
       roughness: 0.05,
       metalness: 0.18,
     }),
-    // Follaje tropical orgánico con hojas en relieve para jardineras colgantes y cerramientos
     roofHedgeMat: new THREE.MeshStandardMaterial({
       map: foliageTex,
       bumpMap: foliageTex,
@@ -887,15 +1027,11 @@ function createVillaReplicaMaterials(
       color: "#b85d38",
       roughness: 0.72,
     }),
-    carBodyMat: new THREE.MeshStandardMaterial({
-      color: "#2c3033",
-      roughness: 0.22,
-      metalness: 0.75,
-    }),
+    carBodyMat: carBodyWhiteMat,
     carGlassMat: new THREE.MeshStandardMaterial({
-      color: "#11161a",
-      roughness: 0.06,
-      metalness: 0.85,
+      color: "#1b242c",
+      roughness: 0.08,
+      metalness: 0.82,
     }),
     palmTrunkMat: new THREE.MeshStandardMaterial({
       color: "#6e553e",
@@ -906,7 +1042,7 @@ function createVillaReplicaMaterials(
       roughness: 0.65,
       side: THREE.DoubleSide,
     }),
-    palmCrownTexMat: palmCrownTex
+    palmCrownTexMat: vrayPalmCrownMat || (palmCrownTex
       ? new THREE.MeshStandardMaterial({
           map: palmCrownTex,
           alphaTest: 0.26,
@@ -915,13 +1051,27 @@ function createVillaReplicaMaterials(
           roughness: 0.58,
           color: isSunset ? "#dfc8a2" : "#ffffff",
         })
-      : null,
+      : null),
     palmCrownGeo,
+    vrayGroundBoxMats,
+    vrayFrontBlockMats,
+    vrayLatticeBoxMats,
+    vrayRearBlockMats,
+    vrayRooftopFloorMats,
+    vrayPergolaTopMats,
+    vrayRearParapetMats,
+    vrayGatePortalMats,
+    vrayCarBoxMats,
+    vrayHouseSideRightMat,
+    vrayHouseSideLeftMat,
+    vrayRearFenceMat,
   };
 }
 
 // ============================================================================
-// RÉPLICA ARQUITECTÓNICA 3D FOTORREALISTA DE VILLA LOOM (18 RENDERS OFICIALES)
+// RÉPLICA ARQUITECTÓNICA 3D CON PROYECCIÓN ORTOGRÁFICA V-RAY 1:1
+// Basada directamente en luxury_planta_01..04.webp, alzado_01..04.webp y axonometria_01.webp
+// Escala real V-Ray: Lote 23.64m x 11.10m, Altura 8.47m (H / L = 0.3583)
 // ============================================================================
 function buildLoomVillaReplica3D(
   villaGrp: THREE.Group,
@@ -930,10 +1080,10 @@ function buildLoomVillaReplica3D(
   mats: VillaReplicaMaterials,
   unitBox: THREE.BoxGeometry
 ) {
-  const H = L * 0.54; // Altura proporcional exacta de los 3 niveles (alzado_01..04)
-  const zHouse = -W * 0.125; // Eje Z del volumen principal (2/3 izquierdos mirando desde la calle)
-  const wHouse = W * 0.67; // Ancho del volumen principal
-  const zPath = W * 0.335; // Eje Z del corredor peatonal lateral (1/3 derecho mirando desde la calle)
+  const H = L * 0.3583; // Proporción exacta 1:1 de los renders V-Ray (847px alto / 2364px largo)
+  const zHouse = -W * 0.016; // Centro Z exacto del volumen arquitectónico en luxury_planta_01..04
+  const wHouse = W * 0.653; // Ancho exacto del volumen arquitectónico (725px / 1110px)
+  const zPath = W * 0.395; // Corredor peatonal lateral derecho (+Z) con espejo de agua y huellas
 
   const addPart = (
     sx: number,
@@ -942,7 +1092,7 @@ function buildLoomVillaReplica3D(
     px: number,
     py: number,
     pz: number,
-    mat: THREE.Material,
+    mat: THREE.Material | THREE.Material[],
     castShadow: boolean = true,
     rotY: number = 0,
     rotZ: number = 0
@@ -958,243 +1108,139 @@ function buildLoomVillaReplica3D(
     return m;
   };
 
-  // Helper para jardineras con vegetación colgante en cascada irregular (galeria_01, galeria_06, axonometria_01)
-  const addCascadingPlanter = (px: number, py: number, pz: number, sx: number, sz: number) => {
-    addPart(sx, H * 0.036, sz, px, py, pz, mats.roofHedgeMat, false);
-    const vines = 5;
-    for (let v = 0; v < vines; v++) {
-      const vz = pz - sz * 0.38 + v * (sz * 0.19);
-      const vDrop = H * (0.045 + ((v * 3) % 3) * 0.018);
-      addPart(sx * 1.08, vDrop, sz * 0.11, px, py - vDrop * 0.45, vz, mats.roofHedgeMat, false);
-    }
-  };
-
   // --------------------------------------------------------------------------
-  // 1. BASE DEL LOTE: GRAMA LATERAL, CARPORT DE ADOQUÍN GRIS, SUV, ESPEJO DE AGUA Y HUELLAS
+  // 1. PLANTA BAJA FOTOGRÁFICA V-RAY COMPLETA (vray_ground_plan.webp)
+  // Incluye adoquín de carport, jardines tropicales, huellas en espejo de agua,
+  // deck posterior con asoleadoras y piscina turquesa a todo el ancho del lote
   // --------------------------------------------------------------------------
-  addPart(L * 0.96, 0.008, W * 0.96, 0, 0.004, 0, mats.lawnGrassMat, false);
+  addPart(L, 0.014, W, 0, 0.007, 0, mats.vrayGroundBoxMats, false);
 
-  // Carport frontal en adoquín gris con bordillos de concreto (x ∈ [-0.48*L, -0.19*L])
-  addPart(L * 0.29, 0.012, wHouse, -L * 0.335, 0.006, zHouse, mats.cobblestoneMat, false);
-  addPart(L * 0.29, 0.016, W * 0.016, -L * 0.335, 0.008, zHouse + wHouse * 0.5, mats.steppingStoneMat, false);
+  // Dos automóviles blancos 3D estacionados en el carport frontal (x ∈ [-0.46*L, -0.26*L])
+  for (const carZ of [zHouse - wHouse * 0.23, zHouse + wHouse * 0.21]) {
+    addPart(L * 0.175, H * 0.135, W * 0.175, -L * 0.355, H * 0.072, carZ, mats.vrayCarBoxMats);
+    addPart(L * 0.095, H * 0.075, W * 0.148, -L * 0.345, H * 0.165, carZ, mats.carGlassMat);
+  }
 
-  // Vehículo SUV arquitectónico estacionado en el carport bajo el voladizo (axonometria_01, 02 y galeria_01)
-  const carX = -L * 0.33;
-  const carZ = zHouse - wHouse * 0.21;
-  addPart(L * 0.165, H * 0.082, W * 0.19, carX, H * 0.048, carZ, mats.carBodyMat);
-  addPart(L * 0.095, H * 0.062, W * 0.165, carX + L * 0.01, H * 0.11, carZ, mats.carGlassMat);
+  // Relieve 3D de agua cristalina en el espejo de agua lateral (+Z) y en la piscina posterior (+X)
+  addPart(L * 0.54, 0.018, W * 0.085, L * 0.05, 0.009, W * 0.435, mats.poolWaterMat, false);
+  addPart(L * 0.082, 0.022, W * 0.88, L * 0.435, 0.011, 0, mats.poolWaterMat, false);
 
-  // Espejo de agua turquesa lateral junto al muro perimetral derecho (+Z) con borde de piedra (luxury_planta_01)
-  addPart(L * 0.53, 0.012, W * 0.09, L * 0.06, 0.006, W * 0.422, mats.limestoneWarmMat, false);
-  addPart(L * 0.51, 0.015, W * 0.072, L * 0.06, 0.0075, W * 0.422, mats.poolWaterMat, false);
-
-  // 8 Huellas peatonales de piedra caliza desde la calle (-0.45*L) hasta el deck posterior (+0.29*L)
-  for (let s = 0; s < 8; s++) {
-    const sxPos = -L * 0.44 + s * (L * 0.102);
-    addPart(L * 0.044, 0.015, W * 0.13, sxPos, 0.0075, W * 0.312, mats.steppingStoneMat, false);
+  // 2 Asoleadoras 3D sobre el sundeck de teca frente a la piscina posterior (+X)
+  for (const lz of [W * 0.08, W * 0.22]) {
+    addPart(L * 0.055, 0.016, W * 0.068, L * 0.362, 0.018, lz, mats.teakSlatsMat);
+    addPart(L * 0.04, 0.012, W * 0.062, L * 0.368, 0.026, lz, mats.creamCushionMat);
+    addPart(L * 0.018, 0.012, W * 0.062, L * 0.344, 0.036, lz, mats.creamCushionMat, true, 0, -0.45);
   }
 
   // --------------------------------------------------------------------------
-  // 2. MUROS PERIMETRALES EN ESTUCO ARENA, PORTAL PEATONAL Y SETO VERDE POSTERIOR
+  // 2. MUROS PERIMETRALES EN PIEDRA CALIZA V-RAY, PORTAL PEATONAL Y CERRAMIENTO POSTERIOR
   // --------------------------------------------------------------------------
-  // Muros laterales en estuco calizo con albardilla superior
-  addPart(L * 0.44, H * 0.33, W * 0.024, -L * 0.01, H * 0.165, -W * 0.47, mats.limestoneWarmMat);
-  addPart(L * 0.44, H * 0.33, W * 0.024, -L * 0.01, H * 0.165, W * 0.47, mats.limestoneWarmMat);
+  // Muros laterales en estuco calizo (x ∈ [-0.235*L, +0.26*L]) como en axonometria_01 y alzado_02
+  addPart(L * 0.495, H * 0.33, W * 0.022, L * 0.012, H * 0.165, -W * 0.482, mats.limestoneWarmMat);
+  addPart(L * 0.495, H * 0.33, W * 0.022, L * 0.012, H * 0.165, W * 0.482, mats.limestoneWarmMat);
 
-  // Cerramiento vegetal tropical en el tramo del patio posterior y piscina (+X)
-  addPart(L * 0.27, H * 0.28, W * 0.032, L * 0.345, H * 0.14, -W * 0.47, mats.roofHedgeMat);
-  addPart(L * 0.27, H * 0.28, W * 0.032, L * 0.345, H * 0.14, W * 0.47, mats.roofHedgeMat);
-  addPart(L * 0.032, H * 0.27, W * 0.96, L * 0.472, H * 0.135, 0, mats.roofHedgeMat);
+  // Cerramiento posterior y lateral del patio de piscina con textura V-Ray de bambú y vegetación
+  addPart(L * 0.22, H * 0.31, W * 0.026, L * 0.375, H * 0.155, -W * 0.482, mats.vrayRearFenceMat);
+  addPart(L * 0.22, H * 0.31, W * 0.026, L * 0.375, H * 0.155, W * 0.482, mats.vrayRearFenceMat);
+  addPart(L * 0.026, H * 0.31, W * 0.98, L * 0.486, H * 0.155, 0, mats.vrayRearFenceMat);
 
-  // Portal de acceso peatonal lateral (+Z) con portón de listones de teca, marco bronce y losa en voladizo (alzado_01)
-  addPart(L * 0.02, H * 0.29, W * 0.23, -L * 0.205, H * 0.145, zPath, mats.teakSlatsMat);
-  addPart(L * 0.024, H * 0.30, W * 0.018, -L * 0.205, H * 0.15, zPath - W * 0.115, mats.darkBronzeMat);
-  addPart(L * 0.024, H * 0.30, W * 0.018, -L * 0.205, H * 0.15, zPath + W * 0.115, mats.darkBronzeMat);
-  addPart(L * 0.08, H * 0.034, W * 0.265, -L * 0.205, H * 0.315, zPath, mats.limestoneStuccoMat);
-  addPart(L * 0.084, H * 0.016, W * 0.27, -L * 0.205, H * 0.335, zPath, mats.darkBronzeMat);
+  // Portal peatonal lateral derecho (+Z) con portón de madera V-Ray y dintel en voladizo (alzado_01)
+  addPart(L * 0.032, H * 0.35, W * 0.205, -L * 0.222, H * 0.175, zPath, mats.vrayGatePortalMats);
+  addPart(L * 0.075, H * 0.035, W * 0.22, -L * 0.222, H * 0.355, zPath, mats.limestoneStuccoMat);
 
   // --------------------------------------------------------------------------
-  // 3. VOLUMEN FRONTAL (3 NIVELES) + CAJA DE 4 CELOSÍAS EN VOLADIZO SOBRE EL CARPORT
+  // 3. VOLUMEN FRONTAL DE 3 NIVELES + CAJA DE 4 CELOSÍAS V-RAY EN VOLADIZO
   // --------------------------------------------------------------------------
-  // Nivel 1 Frontal: Muro en estuco calizo arena + puerta de acceso principal y cuarto técnico + jardinera en cascada
-  addPart(L * 0.21, H * 0.33, wHouse, -L * 0.095, H * 0.165, zHouse, mats.limestoneWarmMat);
-  addPart(L * 0.016, H * 0.27, W * 0.11, -L * 0.202, H * 0.135, -W * 0.35, mats.darkBronzeMat, false);
-  addPart(L * 0.016, H * 0.27, W * 0.09, -L * 0.202, H * 0.135, zHouse + wHouse * 0.34, mats.teakSlatsMat, false);
-  addCascadingPlanter(-L * 0.214, H * 0.328, zHouse, L * 0.032, wHouse * 0.96);
+  // Bloque Frontal Principal (x ∈ [-0.235*L, -0.062*L], y ∈ [0, H]) con cubierta V-Ray y fachadas reales
+  addPart(L * 0.173, H * 0.99, wHouse, -L * 0.1485, H * 0.495, zHouse, mats.vrayFrontBlockMats);
 
-  // Niveles 2 y 3 Frontal: Volumen arquitectónico en estuco calizo + ventanales con cortinas y marco bronce
-  addPart(L * 0.21, H * 0.64, wHouse, -L * 0.095, H * 0.65, zHouse, mats.limestoneStuccoMat);
-  addPart(L * 0.016, H * 0.56, wHouse * 0.90, -L * 0.202, H * 0.65, zHouse, mats.glassWindowMat, false);
-  // Ventanales laterales con marco bronce saliente en el volumen frontal (alzado_02 y alzado_04)
-  addPart(L * 0.115, H * 0.23, wHouse + 0.008, -L * 0.095, H * 0.50, zHouse, mats.darkBronzeMat, false);
-  addPart(L * 0.105, H * 0.21, wHouse + 0.01, -L * 0.095, H * 0.50, zHouse, mats.glassWindowMat, false);
-  addPart(L * 0.085, H * 0.19, wHouse + 0.008, -L * 0.095, H * 0.82, zHouse, mats.darkBronzeMat, false);
-  addPart(L * 0.075, H * 0.17, wHouse + 0.01, -L * 0.095, H * 0.82, zHouse, mats.glassWindowMat, false);
-
-  // Cubierta plana de concreto calizo sobre el bloque frontal con antepecho perimetral (luxury_planta_04_cubierta)
-  addPart(L * 0.22, H * 0.036, wHouse + 0.006, -L * 0.095, H * 0.985, zHouse, mats.limestoneStuccoMat);
-
-  // ESTRUCTURA METÁLICA EN VOLADIZO + 4 CELOSÍAS PIVOTANTES VERTICALES (axonometria_02, alzado_01, galeria_33)
-  addPart(L * 0.108, H * 0.032, wHouse, -L * 0.248, H * 0.34, zHouse, mats.limestoneStuccoMat);
-  addPart(L * 0.112, H * 0.018, wHouse + 0.006, -L * 0.248, H * 0.355, zHouse, mats.darkBronzeMat);
-  // Viga intermedia de entrepiso Nivel 2/3 en el marco del voladizo
-  addPart(L * 0.018, H * 0.022, wHouse + 0.006, -L * 0.295, H * 0.655, zHouse, mats.darkBronzeMat);
-
-  // Viga frontal superior en bronce oscuro y 5 vigas transversales que forman los 4 vanos abiertos sobre el carport
-  addPart(L * 0.024, H * 0.034, wHouse + 0.008, -L * 0.295, H * 0.97, zHouse, mats.darkBronzeMat);
-  for (let b = 0; b < 5; b++) {
-    const bz = zHouse - wHouse * 0.485 + b * (wHouse * 0.2425);
-    addPart(L * 0.108, H * 0.028, W * 0.018, -L * 0.248, H * 0.97, bz, mats.darkBronzeMat);
-    // Montantes verticales de bronce entre los 4 paneles de celosía
-    addPart(L * 0.02, H * 0.62, W * 0.016, -L * 0.295, H * 0.655, bz, mats.darkBronzeMat);
-  }
-
-  // Los 4 paneles verticales de celosía de madera perforada ligeramente pivotados (galeria_06, alzado_01)
-  for (let p = 0; p < 4; p++) {
-    const pz = zHouse - wHouse * 0.364 + p * (wHouse * 0.2425);
-    addPart(
-      L * 0.018,
-      H * 0.60,
-      wHouse * 0.228,
-      -L * 0.292,
-      H * 0.655,
-      pz,
-      mats.perforatedLatticeMat,
-      true,
-      0.14
-    );
-  }
-
-  // Retornos laterales de celosía perforada a izquierda (-Z) y derecha (+Z) del voladizo
-  addPart(L * 0.094, H * 0.60, W * 0.018, -L * 0.248, H * 0.655, zHouse - wHouse * 0.49, mats.perforatedLatticeMat);
-  addPart(L * 0.094, H * 0.60, W * 0.018, -L * 0.248, H * 0.655, zHouse + wHouse * 0.49, mats.perforatedLatticeMat);
-
-  // Jardineras colgantes en cascada en el dintel superior del voladizo (alzado_01, galeria_06)
-  addCascadingPlanter(-L * 0.29, H * 0.945, zHouse, L * 0.03, wHouse * 0.96);
+  // Caja en Voladizo de las 4 Celosías Perforadas V-Ray sobre el Carport (x ∈ [-0.332*L, -0.235*L], y ∈ [0.36*H, 0.99*H])
+  addPart(L * 0.097, H * 0.63, wHouse * 0.995, -L * 0.2835, H * 0.675, zHouse, mats.vrayLatticeBoxMats);
+  // Vigas perimetrales de bronce negro del marco en voladizo y jardinera colgante superior
+  addPart(L * 0.102, H * 0.026, wHouse + 0.004, -L * 0.2835, H * 0.355, zHouse, mats.darkBronzeMat);
+  addPart(L * 0.022, H * 0.028, wHouse + 0.006, -L * 0.332, H * 0.982, zHouse, mats.darkBronzeMat);
+  addPart(L * 0.026, H * 0.042, wHouse * 0.96, -L * 0.334, H * 0.945, zHouse, mats.roofHedgeMat, false);
 
   // --------------------------------------------------------------------------
-  // 4. PATIO CENTRAL BIOCLIMÁTICO, PUENTES CONECTORES Y PALMERA INTERIOR REALISTA
+  // 4. FACHADAS LATERALES CONTINUAS V-RAY CON CORTE ALPHA (alzado_02 y alzado_04)
+  // Proyectan con precisión fotográfica los ventanales, escaleras flotantes,
+  // barandas del patio central, enredaderas colgantes y balcón de vidrio
   // --------------------------------------------------------------------------
-  addPart(L * 0.12, 0.014, wHouse, L * 0.07, 0.007, zHouse, mats.teakDeckMat, false);
+  addPart(L * 0.676, H, 0.004, L * 0.006, H * 0.5, zHouse + wHouse * 0.502, mats.vrayHouseSideRightMat, false);
+  addPart(L * 0.676, H, 0.004, L * 0.006, H * 0.5, zHouse - wHouse * 0.502, mats.vrayHouseSideLeftMat, false);
 
-  // Puentes conectores y barandas en bronce oscuro en Niveles 2 y 3 (alzado_02, alzado_04)
-  addPart(L * 0.12, H * 0.028, W * 0.22, L * 0.07, H * 0.34, zHouse - wHouse * 0.32, mats.limestoneStuccoMat);
-  addPart(L * 0.12, H * 0.09, W * 0.012, L * 0.07, H * 0.395, zHouse - wHouse * 0.48, mats.darkBronzeMat);
-  addPart(L * 0.12, H * 0.09, W * 0.012, L * 0.07, H * 0.395, zHouse + wHouse * 0.48, mats.darkBronzeMat);
-  addPart(L * 0.12, H * 0.09, W * 0.012, L * 0.07, H * 0.725, zHouse - wHouse * 0.48, mats.darkBronzeMat);
-  addPart(L * 0.12, H * 0.09, W * 0.012, L * 0.07, H * 0.725, zHouse + wHouse * 0.48, mats.darkBronzeMat);
+  // --------------------------------------------------------------------------
+  // 5. PATIO CENTRAL BIOCLIMÁTICO Y PALMERA REAL V-RAY (x ∈ [-0.062*L, +0.065*L])
+  // --------------------------------------------------------------------------
+  // Puente conector interior y barandas del patio central
+  addPart(L * 0.127, H * 0.028, wHouse * 0.34, L * 0.0015, H * 0.34, zHouse - wHouse * 0.31, mats.limestoneStuccoMat);
+  addPart(L * 0.127, H * 0.028, wHouse * 0.34, L * 0.0015, H * 0.675, zHouse - wHouse * 0.31, mats.limestoneStuccoMat);
 
-  // Palmera tropical interior con tronco curvo segmentado y corona de pencas plumosas 3D (axonometria_01 y 02)
-  const palmX = L * 0.068;
+  // Palmera tropical del patio central que atraviesa la pérgola superior (axonometria_01 y luxury_planta_04)
+  const palmX = L * 0.005;
   const palmZ = zHouse + wHouse * 0.12;
-  addPart(L * 0.02, H * 0.56, W * 0.02, palmX, H * 0.28, palmZ, mats.palmTrunkMat);
-  addPart(L * 0.017, H * 0.58, W * 0.017, palmX + L * 0.008, H * 0.84, palmZ + W * 0.006, mats.palmTrunkMat, true, 0, -0.05);
+  addPart(L * 0.018, H * 0.58, W * 0.018, palmX, H * 0.29, palmZ, mats.palmTrunkMat);
+  addPart(L * 0.015, H * 0.6, W * 0.015, palmX + L * 0.006, H * 0.86, palmZ + W * 0.005, mats.palmTrunkMat, true, 0, -0.05);
   if (mats.palmCrownTexMat) {
     const crownMesh = new THREE.Mesh(mats.palmCrownGeo, mats.palmCrownTexMat);
-    crownMesh.position.set(palmX + L * 0.012, H * 1.13, palmZ + W * 0.008);
-    crownMesh.scale.set(L * 0.62, L * 0.62, L * 0.62);
+    crownMesh.position.set(palmX + L * 0.01, H * 1.15, palmZ + W * 0.006);
+    crownMesh.scale.set(L * 0.46, L * 0.46, L * 0.46);
     crownMesh.castShadow = true;
     villaGrp.add(crownMesh);
-  } else {
-    for (let f = 0; f < 4; f++) {
-      addPart(L * 0.19, 0.012, W * 0.055, palmX, H * 1.12, palmZ, mats.palmFrondMat, true, (f * Math.PI) / 4);
-    }
   }
 
   // --------------------------------------------------------------------------
-  // 5. VOLUMEN POSTERIOR (NIVELES 1 Y 2) + BALCÓN DE VIDRIO TEMPLADO CON PASAMANOS
+  // 6. VOLUMEN POSTERIOR (NIVELES 1 Y 2: x ∈ [+0.065*L, +0.275*L], y ∈ [0, 0.68*H])
   // --------------------------------------------------------------------------
-  addPart(L * 0.19, H * 0.67, wHouse, L * 0.225, H * 0.335, zHouse, mats.limestoneStuccoMat);
+  addPart(L * 0.21, H * 0.68, wHouse, L * 0.17, H * 0.34, zHouse, mats.vrayRearBlockMats);
 
-  // Nivel 1 Posterior: Ventanales corredizos de sala-comedor hacia la piscina + celosía corrediza (galeria_09)
-  addPart(L * 0.018, H * 0.29, wHouse * 0.90, L * 0.318, H * 0.155, zHouse, mats.glassWindowMat, false);
-  addPart(L * 0.022, H * 0.29, wHouse * 0.24, L * 0.323, H * 0.155, zHouse + wHouse * 0.08, mats.perforatedLatticeMat);
-
-  // Nivel 2 Posterior: Ventanales de alcoba principal con cortinas + ventanas laterales enmarcadas en bronce
-  addPart(L * 0.018, H * 0.26, wHouse * 0.90, L * 0.318, H * 0.50, zHouse, mats.glassWindowMat, false);
-  addPart(L * 0.115, H * 0.23, wHouse + 0.008, L * 0.225, H * 0.50, zHouse, mats.darkBronzeMat, false);
-  addPart(L * 0.105, H * 0.21, wHouse + 0.01, L * 0.225, H * 0.50, zHouse, mats.glassWindowMat, false);
-
-  // Balcón posterior en voladizo en Nivel 2 con piso de teca, baranda de vidrio templado, pasamanos bronce y jardinera
-  addPart(L * 0.056, H * 0.032, wHouse, L * 0.344, H * 0.34, zHouse, mats.limestoneStuccoMat);
-  addPart(L * 0.048, H * 0.01, wHouse * 0.94, L * 0.342, H * 0.358, zHouse, mats.teakDeckMat, false);
-  addPart(L * 0.01, H * 0.105, wHouse * 0.98, L * 0.368, H * 0.408, zHouse, mats.balconyGlassMat, false);
-  addPart(L * 0.014, H * 0.012, wHouse * 0.99, L * 0.368, H * 0.462, zHouse, mats.darkBronzeMat, false);
-  addCascadingPlanter(L * 0.362, H * 0.342, zHouse, L * 0.024, wHouse * 0.94);
+  // Balcón en voladizo del Nivel 2 hacia la piscina (x ∈ [+0.275*L, +0.335*L]) con baranda de vidrio templado
+  addPart(L * 0.06, H * 0.032, wHouse, L * 0.305, H * 0.34, zHouse, mats.limestoneStuccoMat);
+  addPart(L * 0.008, H * 0.11, wHouse * 0.98, L * 0.332, H * 0.41, zHouse, mats.balconyGlassMat, false);
+  addPart(L * 0.012, H * 0.014, wHouse * 0.99, L * 0.332, H * 0.468, zHouse, mats.darkBronzeMat, false);
 
   // --------------------------------------------------------------------------
-  // 6. NIVEL 3 ALTILLO / ROOFTOP HUECO REAL: PÉRGOLA DE TECA + SALA EN U + JACUZZI
+  // 7. TERRAZA ROOFTOP 3ER NIVEL V-RAY (luxury_planta_03 y luxury_planta_04)
+  // Piso fotográfico V-Ray con barra + taburetes, sala en U y jacuzzi turquesa,
+  // cubierto en su mitad frontal por la pérgola de madera V-Ray y rodeado de antepechos huecos
   // --------------------------------------------------------------------------
-  // Piso general de madera teca del Rooftop (expuesto y hundido dentro de los muros de antepecho)
-  addPart(L * 0.22, H * 0.024, wHouse * 0.96, L * 0.23, H * 0.675, zHouse, mats.teakDeckMat, false);
+  // Losa de piso del Rooftop (x ∈ [+0.065*L, +0.344*L], y = 0.685*H) con textura real luxury_planta_03
+  addPart(L * 0.279, H * 0.025, wHouse, L * 0.2045, H * 0.685, zHouse, mats.vrayRooftopFloorMats);
 
-  // Mitad frontal del Rooftop (x ∈ [+0.03*L, +0.23*L]): Pérgola bioclimática de listones de teca y marco bronce
-  addPart(L * 0.205, H * 0.028, W * 0.02, L * 0.13, H * 0.97, zHouse - wHouse * 0.48, mats.darkBronzeMat);
-  addPart(L * 0.205, H * 0.028, W * 0.02, L * 0.13, H * 0.97, zHouse + wHouse * 0.48, mats.darkBronzeMat);
-  addPart(L * 0.02, H * 0.028, wHouse * 0.98, L * 0.23, H * 0.97, zHouse, mats.darkBronzeMat);
-  // Columnas de soporte de la pérgola en bronce oscuro
-  addPart(L * 0.018, H * 0.30, W * 0.018, L * 0.228, H * 0.82, zHouse - wHouse * 0.48, mats.darkBronzeMat);
-  addPart(L * 0.018, H * 0.30, W * 0.018, L * 0.228, H * 0.82, zHouse + wHouse * 0.48, mats.darkBronzeMat);
-  // 10 Listones transversales de madera teca sobre la pérgola (luxury_planta_04_cubierta, axonometria_01)
-  for (let sl = 0; sl < 10; sl++) {
-    const slX = L * 0.038 + sl * (L * 0.02);
-    addPart(L * 0.012, H * 0.018, wHouse * 0.96, slX, H * 0.986, zHouse, mats.teakSlatsMat);
-  }
-  // Barra / BBQ exterior en L con mesón oscuro bajo la pérgola (luxury_planta_03, galeria_31)
-  addPart(L * 0.052, H * 0.11, wHouse * 0.38, L * 0.165, H * 0.735, zHouse + wHouse * 0.16, mats.limestoneWarmMat);
-  addPart(L * 0.056, H * 0.016, wHouse * 0.40, L * 0.165, H * 0.792, zHouse + wHouse * 0.16, mats.darkBronzeMat);
+  // Pérgola bioclimática V-Ray en el Nivel 3 (x ∈ [-0.062*L, +0.205*L], y = 0.975*H)
+  addPart(L * 0.267, H * 0.026, wHouse * 0.98, L * 0.0715, H * 0.975, zHouse, mats.vrayPergolaTopMats);
+  // Vigas laterales y columnas de soporte en bronce negro para la pérgola del Rooftop
+  addPart(L * 0.267, H * 0.03, W * 0.018, L * 0.0715, H * 0.975, zHouse - wHouse * 0.485, mats.darkBronzeMat);
+  addPart(L * 0.267, H * 0.03, W * 0.018, L * 0.0715, H * 0.975, zHouse + wHouse * 0.485, mats.darkBronzeMat);
+  addPart(L * 0.016, H * 0.29, W * 0.018, L * 0.202, H * 0.83, zHouse - wHouse * 0.485, mats.darkBronzeMat);
+  addPart(L * 0.016, H * 0.29, W * 0.018, L * 0.202, H * 0.83, zHouse + wHouse * 0.485, mats.darkBronzeMat);
 
-  // Mitad posterior del Rooftop (x ∈ [+0.23*L, +0.35*L]): Muros perimetrales de antepecho HUECOS por dentro
-  const rWallH = H * 0.135;
-  const rWallY = H * 0.742;
-  // Muro antepecho posterior (+X), izquierdo (-Z) y derecho (+Z)
-  addPart(L * 0.024, rWallH, wHouse, L * 0.342, rWallY, zHouse, mats.limestoneStuccoMat);
-  addPart(L * 0.125, rWallH, W * 0.024, L * 0.29, rWallY, zHouse - wHouse * 0.482, mats.limestoneStuccoMat);
-  addPart(L * 0.125, rWallH, W * 0.024, L * 0.29, rWallY, zHouse + wHouse * 0.482, mats.limestoneStuccoMat);
-  // Jardineras colgantes en cascada bordeando el antepecho del Rooftop (axonometria_01, alzado_03)
-  addCascadingPlanter(L * 0.35, H * 0.785, zHouse, L * 0.026, wHouse * 0.96);
-  addPart(L * 0.12, H * 0.036, W * 0.028, L * 0.29, H * 0.785, zHouse + wHouse * 0.49, mats.roofHedgeMat, false);
-  addPart(L * 0.12, H * 0.036, W * 0.028, L * 0.29, H * 0.785, zHouse - wHouse * 0.49, mats.roofHedgeMat, false);
+  // Barra de mármol 3D bajo la pérgola (x ≈ +0.13*L)
+  addPart(L * 0.045, H * 0.105, wHouse * 0.38, L * 0.135, H * 0.745, zHouse + wHouse * 0.14, mats.limestoneWarmMat);
 
-  // Jacuzzi / Plunge Pool empotrado en el lado +Z de la terraza del Rooftop con escalones de teca (galeria_30)
-  const jacX = L * 0.285;
+  // Muros de antepecho perimetrales HUECOS en la mitad abierta del Rooftop (x ∈ [+0.202*L, +0.344*L])
+  const rWallH = H * 0.14;
+  const rWallY = H * 0.755;
+  addPart(L * 0.022, rWallH, wHouse, L * 0.333, rWallY, zHouse, mats.vrayRearParapetMats);
+  addPart(L * 0.142, rWallH, W * 0.022, L * 0.273, rWallY, zHouse - wHouse * 0.485, mats.vrayRearParapetMats);
+  addPart(L * 0.142, rWallH, W * 0.022, L * 0.273, rWallY, zHouse + wHouse * 0.485, mats.vrayRearParapetMats);
+  // Jardineras verdes perimetrales en el borde superior del Rooftop (axonometria_01, alzado_03)
+  addPart(L * 0.026, H * 0.04, wHouse * 0.98, L * 0.338, H * 0.81, zHouse, mats.roofHedgeMat, false);
+  addPart(L * 0.14, H * 0.04, W * 0.026, L * 0.273, H * 0.81, zHouse - wHouse * 0.49, mats.roofHedgeMat, false);
+  addPart(L * 0.14, H * 0.04, W * 0.026, L * 0.273, H * 0.81, zHouse + wHouse * 0.49, mats.roofHedgeMat, false);
+
+  // Jacuzzi / Plunge Pool 3D elevado en la esquina derecha (+Z) del Rooftop y Sala en U en la esquina izquierda (-Z)
+  const jacX = L * 0.275;
   const jacZ = zHouse + wHouse * 0.22;
-  addPart(L * 0.096, H * 0.085, wHouse * 0.42, jacX, H * 0.725, jacZ, mats.limestoneWarmMat);
-  addPart(L * 0.078, H * 0.092, wHouse * 0.35, jacX, H * 0.728, jacZ, mats.poolWaterMat, false);
-  addPart(L * 0.028, H * 0.045, wHouse * 0.18, jacX - L * 0.056, H * 0.705, jacZ, mats.teakSlatsMat);
+  addPart(L * 0.095, H * 0.075, wHouse * 0.4, jacX, H * 0.728, jacZ, mats.limestoneWarmMat);
+  addPart(L * 0.078, H * 0.082, wHouse * 0.34, jacX, H * 0.732, jacZ, mats.poolWaterMat, false);
 
-  // Sala exterior en U detallada (espaldar + cojines crema + cojines terracota + mesa de teca) en el lado -Z (galeria_30)
-  const sofaX = L * 0.285;
-  const sofaZ = zHouse - wHouse * 0.23;
-  // Base y cojines del sofá en U
-  addPart(L * 0.026, H * 0.065, wHouse * 0.40, sofaX + L * 0.032, H * 0.715, sofaZ, mats.creamCushionMat);
-  addPart(L * 0.085, H * 0.065, W * 0.032, sofaX, H * 0.715, sofaZ - wHouse * 0.18, mats.creamCushionMat);
-  addPart(L * 0.085, H * 0.065, W * 0.032, sofaX, H * 0.715, sofaZ + wHouse * 0.18, mats.creamCushionMat);
-  // Cojines de acento terracota
-  addPart(L * 0.018, H * 0.035, W * 0.035, sofaX + L * 0.022, H * 0.752, sofaZ - wHouse * 0.1, mats.terracottaPillowMat);
-  addPart(L * 0.018, H * 0.035, W * 0.035, sofaX + L * 0.022, H * 0.752, sofaZ + wHouse * 0.1, mats.terracottaPillowMat);
-  // Mesa de centro en madera teca
-  addPart(L * 0.042, H * 0.042, wHouse * 0.18, sofaX - L * 0.008, H * 0.702, sofaZ, mats.teakSlatsMat);
-
-  // --------------------------------------------------------------------------
-  // 7. PATIO POSTERIOR (+X): DECK DE TECA, 2 ASOLEADORAS RECLINADAS Y PISCINA CON ESCALONES
-  // --------------------------------------------------------------------------
-  addPart(L * 0.088, 0.016, W * 0.90, L * 0.36, 0.008, 0, mats.teakDeckMat, false);
-
-  // 2 Asoleadoras reclinadas sobre base de teca + mesita auxiliar (axonometria_01, luxury_planta_01)
-  for (const lz of [W * 0.15, W * 0.28]) {
-    addPart(L * 0.056, 0.014, W * 0.072, L * 0.362, 0.018, lz, mats.teakSlatsMat);
-    addPart(L * 0.038, 0.012, W * 0.066, L * 0.37, 0.026, lz, mats.creamCushionMat);
-    // Respaldo reclinado mirando hacia la piscina posterior
-    addPart(L * 0.02, 0.012, W * 0.066, L * 0.344, 0.035, lz, mats.creamCushionMat, true, 0, -0.48);
-  }
-  addPart(L * 0.024, 0.022, W * 0.032, L * 0.358, 0.02, W * 0.215, mats.teakSlatsMat);
-
-  // Piscina posterior rectangular a todo el ancho del lote con borde de piedra coralina y escalones sumergidos
-  addPart(L * 0.078, 0.02, W * 0.90, L * 0.432, 0.01, 0, mats.limestoneWarmMat, false);
-  addPart(L * 0.064, 0.024, W * 0.85, L * 0.432, 0.012, 0, mats.poolWaterMat, false);
-  // Escalones sumergidos en la esquina derecha de la piscina posterior (luxury_planta_01)
-  addPart(L * 0.022, 0.025, W * 0.11, L * 0.412, 0.0125, W * 0.35, mats.limestoneStuccoMat, false);
+  const sofaX = L * 0.275;
+  const sofaZ = zHouse - wHouse * 0.22;
+  addPart(L * 0.024, H * 0.058, wHouse * 0.38, sofaX + L * 0.032, H * 0.72, sofaZ, mats.creamCushionMat);
+  addPart(L * 0.082, H * 0.058, W * 0.028, sofaX, H * 0.72, sofaZ - wHouse * 0.17, mats.creamCushionMat);
+  addPart(L * 0.082, H * 0.058, W * 0.028, sofaX, H * 0.72, sofaZ + wHouse * 0.17, mats.creamCushionMat);
+  addPart(L * 0.038, H * 0.038, wHouse * 0.16, sofaX - L * 0.005, H * 0.71, sofaZ, mats.teakSlatsMat);
 }
 
 const SKY_DOME_VERTEX_GLSL = /* glsl */ `
@@ -1574,7 +1620,7 @@ export default function Loom3DMaquetaView({
 
   useEffect(() => {
     let isMounted = true;
-    fetch("/loom/loom_unified_3d_lots.json?v=2")
+    fetch("/loom/loom_unified_3d_lots.json?v=3")
       .then((r) => r.json())
       .then((data: Unified3DLot[]) => {
         if (isMounted) setUnifiedLots(data);
@@ -2298,8 +2344,8 @@ export default function Loom3DMaquetaView({
           }
         }
 
-        const L = pLot.villaL ? Math.min(0.45, Math.max(0.24, (pLot.villaL / 100) * 0.96)) : Math.min(0.45, Math.max(0.26, bestLen * 0.72));
-        const W = pLot.villaW ? Math.min(0.32, Math.max(0.17, (pLot.villaW / 100) * 0.98)) : L * 0.68;
+        const L = pLot.villaL ? (pLot.villaL / 100) * 0.98 : Math.max(0.52, bestLen * 0.92);
+        const W = pLot.villaW ? (pLot.villaW / 100) * 0.98 : L * 0.47;
 
         const villaGrp = new THREE.Group();
         const [vwx, vwz] = pLot.villaCx !== undefined && pLot.villaCy !== undefined ? svgToWorld(pLot.villaCx, pLot.villaCy) : [wx, wz];
