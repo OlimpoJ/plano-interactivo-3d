@@ -14,6 +14,10 @@ import {
   Box,
   Sparkles,
   ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  SlidersHorizontal,
+  X,
   Globe,
   Trees,
   Download,
@@ -2097,6 +2101,8 @@ export default function Loom3DMaquetaView({
   const [landscapeData, setLandscapeData] = useState<Landscape3DData | null>(null);
   const [carTemplates, setCarTemplates] = useState<THREE.Group[]>([]);
   const [droneRenderModal, setDroneRenderModal] = useState<CameraPreset["renderPreview"] | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<"stages" | "options" | null>(null);
+  const bottomBarScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -4088,8 +4094,232 @@ export default function Loom3DMaquetaView({
         </div>
       )}
 
-      {/* BARRA SUPERIOR GLASSMORPHISM COMPACTA (1 SOLA FILA AJUSTADA) */}
-      <div className="absolute top-3 left-14 sm:left-16 right-3 z-20 flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 pointer-events-none">
+      {/* ==================================================================== */}
+      {/* BARRA SUPERIOR MÓVIL (< lg): MENÚS DESPLEGABLES SIN OPCIONES OCULTAS */}
+      {/* ==================================================================== */}
+      <div className="lg:hidden absolute top-3 left-14 right-3 z-30 flex flex-col gap-1.5 pointer-events-none">
+        <div className="flex items-center justify-between gap-1 bg-[#0b1210]/55 backdrop-blur-2xl border border-white/20 p-1 rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.22)] pointer-events-auto">
+          <button
+            onClick={onExit3D}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/12 active:bg-[#B35F27] border border-white/15 text-[#EDE7E0] text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            <span>{isEn ? "2D Plan" : "Plano 2D"}</span>
+          </button>
+
+          {/* Selector desplegable de Etapas */}
+          <button
+            onClick={() => setMobileMenuOpen((prev) => (prev === "stages" ? null : "stages"))}
+            className="flex-1 flex items-center justify-between gap-1 px-2.5 py-1.5 rounded-xl bg-[#B35F27]/85 border border-[#EBD9AB]/45 text-white text-[10px] font-extrabold uppercase tracking-wider truncate shadow-sm"
+          >
+            <span className="truncate">
+              {focusMode === "all"
+                ? isEn
+                  ? "All (318)"
+                  : "Todo (318)"
+                : getStageDisplayName(stageId, isEn)}
+            </span>
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-[#EBD9AB] shrink-0 transition-transform duration-200 ${
+                mobileMenuOpen === "stages" ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {/* Menú desplegable de Capas y Opciones */}
+          <button
+            onClick={() => setMobileMenuOpen((prev) => (prev === "options" ? null : "options"))}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0 transition-all ${
+              mobileMenuOpen === "options"
+                ? "bg-white/25 border-[#EBD9AB]/60 text-white"
+                : "bg-white/10 border-white/18 text-[#EDE7E0]"
+            }`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-[#EBD9AB]" />
+            <span>{isEn ? "Options" : "Capas"}</span>
+            <ChevronDown
+              className={`w-3 h-3 text-[#EBD9AB] transition-transform duration-200 ${
+                mobileMenuOpen === "options" ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {onOpenLocation && (
+            <button
+              onClick={onOpenLocation}
+              title={isEn ? "3D Satellite" : "Satélite 3D"}
+              className="flex items-center justify-center p-1.5 rounded-xl bg-white/12 border border-white/18 text-[#EBD9AB] shrink-0"
+            >
+              <Globe className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Desplegable de Etapas en Celular */}
+        {mobileMenuOpen === "stages" && (
+          <div className="bg-[#0b1210]/85 backdrop-blur-2xl border border-white/20 rounded-2xl p-2 shadow-2xl pointer-events-auto grid grid-cols-2 gap-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+            <button
+              onClick={() => {
+                handleFlyToStage("all");
+                setMobileMenuOpen(null);
+              }}
+              className={`col-span-2 px-3 py-2 rounded-xl text-[10px] font-extrabold uppercase tracking-wider text-center border transition-all ${
+                focusMode === "all"
+                  ? "bg-[#B35F27] text-white border-[#EBD9AB]/50 shadow"
+                  : "bg-white/8 text-[#EDE7E0]/85 border-white/10"
+              }`}
+            >
+              {isEn ? "All Loom Masterplan (318 Lots)" : "Todo Loom • Masterplan (318 Lotes)"}
+            </button>
+            {["etapa_1", "etapa_2", "etapa_3", "etapa_4", "etapa_5", "etapa_6"].map((st) => {
+              const active = focusMode === "stage" && stageId === st;
+              return (
+                <button
+                  key={st}
+                  onClick={() => {
+                    handleFlyToStage(st);
+                    setMobileMenuOpen(null);
+                  }}
+                  className={`px-2.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${
+                    active
+                      ? "bg-[#B35F27] text-white border-[#EBD9AB]/50 shadow"
+                      : "bg-white/8 text-[#EDE7E0]/85 border-white/10"
+                  }`}
+                >
+                  {getStageDisplayName(st, isEn)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Desplegable de Capas / Herramientas en Celular */}
+        {mobileMenuOpen === "options" && (
+          <div className="bg-[#0b1210]/85 backdrop-blur-2xl border border-white/20 rounded-2xl p-3 shadow-2xl pointer-events-auto flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
+            <div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-[#EBD9AB] mb-1">
+                {isEn ? "Color Lots By" : "Colorear Lotes Por"}
+              </div>
+              <div className="grid grid-cols-3 gap-1 bg-white/8 p-1 rounded-xl border border-white/10">
+                {(
+                  [
+                    { id: "status", es: "Estado", en: "Status" },
+                    { id: "area", es: "Área m²", en: "Area" },
+                    { id: "typology", es: "Tipología", en: "Type" },
+                  ] as const
+                ).map((mode) => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setColorMode(mode.id)}
+                    className={`py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                      colorMode === mode.id
+                        ? "bg-[#B35F27] text-white shadow"
+                        : "text-white/75"
+                    }`}
+                  >
+                    {isEn ? mode.en : mode.es}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() =>
+                  setVillaMode((prev) =>
+                    prev === "showcase" ? "all" : prev === "all" ? "off" : "showcase"
+                  )
+                }
+                className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border ${
+                  villaMode !== "off"
+                    ? "bg-emerald-500/20 border-emerald-400/45 text-emerald-200"
+                    : "bg-white/8 border-white/15 text-white/75"
+                }`}
+              >
+                <Home className="w-3.5 h-3.5 shrink-0" />
+                <span>
+                  {villaMode === "showcase"
+                    ? isEn
+                      ? "Villas: Sample"
+                      : "Villas: Muestra"
+                    : villaMode === "all"
+                    ? isEn
+                      ? "Villas: 318"
+                      : "Villas: 318"
+                    : isEn
+                    ? "Lots Only"
+                    : "Solo Lotes"}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setIsSunset(!isSunset)}
+                className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border ${
+                  isSunset
+                    ? "bg-amber-500/25 border-amber-400/55 text-amber-100"
+                    : "bg-sky-500/15 border-sky-400/35 text-sky-100"
+                }`}
+              >
+                {isSunset ? (
+                  <Sunset className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                ) : (
+                  <Sun className="w-3.5 h-3.5 text-sky-300 shrink-0" />
+                )}
+                <span>{isSunset ? (isEn ? "Sunset" : "Atardecer") : (isEn ? "Daylight" : "Día")}</span>
+              </button>
+
+              <button
+                onClick={() => setShowTrees3D(!showTrees3D)}
+                className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border ${
+                  showTrees3D
+                    ? "bg-teal-500/20 border-teal-400/45 text-teal-200"
+                    : "bg-white/8 border-white/15 text-white/70"
+                }`}
+              >
+                <Trees className="w-3.5 h-3.5 shrink-0" />
+                <span>{isEn ? "3D Palms" : "Vegetación 3D"}</span>
+              </button>
+
+              <button
+                onClick={() => setShowDronePins(!showDronePins)}
+                className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border ${
+                  showDronePins
+                    ? "bg-[#B35F27]/25 border-[#B35F27]/55 text-[#EBD9AB]"
+                    : "bg-white/8 border-white/15 text-white/65"
+                }`}
+              >
+                <Camera className="w-3.5 h-3.5 shrink-0" />
+                <span>{isEn ? "Real Views" : "Vistas Reales"}</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setMobileMenuOpen(null);
+                handleDownloadAvailabilityMap();
+              }}
+              disabled={isExportingMap}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-500/35 border border-emerald-300/50 text-emerald-50 text-[10px] font-bold uppercase tracking-wider shadow-md"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-200" />
+              <span>
+                {isExportingMap
+                  ? isEn
+                    ? "Generating Map..."
+                    : "Generando Mapa..."
+                  : isEn
+                  ? "Download Availability Map (WhatsApp)"
+                  : "Descargar Mapa Disponibilidad (WA)"}
+              </span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ==================================================================== */}
+      {/* BARRA SUPERIOR DESKTOP (lg:flex): GLASSMORPHISM 1 SOLA FILA AJUSTADA */}
+      {/* ==================================================================== */}
+      <div className="hidden lg:flex absolute top-3 left-16 right-3 z-20 flex-wrap xl:flex-nowrap items-center justify-between gap-2 pointer-events-none">
         <div className="flex items-center gap-1 bg-[#0b1210]/45 backdrop-blur-2xl border border-white/20 p-1 rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.22)] pointer-events-auto max-w-full overflow-x-auto no-scrollbar">
           <button
             onClick={onExit3D}
@@ -4369,57 +4599,83 @@ export default function Loom3DMaquetaView({
         </div>
       </div>
 
-      {/* BARRA INFERIOR GLASSMORPHISM AJUSTADA (CABE COMPLETA EN 1 SOLA LÍNEA) */}
-      <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center flex-nowrap gap-1 p-1 bg-[#0b1210]/45 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.22)] max-w-[96vw] overflow-x-auto no-scrollbar pointer-events-auto">
-        {CAMERA_PRESETS.map((preset) => {
-          const isCurrent = activePreset.id === preset.id;
-          return (
-            <button
-              key={preset.id}
-              onClick={() => {
-                setActivePreset(preset);
-                if (preset.id === "general" || preset.id === "planta") {
-                  setFocusMode("all");
-                }
-                if (preset.renderPreview && showDronePins) {
-                  setDroneRenderModal(preset.renderPreview);
-                } else {
-                  setDroneRenderModal(null);
-                }
-              }}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer shrink-0 ${
-                isCurrent
-                  ? "bg-[#B35F27]/85 backdrop-blur-md text-white border border-[#EBD9AB]/45 shadow-[0_4px_14px_rgba(179,95,39,0.4)]"
-                  : "text-[#EDE7E0]/85 hover:bg-white/12 hover:text-white border border-transparent"
-              }`}
-            >
-              {preset.renderPreview ? (
-                <Camera className="w-3 h-3 text-[#EBD9AB] shrink-0" />
-              ) : (
-                <Box className="w-3 h-3 text-[#EBD9AB] shrink-0" />
-              )}
-              <span>{isEn ? preset.labelEn : preset.labelEs}</span>
-            </button>
-          );
-        })}
+      {/* BARRA INFERIOR GLASSMORPHISM CON FLECHAS INDICADORAS EN CELULAR */}
+      <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 p-1 bg-[#0b1210]/45 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.22)] max-w-[96vw] pointer-events-auto">
+        {/* Flecha izquierda en pantallas pequeñas para indicar más opciones */}
+        <button
+          onClick={() => bottomBarScrollRef.current?.scrollBy({ left: -180, behavior: "smooth" })}
+          aria-label="Anterior"
+          className="lg:hidden flex items-center justify-center w-7 h-7 rounded-xl bg-white/10 active:bg-[#B35F27] border border-white/15 text-[#EBD9AB] shrink-0"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        <div
+          ref={bottomBarScrollRef}
+          className="flex items-center flex-nowrap gap-1 overflow-x-auto no-scrollbar"
+        >
+          {CAMERA_PRESETS.map((preset) => {
+            const isCurrent = activePreset.id === preset.id;
+            return (
+              <button
+                key={preset.id}
+                onClick={() => {
+                  setActivePreset(preset);
+                  setMobileMenuOpen(null);
+                  if (preset.id === "general" || preset.id === "planta") {
+                    setFocusMode("all");
+                  }
+                  if (preset.renderPreview && showDronePins) {
+                    setDroneRenderModal(preset.renderPreview);
+                  } else {
+                    setDroneRenderModal(null);
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                  isCurrent
+                    ? "bg-[#B35F27]/85 backdrop-blur-md text-white border border-[#EBD9AB]/45 shadow-[0_4px_14px_rgba(179,95,39,0.4)]"
+                    : "text-[#EDE7E0]/85 hover:bg-white/12 hover:text-white border border-transparent"
+                }`}
+              >
+                {preset.renderPreview ? (
+                  <Camera className="w-3 h-3 text-[#EBD9AB] shrink-0" />
+                ) : (
+                  <Box className="w-3 h-3 text-[#EBD9AB] shrink-0" />
+                )}
+                <span>{isEn ? preset.labelEn : preset.labelEs}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Flecha derecha en pantallas pequeñas para indicar que hay más cámaras */}
+        <button
+          onClick={() => bottomBarScrollRef.current?.scrollBy({ left: 180, behavior: "smooth" })}
+          aria-label="Siguiente"
+          className="lg:hidden flex items-center justify-center w-7 h-7 rounded-xl bg-[#B35F27]/45 active:bg-[#B35F27] border border-[#EBD9AB]/40 text-[#EBD9AB] shrink-0"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
       {droneRenderModal && (
-        <div className="absolute top-20 right-4 z-20 w-80 sm:w-96 bg-[#0A0D0B]/95 border border-[#B35F27]/60 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl pointer-events-auto">
+        <div className="absolute top-16 lg:top-20 right-3 sm:right-4 z-20 w-80 sm:w-96 bg-[#0b1210]/65 border border-white/25 rounded-2xl overflow-hidden shadow-[0_16px_48px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-2xl pointer-events-auto">
           <div className="relative aspect-[16/10] w-full bg-black">
             <img
               src={droneRenderModal.src}
               alt={isEn ? droneRenderModal.titleEn : droneRenderModal.titleEs}
               className="w-full h-full object-cover"
             />
-            <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-[#0A0D0B]/80 border border-[#EBD9AB]/40 text-[9px] font-mono font-bold uppercase tracking-wider text-[#EBD9AB]">
+            <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-[#0b1210]/75 backdrop-blur-md border border-[#EBD9AB]/40 text-[9px] font-mono font-bold uppercase tracking-wider text-[#EBD9AB]">
               {isEn ? droneRenderModal.badgeEn : droneRenderModal.badgeEs}
             </div>
             <button
               onClick={() => setDroneRenderModal(null)}
-              className="absolute top-2.5 right-2.5 py-1 px-2.5 rounded-full bg-black/75 hover:bg-[#B35F27] text-white text-[10px] font-bold uppercase tracking-wider border border-white/20 transition-all cursor-pointer"
+              title={isEn ? "Close preview" : "Cerrar imagen"}
+              aria-label={isEn ? "Close preview" : "Cerrar imagen"}
+              className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-black/75 hover:bg-[#B35F27] text-white flex items-center justify-center border border-white/25 backdrop-blur-md shadow-lg transition-all cursor-pointer"
             >
-              {isEn ? "Close" : "Ver Maqueta 3D"}
+              <X className="w-4 h-4" />
             </button>
           </div>
           <div className="p-3 flex items-center justify-between gap-2">
@@ -4427,13 +4683,13 @@ export default function Loom3DMaquetaView({
               <h4 className="text-xs font-serif font-bold text-white">
                 {isEn ? droneRenderModal.titleEn : droneRenderModal.titleEs}
               </h4>
-              <p className="text-[10px] text-[#EDE7E0]/65 mt-0.5">
+              <p className="text-[10px] text-[#EDE7E0]/75 mt-0.5">
                 {isEn
                   ? "Camera synchronized with the 3D Interactive Maqueta"
                   : "Ángulo sincronizado con la cámara de la Maqueta 3D"}
               </p>
             </div>
-            <Sparkles className="w-4 h-4 text-[#B35F27] shrink-0" />
+            <Sparkles className="w-4 h-4 text-[#EBD9AB] shrink-0" />
           </div>
         </div>
       )}
