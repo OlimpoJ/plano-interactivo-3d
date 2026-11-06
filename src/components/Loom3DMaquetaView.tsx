@@ -3117,15 +3117,15 @@ export default function Loom3DMaquetaView({
         im.src = "/loom/loom_masterplan_bg.webp";
       });
 
-      const W = 2400;
-      const HEADER_H = 112;
-      const FOOTER_H = 76;
-      // Recorte enfocado al corredor del proyecto + Alma Beach Club (x: 60..3420, y: 615..1475)
+      const W = 2800;
+      const HEADER_H = 124;
+      const FOOTER_H = 84;
+      // Recorte enfocado al corredor del proyecto + Alma Beach Club (x: 60..3420, y: 625..1470)
       const SX = 60;
-      const SY = 615;
+      const SY = 625;
       const SW = 3360;
-      const SH = 860;
-      const MAP_H = Math.round((W * SH) / SW); // ~614 px
+      const SH = 845;
+      const MAP_H = Math.round((W * SH) / SW);
       const H = HEADER_H + MAP_H + FOOTER_H;
 
       const canvas = document.createElement("canvas");
@@ -3149,7 +3149,7 @@ export default function Loom3DMaquetaView({
       const mapX = (svgX: number) => ((svgX - SX) / SW) * W;
       const mapY = (svgY: number) => HEADER_H + ((svgY - SY) / SH) * MAP_H;
 
-      // Dibujar cada lote con su estado actual y código
+      // Dibujar cada lote con su estado actual y código limpio sin borde negro pesado
       unifiedLots.forEach((pLot) => {
         if (!pLot.vertices || pLot.vertices.length < 3) return;
         const lotData = lotsMap[pLot.id];
@@ -3173,37 +3173,42 @@ export default function Loom3DMaquetaView({
         ctx.closePath();
 
         if (isSel) {
-          ctx.fillStyle = "rgba(253, 224, 71, 0.68)";
+          ctx.fillStyle = "rgba(253, 224, 71, 0.72)";
           ctx.strokeStyle = "#fde047";
           ctx.lineWidth = 3.2;
         } else if (status === "available") {
-          ctx.fillStyle = "rgba(16, 185, 129, 0.44)";
-          ctx.strokeStyle = "rgba(52, 211, 153, 0.92)";
+          ctx.fillStyle = "rgba(16, 165, 115, 0.52)";
+          ctx.strokeStyle = "rgba(110, 231, 183, 0.86)";
           ctx.lineWidth = 1.4;
         } else if (status === "blocked" || status === "reserved") {
-          ctx.fillStyle = "rgba(245, 158, 11, 0.52)";
-          ctx.strokeStyle = "rgba(251, 191, 36, 0.95)";
+          ctx.fillStyle = "rgba(235, 148, 10, 0.58)";
+          ctx.strokeStyle = "rgba(253, 224, 71, 0.92)";
           ctx.lineWidth = 1.5;
         } else {
-          ctx.fillStyle = "rgba(239, 68, 68, 0.54)";
-          ctx.strokeStyle = "rgba(248, 113, 113, 0.92)";
+          ctx.fillStyle = "rgba(220, 52, 52, 0.58)";
+          ctx.strokeStyle = "rgba(252, 165, 165, 0.88)";
           ctx.lineWidth = 1.4;
         }
         ctx.fill();
         ctx.stroke();
 
-        // Etiqueta del lote (ej: A-01, K-04)
-        const rawCode = (lotData?.rawId || pLot.id).replace(/^etapa_\d+_/i, "");
+        // Etiqueta del lote limpia y legible (sombra suave en vez de borde negro grueso)
+        const rawCode = (lotData?.rawId || pLot.id).replace(/^etapa_\d+_/i, "").toUpperCase();
         const cx = mapX(pLot.cx);
         const cy = mapY(pLot.cy);
-        ctx.font = isSel ? "bold 12px sans-serif" : "bold 9.5px sans-serif";
+        ctx.save();
+        ctx.font = isSel
+          ? "700 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+          : "700 12.5px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.lineWidth = 2.6;
-        ctx.strokeStyle = "rgba(10, 13, 11, 0.88)";
-        ctx.strokeText(rawCode, cx, cy);
-        ctx.fillStyle = isSel ? "#fde047" : "#ffffff";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
+        ctx.shadowBlur = 2.5;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 1;
+        ctx.fillStyle = isSel ? "#0A0D0B" : "#ffffff";
         ctx.fillText(rawCode, cx, cy);
+        ctx.restore();
       });
 
       // Header Editorial Superior
