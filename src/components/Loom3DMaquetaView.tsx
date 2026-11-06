@@ -218,6 +218,95 @@ function createFloatingPillSprite(
   return sprite;
 }
 
+// ============================================================================
+// GENERADORES DE TELEMETRÍA BIOCLIMÁTICA PRO (SOL VOLUMÉTRICO + BRISA ANIMADA)
+// ============================================================================
+function createAnimatedWindFlowTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 64;
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, 512, 64);
+
+  // Ráfaga aerodinámica principal con cola suave translúcida y frente brillante
+  const grad = ctx.createLinearGradient(0, 0, 512, 0);
+  grad.addColorStop(0.0, "rgba(14, 165, 233, 0.02)");
+  grad.addColorStop(0.25, "rgba(34, 211, 238, 0.14)");
+  grad.addColorStop(0.62, "rgba(56, 189, 248, 0.58)");
+  grad.addColorStop(0.84, "rgba(186, 230, 253, 0.95)");
+  grad.addColorStop(0.92, "rgba(255, 255, 255, 1.0)");
+  grad.addColorStop(1.0, "rgba(14, 165, 233, 0.04)");
+
+  // Perfil transversal suave para que el tubo luzca como una estela de aire sedosa
+  for (let y = 0; y < 64; y++) {
+    const vNorm = 1.0 - Math.abs((y - 31.5) / 31.5);
+    const alphaProfile = Math.pow(Math.max(0, vNorm), 0.7);
+    ctx.globalAlpha = alphaProfile;
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, y, 512, 1);
+  }
+  ctx.globalAlpha = 1.0;
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.repeat.set(1.6, 1);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function createSunCoronaFlareSprite(isSunset: boolean): THREE.Sprite {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d")!;
+  const cx = 128;
+  const cy = 128;
+
+  // Halo solar volumétrico multicapa
+  const rad = ctx.createRadialGradient(cx, cy, 4, cx, cy, 122);
+  rad.addColorStop(0.0, "rgba(255, 255, 250, 1.0)");
+  rad.addColorStop(0.14, isSunset ? "rgba(255, 224, 130, 0.95)" : "rgba(254, 240, 138, 0.95)");
+  rad.addColorStop(0.34, isSunset ? "rgba(251, 146, 60, 0.58)" : "rgba(251, 191, 36, 0.52)");
+  rad.addColorStop(0.65, isSunset ? "rgba(234, 88, 12, 0.18)" : "rgba(245, 158, 11, 0.16)");
+  rad.addColorStop(1.0, "rgba(245, 158, 11, 0.0)");
+  ctx.fillStyle = rad;
+  ctx.fillRect(0, 0, 256, 256);
+
+  // Destellos ópticos sutiles (8 rayos solares finos)
+  ctx.save();
+  ctx.translate(cx, cy);
+  for (let i = 0; i < 8; i++) {
+    ctx.rotate(Math.PI / 4);
+    const rayLen = i % 2 === 0 ? 112 : 76;
+    const rayW = i % 2 === 0 ? 3.2 : 2.0;
+    const rGrad = ctx.createLinearGradient(0, -rayLen, 0, rayLen);
+    rGrad.addColorStop(0, "rgba(255, 250, 220, 0)");
+    rGrad.addColorStop(0.5, "rgba(255, 252, 235, 0.65)");
+    rGrad.addColorStop(1, "rgba(255, 250, 220, 0)");
+    ctx.fillStyle = rGrad;
+    ctx.fillRect(-rayW * 0.5, -rayLen, rayW, rayLen * 2);
+  }
+  ctx.restore();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+
+  const mat = new THREE.SpriteMaterial({
+    map: tex,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+  });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(0.38, 0.38, 1);
+  sprite.renderOrder = 19;
+  return sprite;
+}
+
 const STAGE_CAMERA_TARGETS: Record<
   string,
   { pos: [number, number, number]; target: [number, number, number] }
@@ -2081,6 +2170,17 @@ export default function Loom3DMaquetaView({
   const hoveredLotIdRef = useRef<string | null>(null);
   const radarMarkerRef = useRef<SVGGElement | null>(null);
   const radarYawLabelRef = useRef<HTMLSpanElement | null>(null);
+  const telemetryAnimRef = useRef<{
+    windTex: THREE.CanvasTexture | null;
+    sunCorona: THREE.Sprite | null;
+    sunCore: THREE.Mesh | null;
+    solarCurve: THREE.CatmullRomCurve3 | null;
+  }>({
+    windTex: null,
+    sunCorona: null,
+    sunCore: null,
+    solarCurve: null,
+  });
   const villaMatsCacheRef = useRef<{ day: VillaReplicaMaterials | null; sunset: VillaReplicaMaterials | null; unitBox: THREE.BoxGeometry | null }>({
     day: null,
     sunset: null,
@@ -2584,6 +2684,15 @@ export default function Loom3DMaquetaView({
         item.shadowObj.position.set(cx, 0.004, cz);
         item.shadowObj.rotation.y = headingRad;
         item.shadowObj.updateMatrix();
+      }
+
+      // Animación a 60 FPS de la Brisa Marina Caribeña y el Sol Bioclimático del lote seleccionado
+      if (telemetryAnimRef.current.windTex) {
+        telemetryAnimRef.current.windTex.offset.x = -elapsed * 0.78;
+      }
+      if (telemetryAnimRef.current.sunCorona) {
+        const pulse = 0.38 + Math.sin(elapsed * 2.6) * 0.032;
+        telemetryAnimRef.current.sunCorona.scale.set(pulse, pulse, 1);
       }
 
       // Sincronización en tiempo real (60 FPS, 0 re-renders de React) de posición y orientación en el Radar
@@ -3412,9 +3521,9 @@ export default function Loom3DMaquetaView({
     }
 
     if (!isAmenity) {
-      const labelStr = `${lotData.rawId} • ${lotData.areaNumeric || lotData.area}`;
-      const selPill = createFloatingPillSprite(labelStr, "#fde047", 0.95, 0.26);
-      selPill.position.set(wx, villaMode !== "off" ? 0.42 : 0.14, wz);
+      const labelStr = `${lotData.rawId} • ${lotData.areaNumeric || lotData.area} m²`;
+      const selPill = createFloatingPillSprite(labelStr, "#fde047", 0.88, 0.22);
+      selPill.position.set(wx, villaMode !== "off" ? 0.44 : 0.16, wz);
       telemetryGroup.add(selPill);
     }
 
@@ -3445,42 +3554,161 @@ export default function Loom3DMaquetaView({
       }
     }
 
+    // ========================================================================
+    // 1. ARCO SOLAR BIOCLIMÁTICO 3D CON HALO DORADO + CORONA SOLAR VOLUMÉTRICA
+    // ========================================================================
+    const radius = Math.max(ww, wd) * 0.96;
     const solarCurvePts: THREE.Vector3[] = [];
-    const radius = Math.max(ww, wd) * 0.95;
-    for (let i = 0; i <= 32; i++) {
-      const angle = (i / 32) * Math.PI;
+    for (let i = 0; i <= 40; i++) {
+      const angle = (i / 40) * Math.PI;
       solarCurvePts.push(
         new THREE.Vector3(
           wx + Math.cos(angle) * radius,
-          0.18 + Math.sin(angle) * (radius * 0.85),
-          wz - 0.1
+          0.12 + Math.sin(angle) * (radius * 0.88),
+          wz - 0.08 + Math.sin(angle) * 0.06
         )
       );
     }
-    const solarGeo = new THREE.BufferGeometry().setFromPoints(solarCurvePts);
-    const solarMat = new THREE.LineBasicMaterial({ color: "#fbbf24" });
-    telemetryGroup.add(new THREE.Line(solarGeo, solarMat));
+    const solarCurve = new THREE.CatmullRomCurve3(solarCurvePts);
 
+    // Núcleo dorado brillante del arco solar
+    const solarCoreGeo = new THREE.TubeGeometry(solarCurve, 48, 0.0055, 8, false);
+    const solarCoreMat = new THREE.MeshBasicMaterial({
+      color: isSunset ? "#fed7aa" : "#fef08a",
+    });
+    telemetryGroup.add(new THREE.Mesh(solarCoreGeo, solarCoreMat));
+
+    // Halo envolvente aditivo alrededor del arco solar
+    const solarHaloGeo = new THREE.TubeGeometry(solarCurve, 48, 0.018, 8, false);
+    const solarHaloMat = new THREE.MeshBasicMaterial({
+      color: isSunset ? "#f97316" : "#f59e0b",
+      transparent: true,
+      opacity: 0.32,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    telemetryGroup.add(new THREE.Mesh(solarHaloGeo, solarHaloMat));
+
+    // Anillo compás solar sutil en la base
+    const compassPts: THREE.Vector3[] = [];
+    for (let i = 0; i <= 64; i++) {
+      const a = (i / 64) * Math.PI * 2;
+      compassPts.push(new THREE.Vector3(wx + Math.cos(a) * radius, 0.052, wz - 0.08 + Math.sin(a) * (radius * 0.38)));
+    }
+    const compassGeo = new THREE.BufferGeometry().setFromPoints(compassPts);
+    const compassMat = new THREE.LineBasicMaterial({
+      color: "#fbbf24",
+      transparent: true,
+      opacity: 0.35,
+    });
+    telemetryGroup.add(new THREE.Line(compassGeo, compassMat));
+
+    // Posición del Sol según modo Día (Cenit 11:30am) o Atardecer (Oeste cálido 5:15pm)
+    const sunT = isSunset ? 0.78 : 0.42;
+    const sunPos = solarCurve.getPointAt(sunT);
+
+    // Esfera incandescente central del Sol + Sprite de Corona con rayos ópticos
     const sunOrb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.065, 16, 16),
-      new THREE.MeshBasicMaterial({ color: "#fde047" })
+      new THREE.SphereGeometry(0.036, 20, 20),
+      new THREE.MeshBasicMaterial({ color: "#ffffff" })
     );
-    sunOrb.position.set(
-      wx + Math.cos(Math.PI * 0.38) * radius,
-      0.18 + Math.sin(Math.PI * 0.38) * (radius * 0.85),
-      wz - 0.1
-    );
+    sunOrb.position.copy(sunPos);
     telemetryGroup.add(sunOrb);
 
-    const breezeCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(wx + radius * 1.1, 0.42, wz - radius * 0.85),
-      new THREE.Vector3(wx + radius * 0.35, 0.34, wz - radius * 0.3),
-      new THREE.Vector3(wx - radius * 0.55, 0.26, wz + radius * 0.45),
-    ]);
-    const breezeGeo = new THREE.TubeGeometry(breezeCurve, 24, 0.02, 8, false);
-    const breezeMat = new THREE.MeshBasicMaterial({ color: "#22d3ee" });
-    telemetryGroup.add(new THREE.Mesh(breezeGeo, breezeMat));
+    const sunCorona = createSunCoronaFlareSprite(isSunset);
+    sunCorona.position.copy(sunPos);
+    telemetryGroup.add(sunCorona);
 
+    // Rayo de luz solar proyectado suavemente hacia la terraza de la villa
+    const sunBeamGeo = new THREE.CylinderGeometry(0.012, 0.16, sunPos.y - 0.06, 16, 1, true);
+    const sunBeamMat = new THREE.MeshBasicMaterial({
+      color: isSunset ? "#fb923c" : "#fde047",
+      transparent: true,
+      opacity: 0.11,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const sunBeam = new THREE.Mesh(sunBeamGeo, sunBeamMat);
+    sunBeam.position.set(
+      (sunPos.x + wx) * 0.5,
+      (sunPos.y + 0.06) * 0.5,
+      (sunPos.z + wz) * 0.5
+    );
+    sunBeam.lookAt(wx, 0.08, wz);
+    sunBeam.rotateX(Math.PI / 2);
+    telemetryGroup.add(sunBeam);
+
+    // ========================================================================
+    // 2. FLUJO DE BRISA MARINA DEL CARIBE (3 ESTELAS AERODINÁMICAS EN VIVO A 60 FPS)
+    // ========================================================================
+    const windTex = createAnimatedWindFlowTexture();
+    const windStreamMat = new THREE.MeshBasicMaterial({
+      map: windTex,
+      transparent: true,
+      opacity: 0.92,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+
+    // 3 líneas de corriente sinuosas entrando desde el Mar Caribe (+X, -Z) a través de la villa
+    const streamOffsets = [
+      { dLat: -0.14, yStart: 0.42, yMid: 0.34, yEnd: 0.26, rad: 0.0095 },
+      { dLat: 0.0, yStart: 0.48, yMid: 0.39, yEnd: 0.31, rad: 0.0125 },
+      { dLat: 0.14, yStart: 0.37, yMid: 0.29, yEnd: 0.22, rad: 0.0085 },
+    ];
+
+    streamOffsets.forEach((st, idx) => {
+      const waveS = (idx === 1 ? 1 : -1) * 0.08;
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(wx + radius * 1.15 + st.dLat * 0.5, st.yStart, wz - radius * 0.88 + st.dLat),
+        new THREE.Vector3(wx + radius * 0.45 + waveS, st.yMid + 0.03, wz - radius * 0.35 + st.dLat - waveS),
+        new THREE.Vector3(wx - radius * 0.12 - waveS, st.yMid - 0.02, wz + radius * 0.08 + st.dLat + waveS),
+        new THREE.Vector3(wx - radius * 0.72 + st.dLat * 0.4, st.yEnd, wz + radius * 0.58 + st.dLat),
+      ]);
+      const streamGeo = new THREE.TubeGeometry(curve, 44, st.rad, 8, false);
+      telemetryGroup.add(new THREE.Mesh(streamGeo, windStreamMat));
+
+      // Punta de flecha aerodinámica luminosa en la estela central
+      if (idx === 1) {
+        const endPt = curve.getPointAt(0.96);
+        const tangent = curve.getTangentAt(0.96).normalize();
+        const coneGeo = new THREE.ConeGeometry(0.026, 0.075, 12);
+        coneGeo.rotateX(Math.PI / 2);
+        const coneMat = new THREE.MeshBasicMaterial({
+          color: "#a5f3fc",
+          transparent: true,
+          opacity: 0.88,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const arrowMesh = new THREE.Mesh(coneGeo, coneMat);
+        arrowMesh.position.copy(endPt);
+        arrowMesh.lookAt(endPt.clone().add(tangent));
+        telemetryGroup.add(arrowMesh);
+
+        const breezeStartPt = curve.getPointAt(0.08);
+        const breezePill = createFloatingPillSprite(
+          isEn ? "Sea Breeze" : "Brisa Marina",
+          "#38bdf8",
+          0.74,
+          0.18
+        );
+        breezePill.position.set(breezeStartPt.x, breezeStartPt.y + 0.11, breezeStartPt.z);
+        telemetryGroup.add(breezePill);
+      }
+    });
+
+    telemetryAnimRef.current = {
+      windTex,
+      sunCorona,
+      sunCore: sunOrb,
+      solarCurve,
+    };
+
+    // ========================================================================
+    // 3. ARCO DE CONEXIÓN A PLAYA ALMA (SIN SUPERPONERSE CON EL PILL DEL LOTE)
+    // ========================================================================
     if (!isAmenity) {
       const distWorld = Math.hypot(beachX - wx, beachZ - wz);
       const distMeters = Math.max(25, Math.round(distWorld * 22));
@@ -3491,21 +3719,25 @@ export default function Loom3DMaquetaView({
         new THREE.Vector3(midX, 0.45 + distWorld * 0.04, midZ),
         new THREE.Vector3(beachX, 0.18, beachZ),
       ]);
-      const walkGeo = new THREE.BufferGeometry().setFromPoints(walkArc.getPoints(36));
-      const walkMat = new THREE.LineBasicMaterial({
-        color: "#fde047",
+      const walkTubeGeo = new THREE.TubeGeometry(walkArc, 40, 0.0045, 6, false);
+      const walkTubeMat = new THREE.MeshBasicMaterial({
+        color: "#38bdf8",
         transparent: true,
-        opacity: 0.78,
+        opacity: 0.65,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
       });
-      telemetryGroup.add(new THREE.Line(walkGeo, walkMat));
+      telemetryGroup.add(new THREE.Mesh(walkTubeGeo, walkTubeMat));
 
+      // Posicionar la etiqueta a ~30% del recorrido hacia la playa para que jamás pise el código del lote
+      const labelPos = walkArc.getPointAt(0.26);
       const walkPill = createFloatingPillSprite(
-        isEn ? `${distMeters}m to Alma Beach` : `A ~${distMeters}m de Playa Alma`,
-        "#22d3ee",
-        1.45,
-        0.34
+        isEn ? `~${distMeters}m to Alma Beach` : `A ~${distMeters}m de Playa Alma`,
+        "#38bdf8",
+        1.18,
+        0.25
       );
-      walkPill.position.set(wx, 0.72, wz);
+      walkPill.position.set(labelPos.x, Math.max(0.68, labelPos.y + 0.16), labelPos.z);
       telemetryGroup.add(walkPill);
     }
   }, [selectedLot, unifiedLots, lotsMap, villaMode, isSunset, isEn, carTemplates]);
