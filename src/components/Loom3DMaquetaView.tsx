@@ -3109,23 +3109,32 @@ export default function Loom3DMaquetaView({
     if (isExportingMap || unifiedLots.length === 0) return;
     setIsExportingMap(true);
     try {
-      const bgImg = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const im = new Image();
-        im.crossOrigin = "anonymous";
-        im.onload = () => resolve(im);
-        im.onerror = reject;
-        im.src = "/loom/loom_masterplan_bg.webp";
-      });
+      const loadImg = (src: string) =>
+        new Promise<HTMLImageElement>((resolve, reject) => {
+          const im = new Image();
+          im.crossOrigin = "anonymous";
+          im.onload = () => resolve(im);
+          im.onerror = reject;
+          im.src = src;
+        });
+
+      const [bgImg, logoImg] = await Promise.all([
+        loadImg("/loom/loom_masterplan_bg.webp"),
+        loadImg("/loom/logo_loom.png"),
+      ]);
 
       const W = 2800;
-      const HEADER_H = 124;
-      const FOOTER_H = 84;
-      // Recorte enfocado al corredor del proyecto + Alma Beach Club (x: 60..3420, y: 625..1470)
-      const SX = 60;
-      const SY = 625;
-      const SW = 3360;
-      const SH = 845;
-      const MAP_H = Math.round((W * SH) / SW);
+      const HEADER_H = 166;
+      const FOOTER_H = 98;
+      const PAD_X = 40;
+      const MAP_W = W - PAD_X * 2;
+
+      // Recorte panorámico ultra-enfocado al proyecto + encabezados de etapas + Club de Playa
+      const SX = 45;
+      const SY = 585;
+      const SW = 3405;
+      const SH = 910;
+      const MAP_H = Math.round(MAP_W * (SH / SW));
       const H = HEADER_H + MAP_H + FOOTER_H;
 
       const canvas = document.createElement("canvas");
@@ -3134,22 +3143,45 @@ export default function Loom3DMaquetaView({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Fondo general oscuro editorial
-      ctx.fillStyle = "#0A0D0B";
+      // 1. Fondo general oscuro editorial
+      ctx.fillStyle = "#0A0E0D";
       ctx.fillRect(0, 0, W, H);
 
-      // Dibujar masterplan recortado
-      ctx.drawImage(bgImg, SX, SY, SW, SH, 0, HEADER_H, W, MAP_H);
+      // 2. Viewport del Masterplan con esquinas redondeadas (20px)
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(PAD_X, HEADER_H, MAP_W, MAP_H, 20);
+      ctx.clip();
 
-      // Contadores de inventario en tiempo real
+      ctx.drawImage(bgImg, SX, SY, SW, SH, PAD_X, HEADER_H, MAP_W, MAP_H);
+
+      // Viñeta oscura cinematográfica en bordes superior/inferior/izquierdo para contraste de etiquetas
+      const topGrad = ctx.createLinearGradient(0, HEADER_H, 0, HEADER_H + 115);
+      topGrad.addColorStop(0, "rgba(8, 12, 11, 0.72)");
+      topGrad.addColorStop(1, "rgba(8, 12, 11, 0)");
+      ctx.fillStyle = topGrad;
+      ctx.fillRect(PAD_X, HEADER_H, MAP_W, 115);
+
+      const botGrad = ctx.createLinearGradient(0, HEADER_H + MAP_H - 95, 0, HEADER_H + MAP_H);
+      botGrad.addColorStop(0, "rgba(8, 12, 11, 0)");
+      botGrad.addColorStop(1, "rgba(8, 12, 11, 0.72)");
+      ctx.fillStyle = botGrad;
+      ctx.fillRect(PAD_X, HEADER_H + MAP_H - 95, MAP_W, 95);
+
+      const leftGrad = ctx.createLinearGradient(PAD_X, 0, PAD_X + 90, 0);
+      leftGrad.addColorStop(0, "rgba(8, 12, 11, 0.48)");
+      leftGrad.addColorStop(1, "rgba(8, 12, 11, 0)");
+      ctx.fillStyle = leftGrad;
+      ctx.fillRect(PAD_X, HEADER_H, 90, MAP_H);
+
       let countAvail = 0;
       let countRes = 0;
       let countSold = 0;
 
-      const mapX = (svgX: number) => ((svgX - SX) / SW) * W;
+      const mapX = (svgX: number) => PAD_X + ((svgX - SX) / SW) * MAP_W;
       const mapY = (svgY: number) => HEADER_H + ((svgY - SY) / SH) * MAP_H;
 
-      // Dibujar cada lote con su estado actual y código limpio sin borde negro pesado
+      // 3. Dibujar polígonos de lotes y códigos limpios sin borde negro pesado
       unifiedLots.forEach((pLot) => {
         if (!pLot.vertices || pLot.vertices.length < 3) return;
         const lotData = lotsMap[pLot.id];
@@ -3173,55 +3205,185 @@ export default function Loom3DMaquetaView({
         ctx.closePath();
 
         if (isSel) {
-          ctx.fillStyle = "rgba(253, 224, 71, 0.72)";
+          ctx.fillStyle = "rgba(253, 224, 71, 0.78)";
           ctx.strokeStyle = "#fde047";
           ctx.lineWidth = 3.2;
         } else if (status === "available") {
-          ctx.fillStyle = "rgba(16, 165, 115, 0.52)";
-          ctx.strokeStyle = "rgba(110, 231, 183, 0.86)";
-          ctx.lineWidth = 1.4;
+          ctx.fillStyle = "rgba(16, 172, 118, 0.56)";
+          ctx.strokeStyle = "rgba(134, 239, 172, 0.93)";
+          ctx.lineWidth = 1.8;
         } else if (status === "blocked" || status === "reserved") {
-          ctx.fillStyle = "rgba(235, 148, 10, 0.58)";
-          ctx.strokeStyle = "rgba(253, 224, 71, 0.92)";
-          ctx.lineWidth = 1.5;
+          ctx.fillStyle = "rgba(234, 158, 22, 0.63)";
+          ctx.strokeStyle = "rgba(253, 224, 71, 0.95)";
+          ctx.lineWidth = 1.8;
         } else {
-          ctx.fillStyle = "rgba(220, 52, 52, 0.58)";
-          ctx.strokeStyle = "rgba(252, 165, 165, 0.88)";
-          ctx.lineWidth = 1.4;
+          ctx.fillStyle = "rgba(212, 54, 68, 0.59)";
+          ctx.strokeStyle = "rgba(253, 164, 175, 0.90)";
+          ctx.lineWidth = 1.8;
         }
         ctx.fill();
         ctx.stroke();
 
-        // Etiqueta del lote limpia y legible (sombra suave en vez de borde negro grueso)
         const rawCode = (lotData?.rawId || pLot.id).replace(/^etapa_\d+_/i, "").toUpperCase();
         const cx = mapX(pLot.cx);
         const cy = mapY(pLot.cy);
         ctx.save();
         ctx.font = isSel
           ? "700 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-          : "700 12.5px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          : "700 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
         ctx.shadowBlur = 2.5;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 1;
-        ctx.fillStyle = isSel ? "#0A0D0B" : "#ffffff";
+        ctx.fillStyle = isSel ? "#0A0E0D" : "#FFFFFF";
         ctx.fillText(rawCode, cx, cy);
         ctx.restore();
       });
 
-      // Header Editorial Superior
-      ctx.fillStyle = "#0A0D0B";
-      ctx.fillRect(0, 0, W, HEADER_H);
-      ctx.strokeStyle = "rgba(212, 175, 55, 0.45)";
+      // 4. Indicadores arquitectónicos de Etapas y Amenidades (superiores)
+      const topCallouts = [
+        { title: "ETAPA 1", sub: "MANZANAS A · B · C", svgX: 450, svgY: 695, targetY: 798, gold: false },
+        { title: "ETAPA 2", sub: "MANZANAS D · E", svgX: 920, svgY: 680, targetY: 782, gold: false },
+        { title: "ETAPA 3", sub: "MANZANAS F · G", svgX: 1390, svgY: 665, targetY: 766, gold: false },
+        { title: "ETAPA 4", sub: "MANZANAS H · I", svgX: 1845, svgY: 650, targetY: 748, gold: false },
+        { title: "CLUB HOUSE & OASIS", sub: "WELLNESS · PISCINAS", svgX: 2235, svgY: 642, targetY: 742, gold: true },
+        { title: "ETAPA 5", sub: "MANZANAS J · K · L", svgX: 2650, svgY: 632, targetY: 722, gold: false },
+        { title: "ALMA BEACH CLUB", sub: "SALIDA DIRECTA AL MAR", svgX: 3130, svgY: 625, targetY: 706, gold: true },
+      ];
+
+      topCallouts.forEach((c) => {
+        const bx = mapX(c.svgX);
+        const by = mapY(c.svgY);
+        const ty = mapY(c.targetY);
+        const pw = c.gold ? 212 : 174;
+        const ph = 42;
+        const x0 = bx - pw / 2;
+        const y0 = by - ph / 2;
+
+        ctx.strokeStyle = c.gold ? "rgba(218, 188, 122, 0.82)" : "rgba(255, 255, 255, 0.56)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(bx, y0 + ph);
+        ctx.lineTo(bx, ty);
+        ctx.stroke();
+
+        ctx.fillStyle = c.gold ? "rgba(218, 188, 122, 0.9)" : "rgba(255, 255, 255, 0.75)";
+        ctx.beginPath();
+        ctx.arc(bx, ty, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = c.gold ? "rgba(22, 20, 14, 0.92)" : "rgba(12, 18, 16, 0.90)";
+        ctx.strokeStyle = c.gold ? "rgba(218, 188, 122, 0.94)" : "rgba(148, 163, 184, 0.62)";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.roundRect(x0, y0, pw, ph, 9);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "700 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillStyle = c.gold ? "#EBD9AB" : "#F8FAFC";
+        ctx.fillText(c.title, bx, y0 + 14);
+
+        ctx.font = "500 10.5px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillStyle = c.gold ? "rgba(203, 182, 138, 0.92)" : "rgba(148, 163, 184, 0.92)";
+        ctx.fillText(c.sub, bx, y0 + 29);
+      });
+
+      // Hitos inferiores (Portería, Parque Lineal, Laguna Central)
+      const bottomLandmarks = [
+        { label: "PORTERÍA PRINCIPAL · VÍA AL MAR", svgX: 340, svgY: 1445 },
+        { label: "PARQUE LINEAL & CORREDOR BIOCLIMÁTICO", svgX: 1380, svgY: 1445 },
+        { label: "LAGUNA CENTRAL & RESERVA NATURAL", svgX: 2440, svgY: 1445 },
+      ];
+      bottomLandmarks.forEach((lm) => {
+        const bx = mapX(lm.svgX);
+        const by = mapY(lm.svgY);
+        const pw = 304;
+        const ph = 32;
+        const x0 = bx - pw / 2;
+        const y0 = by - ph / 2;
+
+        ctx.fillStyle = "rgba(12, 18, 16, 0.90)";
+        ctx.strokeStyle = "rgba(212, 182, 120, 0.68)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.roundRect(x0, y0, pw, ph, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#DABC7A";
+        ctx.beginPath();
+        ctx.arc(x0 + 18, by, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "600 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillStyle = "#EBD9AB";
+        ctx.fillText(lm.label, bx + 8, by + 0.5);
+      });
+
+      // Rosa de los Vientos minimalista (abajo a la izquierda del mapa)
+      const compX = PAD_X + 58;
+      const compY = HEADER_H + MAP_H - 46;
+      ctx.fillStyle = "rgba(12, 17, 15, 0.90)";
+      ctx.strokeStyle = "rgba(218, 188, 122, 0.85)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(0, HEADER_H);
-      ctx.lineTo(W, HEADER_H);
+      ctx.arc(compX, compY, 28, 0, Math.PI * 2);
+      ctx.fill();
       ctx.stroke();
 
-      // Título y fecha en vivo
+      ctx.fillStyle = "#DABC7A";
+      ctx.beginPath();
+      ctx.moveTo(compX, compY - 19);
+      ctx.lineTo(compX - 5.5, compY + 3);
+      ctx.lineTo(compX, compY - 2);
+      ctx.lineTo(compX + 5.5, compY + 3);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "700 11px sans-serif";
+      ctx.fillStyle = "#EBD9AB";
+      ctx.fillText("N", compX, compY + 13);
+
+      ctx.restore(); // Fin del clip del mapa
+
+      // Doble marco dorado champagne alrededor del Masterplan
+      ctx.strokeStyle = "rgba(212, 182, 120, 0.72)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(PAD_X, HEADER_H, MAP_W, MAP_H, 20);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(212, 182, 120, 0.22)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(PAD_X - 4, HEADER_H - 4, MAP_W + 8, MAP_H + 8, 23);
+      ctx.stroke();
+
+      // 5. HEADER EDITORIAL SUPERIOR: Logo Oficial + Título + 4 Tarjetas KPI
+      const logoH = 100;
+      const logoW = Math.round(logoImg.width * (logoH / logoImg.height));
+      const logoX = PAD_X + 12;
+      const logoY = Math.round((HEADER_H - logoH) / 2);
+      ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+
+      const divX = logoX + logoW + 34;
+      ctx.strokeStyle = "rgba(212, 182, 120, 0.45)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(divX, 34);
+      ctx.lineTo(divX, HEADER_H - 34);
+      ctx.stroke();
+
+      const tx = divX + 32;
       const nowStr = new Date().toLocaleDateString("es-CO", {
         day: "2-digit",
         month: "short",
@@ -3230,84 +3392,184 @@ export default function Loom3DMaquetaView({
         minute: "2-digit",
       });
       ctx.textAlign = "left";
-      ctx.fillStyle = "#EBD9AB";
-      ctx.font = "bold 30px serif";
-      ctx.fillText("LOOM LUXURY RESIDENCE · MAPA DE DISPONIBILIDAD", 42, 46);
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "500 17px sans-serif";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = "#DABC7A";
+      ctx.font = "700 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillText("MASTERPLAN OFICIAL   ·   REPORTE DE INVENTARIO EN TIEMPO REAL", tx, 34);
+
+      ctx.fillStyle = "#F8F5EE";
+      ctx.font = "bold 32px Georgia, 'Times New Roman', serif";
+      ctx.fillText("MAPA GENERAL DE DISPONIBILIDAD", tx, 58);
+
+      ctx.fillStyle = "#9CA8A2";
+      ctx.font = "500 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.fillText(
-        `Playa Alma · Vía al Mar Km 23, Zona Norte (Cartagena)   |   Actualizado en tiempo real: ${nowStr}`,
-        42,
-        82
+        `Playa Alma · Vía al Mar Km 23, Zona Norte (Cartagena de Indias)   |   Corte: ${nowStr}`,
+        tx,
+        106
       );
 
-      // Píldoras de resumen a la derecha del Header
-      const pills = [
-        { label: `DISPONIBLES: ${countAvail}`, bg: "rgba(16, 185, 129, 0.18)", border: "#10b981", dot: "#10b981", text: "#ecfdf5" },
-        { label: `RESERVADOS: ${countRes}`, bg: "rgba(245, 158, 11, 0.18)", border: "#f59e0b", dot: "#f59e0b", text: "#fffbeb" },
-        { label: `VENDIDOS: ${countSold}`, bg: "rgba(239, 68, 68, 0.18)", border: "#ef4444", dot: "#ef4444", text: "#fef2f2" },
-      ];
-      let pxRight = W - 42;
-      for (let i = pills.length - 1; i >= 0; i--) {
-        const p = pills[i];
-        ctx.font = "bold 18px sans-serif";
-        const tw = ctx.measureText(p.label).width;
-        const pw = tw + 54;
-        const ph = 46;
-        const x0 = pxRight - pw;
-        const y0 = Math.round((HEADER_H - ph) / 2);
+      // 4 Tarjetas KPI Arquitectónicas a la derecha
+      const totalLots = Math.max(1, countAvail + countRes + countSold);
+      const pctAvail = Math.round((countAvail / totalLots) * 100);
+      const pctRes = Math.round((countRes / totalLots) * 100);
+      const pctSold = 100 - pctAvail - pctRes;
 
-        ctx.fillStyle = p.bg;
-        ctx.strokeStyle = p.border;
-        ctx.lineWidth = 1.8;
+      const kpis = [
+        {
+          num: String(countAvail),
+          badge: `${pctAvail}%`,
+          label: "LOTES DISPONIBLES",
+          accent: "#10B981",
+          badgeBg: "#0E2C22",
+          border: "rgba(16, 185, 129, 0.62)",
+          textSub: "#6EE7B7",
+        },
+        {
+          num: String(countRes),
+          badge: `${pctRes}%`,
+          label: "RESERVADOS",
+          accent: "#F59E0B",
+          badgeBg: "#30220C",
+          border: "rgba(245, 158, 11, 0.62)",
+          textSub: "#FCD34D",
+        },
+        {
+          num: String(countSold),
+          badge: `${pctSold}%`,
+          label: "LOTES VENDIDOS",
+          accent: "#E11D48",
+          badgeBg: "#301018",
+          border: "rgba(225, 29, 72, 0.62)",
+          textSub: "#FDA4AF",
+        },
+        {
+          num: String(countAvail + countRes + countSold),
+          badge: "72.480 m²",
+          label: "TOTAL UNIDADES",
+          accent: "#DABC7A",
+          badgeBg: "#282216",
+          border: "rgba(218, 188, 122, 0.65)",
+          textSub: "#EBD9AB",
+        },
+      ];
+
+      const cardW = 222;
+      const cardH = 102;
+      const cardGap = 16;
+      const startX = W - PAD_X - (cardW * kpis.length + cardGap * (kpis.length - 1));
+      const cardY = Math.round((HEADER_H - cardH) / 2);
+
+      kpis.forEach((k, idx) => {
+        const cx0 = startX + idx * (cardW + cardGap);
+        const cy0 = cardY;
+
+        ctx.fillStyle = "#101614";
+        ctx.strokeStyle = k.border;
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.roundRect(x0, y0, pw, ph, 23);
+        ctx.roundRect(cx0, cy0, cardW, cardH, 14);
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = p.dot;
+        // Barra superior de acento
+        ctx.fillStyle = k.accent;
         ctx.beginPath();
-        ctx.arc(x0 + 22, y0 + ph / 2, 7, 0, Math.PI * 2);
+        ctx.roundRect(cx0 + 18, cy0 + 1, cardW - 36, 4, 2);
         ctx.fill();
 
-        ctx.fillStyle = p.text;
+        // Número principal
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = "#F8FAFC";
+        ctx.font = "700 38px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillText(k.num, cx0 + 20, cy0 + 15);
+
+        // Píldora de porcentaje / área
+        const bw = idx === 3 ? 84 : 54;
+        const bh = 26;
+        const bx0 = cx0 + cardW - bw - 16;
+        const by0 = cy0 + 23;
+        ctx.fillStyle = k.badgeBg;
+        ctx.strokeStyle = k.border;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(bx0, by0, bw, bh, 13);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = k.textSub;
+        ctx.font = "700 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillText(k.badge, bx0 + bw / 2, by0 + bh / 2 + 0.5);
+
+        // Subtítulo de tarjeta
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = k.textSub;
+        ctx.font = "700 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillText(k.label, cx0 + 20, cy0 + 70);
+      });
+
+      // 6. FOOTER EDITORIAL INFERIOR
+      const fy = HEADER_H + MAP_H;
+      const cyFoot = fy + FOOTER_H / 2;
+
+      if (selectedLot) {
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
-        ctx.fillText(p.label, x0 + 36, y0 + ph / 2 + 1);
+        ctx.fillStyle = "#EBD9AB";
+        ctx.font = "700 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillText(
+          `★ LOTE DESTACADO EN PLANO: Lote ${selectedLot.rawId} (${getStageDisplayName(stageId, isEn)})   ·   Área: ${selectedLot.area} m²   ·   Precio: ${selectedLot.totalPrice}`,
+          PAD_X + 6,
+          cyFoot
+        );
+      } else {
+        const legendItems = [
+          { label: "Disponible para inversión", fill: "#10AC76", border: "#86EFAC" },
+          { label: "Reservado / En proceso", fill: "#EA9E16", border: "#FDE047" },
+          { label: "Lote Vendido", fill: "#D43644", border: "#FDA4AF" },
+          { label: "Amenidades & Club de Playa", fill: "#DABC7A", border: "#F5E6C4" },
+        ];
+        let lx = PAD_X + 6;
+        legendItems.forEach((item) => {
+          ctx.fillStyle = item.fill;
+          ctx.strokeStyle = item.border;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(lx, cyFoot - 11, 22, 22, 6);
+          ctx.fill();
+          ctx.stroke();
 
-        pxRight = x0 - 16;
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#E2E8F0";
+          ctx.font = "500 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          ctx.fillText(item.label, lx + 32, cyFoot);
+          lx += 32 + ctx.measureText(item.label).width + 34;
+        });
       }
 
-      // Footer Comercial Inferior
-      const fy = HEADER_H + MAP_H;
-      ctx.fillStyle = "#0A0D0B";
-      ctx.fillRect(0, fy, W, FOOTER_H);
-      ctx.strokeStyle = "rgba(212, 175, 55, 0.35)";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(0, fy);
-      ctx.lineTo(W, fy);
-      ctx.stroke();
-
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "#EDE7E0";
-      ctx.font = "600 17px sans-serif";
-      const footerLeft = selectedLot
-        ? `⭐ LOTE DESTACADO: Lote ${selectedLot.rawId} (${getStageDisplayName(stageId, isEn)})  •  Área: ${selectedLot.area} m²  •  Precio: ${selectedLot.totalPrice}`
-        : "🟢 Verde: Lote Disponible   •   🟡 Ámbar: Reservado / Bloqueado   •   🔴 Rojo: Lote Vendido   •   🏖️ Derecha: Salida Directa a Playa Alma & Alma Beach Club";
-      ctx.fillText(footerLeft, 42, fy + FOOTER_H / 2);
-
       ctx.textAlign = "right";
-      ctx.fillStyle = "#EBD9AB";
-      ctx.font = "bold 17px sans-serif";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(218, 188, 122, 0.95)";
+      ctx.font = "700 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.fillText(
-        "Loom Luxury Residence · Proyecto Alma Beach   |   Financiación hasta 48 meses 0% interés",
-        W - 42,
-        fy + FOOTER_H / 2
+        "DISEÑO BIOCLIMÁTICO: MAADGA GROUP   ·   CONSTRUYE: ICG   ·   PROMUEVE: RUBIK 5   ·   FINANCIACIÓN HASTA 48 MESES (0% INTERÉS)",
+        W - PAD_X - 6,
+        cyFoot
       );
 
-      // Exportar como JPG ligero (~280 KB) ideal para WhatsApp y CRM
+      // Marco exterior fino alrededor de toda la lámina
+      ctx.strokeStyle = "rgba(212, 182, 120, 0.34)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(14, 14, W - 28, H - 28, 26);
+      ctx.stroke();
+
+      // Exportar como JPG ligero (~650-900 KB) ideal para WhatsApp y CRM
       const blob = await new Promise<Blob | null>((res) =>
         canvas.toBlob((b) => res(b), "image/jpeg", 0.88)
       );
