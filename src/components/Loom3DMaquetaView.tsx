@@ -2102,6 +2102,7 @@ export default function Loom3DMaquetaView({
   const [carTemplates, setCarTemplates] = useState<THREE.Group[]>([]);
   const [droneRenderModal, setDroneRenderModal] = useState<CameraPreset["renderPreview"] | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<"stages" | "options" | null>(null);
+  const [isAreaCardCollapsed, setIsAreaCardCollapsed] = useState<boolean>(false);
   const bottomBarScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -4060,7 +4061,13 @@ export default function Loom3DMaquetaView({
 
   return (
     <div className="relative w-full h-dvh bg-[#061112] text-[#EDE7E0] overflow-hidden select-none font-sans">
-      <div ref={mountRef} className="w-full h-full" />
+      <div
+        ref={mountRef}
+        onPointerDown={() => {
+          if (mobileMenuOpen) setMobileMenuOpen(null);
+        }}
+        className="w-full h-full"
+      />
 
       {hoveredLot && (
         <div
@@ -4193,43 +4200,59 @@ export default function Loom3DMaquetaView({
           </div>
         )}
 
-        {/* Desplegable de Capas / Herramientas en Celular */}
+        {/* Desplegable de Capas / Herramientas en Celular (Auto-cierre al seleccionar) */}
         {mobileMenuOpen === "options" && (
           <div className="bg-[#0b1210]/85 backdrop-blur-2xl border border-white/20 rounded-2xl p-3 shadow-2xl pointer-events-auto flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
-            <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[#EBD9AB] mb-1">
+            <div className="flex items-center justify-between">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-[#EBD9AB]">
                 {isEn ? "Color Lots By" : "Colorear Lotes Por"}
               </div>
-              <div className="grid grid-cols-3 gap-1 bg-white/8 p-1 rounded-xl border border-white/10">
-                {(
-                  [
-                    { id: "status", es: "Estado", en: "Status" },
-                    { id: "area", es: "Área m²", en: "Area" },
-                    { id: "typology", es: "Tipología", en: "Type" },
-                  ] as const
-                ).map((mode) => (
-                  <button
-                    key={mode.id}
-                    onClick={() => setColorMode(mode.id)}
-                    className={`py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                      colorMode === mode.id
-                        ? "bg-[#B35F27] text-white shadow"
-                        : "text-white/75"
-                    }`}
-                  >
-                    {isEn ? mode.en : mode.es}
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={() => setMobileMenuOpen(null)}
+                aria-label={isEn ? "Close menu" : "Cerrar menú"}
+                className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-1 bg-white/8 p-1 rounded-xl border border-white/10">
+              {(
+                [
+                  { id: "status", es: "Estado", en: "Status" },
+                  { id: "area", es: "Área m²", en: "Area" },
+                  { id: "typology", es: "Tipología", en: "Type" },
+                ] as const
+              ).map((mode) => (
+                <button
+                  key={mode.id}
+                  onClick={() => {
+                    setColorMode(mode.id);
+                    if (mode.id === "area") {
+                      setIsAreaCardCollapsed(false);
+                    } else {
+                      setActiveAreaFilter("all");
+                    }
+                    setMobileMenuOpen(null);
+                  }}
+                  className={`py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                    colorMode === mode.id
+                      ? "bg-[#B35F27] text-white shadow"
+                      : "text-white/75"
+                  }`}
+                >
+                  {isEn ? mode.en : mode.es}
+                </button>
+              ))}
             </div>
 
             <div className="grid grid-cols-2 gap-1.5">
               <button
-                onClick={() =>
+                onClick={() => {
                   setVillaMode((prev) =>
                     prev === "showcase" ? "all" : prev === "all" ? "off" : "showcase"
-                  )
-                }
+                  );
+                  setMobileMenuOpen(null);
+                }}
                 className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border ${
                   villaMode !== "off"
                     ? "bg-emerald-500/20 border-emerald-400/45 text-emerald-200"
@@ -4253,7 +4276,10 @@ export default function Loom3DMaquetaView({
               </button>
 
               <button
-                onClick={() => setIsSunset(!isSunset)}
+                onClick={() => {
+                  setIsSunset(!isSunset);
+                  setMobileMenuOpen(null);
+                }}
                 className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border ${
                   isSunset
                     ? "bg-amber-500/25 border-amber-400/55 text-amber-100"
@@ -4269,7 +4295,10 @@ export default function Loom3DMaquetaView({
               </button>
 
               <button
-                onClick={() => setShowTrees3D(!showTrees3D)}
+                onClick={() => {
+                  setShowTrees3D(!showTrees3D);
+                  setMobileMenuOpen(null);
+                }}
                 className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border ${
                   showTrees3D
                     ? "bg-teal-500/20 border-teal-400/45 text-teal-200"
@@ -4281,7 +4310,10 @@ export default function Loom3DMaquetaView({
               </button>
 
               <button
-                onClick={() => setShowDronePins(!showDronePins)}
+                onClick={() => {
+                  setShowDronePins(!showDronePins);
+                  setMobileMenuOpen(null);
+                }}
                 className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border ${
                   showDronePins
                     ? "bg-[#B35F27]/25 border-[#B35F27]/55 text-[#EBD9AB]"
@@ -4375,7 +4407,14 @@ export default function Loom3DMaquetaView({
             ).map((mode) => (
               <button
                 key={mode.id}
-                onClick={() => setColorMode(mode.id)}
+                onClick={() => {
+                  setColorMode(mode.id);
+                  if (mode.id === "area") {
+                    setIsAreaCardCollapsed(false);
+                  } else {
+                    setActiveAreaFilter("all");
+                  }
+                }}
                 className={`px-2 py-1 rounded-lg text-[9.5px] font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                   colorMode === mode.id
                     ? "bg-[#B35F27]/85 text-white border border-[#EBD9AB]/35 shadow-sm"
@@ -4491,44 +4530,105 @@ export default function Loom3DMaquetaView({
       </div>
 
       {colorMode === "area" && (
-        <div className="absolute top-20 left-3 z-20 bg-[#0A0D0B]/92 border border-[#B35F27]/40 rounded-2xl p-3 shadow-2xl backdrop-blur-xl max-w-xs pointer-events-auto">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-[#EBD9AB] font-bold">
-              {isEn ? "Filter by Lot Area" : "Filtrar por Rango de Área"}
-            </span>
-            {activeAreaFilter !== "all" && (
-              <button
-                onClick={() => setActiveAreaFilter("all")}
-                className="text-[9px] text-[#B35F27] hover:underline font-bold uppercase cursor-pointer"
-              >
-                {isEn ? "Show All" : "Ver Todos"}
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {AREA_TIERS.map((tier) => {
-              const isSelectedTier = activeAreaFilter === tier.key;
+        <div className="absolute top-16 lg:top-20 left-3 z-20 pointer-events-auto">
+          {isAreaCardCollapsed && activeAreaFilter !== "all" ? (
+            /* Píldora compacta cuando ya se eligió un rango para no tapar las villas */
+            (() => {
+              const currentTier = AREA_TIERS.find((t) => t.key === activeAreaFilter);
               return (
-                <button
-                  key={tier.key}
-                  onClick={() => setActiveAreaFilter(isSelectedTier ? "all" : tier.key)}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-left transition-all cursor-pointer ${
-                    isSelectedTier
-                      ? "bg-white/15 border-white text-white shadow-md"
-                      : "bg-white/5 border-white/10 text-white/75 hover:bg-white/10"
-                  }`}
-                >
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-[#0b1210]/65 backdrop-blur-2xl border border-white/25 shadow-[0_12px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.22)]">
                   <span
                     className="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: tier.fillHex }}
+                    style={{ backgroundColor: currentTier?.fillHex || "#10b981" }}
                   />
-                  <span className="text-[10px] font-bold truncate">
-                    {isEn ? tier.labelEn : tier.labelEs}
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white whitespace-nowrap">
+                    {currentTier ? (isEn ? currentTier.labelEn : currentTier.labelEs) : ""}
                   </span>
-                </button>
+                  <button
+                    onClick={() => setIsAreaCardCollapsed(false)}
+                    className="px-2 py-0.5 rounded-lg bg-white/12 hover:bg-white/20 text-[9px] font-bold uppercase tracking-wider text-[#EBD9AB] cursor-pointer"
+                  >
+                    {isEn ? "Change" : "Cambiar"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveAreaFilter("all");
+                      setColorMode("status");
+                      setIsAreaCardCollapsed(false);
+                    }}
+                    title={isEn ? "Remove area filter" : "Quitar filtro de área"}
+                    aria-label={isEn ? "Remove area filter" : "Quitar filtro de área"}
+                    className="w-6 h-6 rounded-full bg-white/10 hover:bg-[#B35F27] flex items-center justify-center text-white/85 hover:text-white transition-all cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               );
-            })}
-          </div>
+            })()
+          ) : (
+            /* Tarjeta Glassmorphism de selección de rango con botón X para cerrarla */
+            <div className="bg-[#0b1210]/65 border border-white/22 rounded-2xl p-3 shadow-[0_12px_36px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-2xl max-w-xs">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#EBD9AB] font-bold">
+                  {isEn ? "Filter by Lot Area" : "Filtrar por Rango de Área"}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {activeAreaFilter !== "all" && (
+                    <button
+                      onClick={() => setActiveAreaFilter("all")}
+                      className="text-[9px] text-[#EBD9AB] hover:underline font-bold uppercase cursor-pointer"
+                    >
+                      {isEn ? "All" : "Todos"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setActiveAreaFilter("all");
+                      setColorMode("status");
+                      setIsAreaCardCollapsed(false);
+                    }}
+                    title={isEn ? "Close area filter" : "Cerrar filtro de área"}
+                    aria-label={isEn ? "Close area filter" : "Cerrar filtro de área"}
+                    className="w-6 h-6 rounded-full bg-white/10 hover:bg-[#B35F27] flex items-center justify-center text-white/85 hover:text-white border border-white/15 transition-all cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {AREA_TIERS.map((tier) => {
+                  const isSelectedTier = activeAreaFilter === tier.key;
+                  return (
+                    <button
+                      key={tier.key}
+                      onClick={() => {
+                        if (isSelectedTier) {
+                          setActiveAreaFilter("all");
+                          setIsAreaCardCollapsed(false);
+                        } else {
+                          setActiveAreaFilter(tier.key);
+                          setIsAreaCardCollapsed(true);
+                        }
+                      }}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelectedTier
+                          ? "bg-white/20 border-white text-white shadow-md"
+                          : "bg-white/8 border-white/12 text-white/80 hover:bg-white/15"
+                      }`}
+                    >
+                      <span
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: tier.fillHex }}
+                      />
+                      <span className="text-[10px] font-bold truncate">
+                        {isEn ? tier.labelEn : tier.labelEs}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
