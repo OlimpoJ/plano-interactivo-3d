@@ -1909,29 +1909,47 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
     // Pertenencia estricta al masterplan central [0..1]
     float inMaster = step(0.0, mUv.x) * step(mUv.x, 1.0) * step(0.0, mUv.y) * step(mUv.y, 1.0);
 
-    // Continuación C0 sin costuras hacia el Norte (mUv.y > 1), Sur (mUv.y < 0),
-    // y Mar Caribe profundo al Este (mUv.x > 1).
+    // Curva costera analítica + orgánica continua de Playa Alma (0.930 al Sur -> 0.870 al Norte)
+    // Elimina por completo cualquier efecto espejo, puntos repetidos o costuras en el Mar Caribe
+    float yClamped = clamp(mUv.y, 0.0, 1.0);
+    float baseShoreX = 0.930 - 0.074 * yClamped + 0.014 * yClamped * yClamped;
+    float outNorth = max(0.0, mUv.y - 1.0);
+    float outSouth = max(0.0, -mUv.y);
+    float outDistY = outNorth + outSouth;
+
+    // Ondulación costera orgánica no periódica para las extensiones de playa Norte/Sur
+    float fbmCoast = (texture2D(uDetailTex, vec2(mUv.y * 0.37, 0.23)).r - 0.5) * 0.015
+                   + (texture2D(uDetailTex, vec2(mUv.y * 1.13, 0.71)).g - 0.5) * 0.008;
+    float waveCoast = sin(mUv.y * 2.15) * 0.007 + sin(mUv.y * 5.35 + 1.3) * 0.0035;
+    float extShoreX = baseShoreX
+                    - smoothstep(0.0, 0.45, outNorth) * 0.010
+                    + smoothstep(0.0, 0.45, outSouth) * 0.008
+                    + (fbmCoast + waveCoast) * smoothstep(0.0, 0.16, outDistY);
+
+    // Continuación C0 hacia el Norte (mUv.y > 1) y Sur (mUv.y < 0) para el bosque y la arena
     float sampleY = clamp(mUv.y, 0.004, 0.996);
     if (mUv.y > 1.0) {
       float dy = mUv.y - 1.0;
       float triY = 1.0 - abs(fract(dy * 1.45) * 2.0 - 1.0);
-      sampleY = 0.996 - triY * 0.155;
+      // En la franja de playa (mUv.x > 0.76) usamos una banda angosta + FBM para no desfasar la orilla
+      float yBand = mix(0.155, 0.035, smoothstep(0.74, 0.83, mUv.x));
+      sampleY = 0.994 - triY * yBand;
     } else if (mUv.y < 0.0) {
       float dy = -mUv.y;
       float triY = 1.0 - abs(fract(dy * 1.45) * 2.0 - 1.0);
-      sampleY = 0.004 + triY * 0.155;
+      float yBand = mix(0.155, 0.035, smoothstep(0.74, 0.83, mUv.x));
+      sampleY = 0.006 + triY * yBand;
     }
 
     float sampleX = clamp(mUv.x, 0.004, 0.996);
-    if (mUv.x > 1.0) {
-      float dx = mUv.x - 1.0;
-      float triX = 1.0 - abs(fract(dx * 1.75) * 2.0 - 1.0);
-      sampleX = 0.996 - triX * 0.058;
+    if (outDistY > 0.0 && mUv.x > 0.76) {
+      float shoreSampleY = 0.930 - 0.074 * sampleY + 0.014 * sampleY * sampleY;
+      float coastAlign = smoothstep(0.0, 0.08, outDistY) * smoothstep(0.76, 0.84, mUv.x);
+      sampleX = clamp(mUv.x + (shoreSampleY - extShoreX) * coastAlign, 0.004, 0.996);
     }
 
-    // Deformación orgánica FBM únicamente en el bosque exterior Norte/Sur (sampleX < 0.75)
-    float outDistY = max(0.0, max(-mUv.y, mUv.y - 1.0));
-    float outerForestFactor = clamp(outDistY * 4.0, 0.0, 1.0) * step(0.02, mUv.x) * (1.0 - smoothstep(0.70, 0.78, sampleX));
+    // Deformación orgánica FBM en el bosque exterior Norte/Sur y en la arena exterior
+    float outerForestFactor = clamp(outDistY * 4.0, 0.0, 1.0) * step(0.02, mUv.x) * (1.0 - smoothstep(0.76, 0.84, mUv.x));
     vec2 fbmForestWarp = (texture2D(uDetailTex, mUv * 3.2).rg - 0.5) * 0.06 * outerForestFactor;
 
     vec2 sampleUv = clamp(vec2(sampleX, sampleY) + fbmForestWarp, 0.003, 0.997);
@@ -1977,8 +1995,18 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
     // R = Mar Caribe y Piscinas de los Clubs (0 en todos los lotes y vías)
     // G = Césped de lotes y vegetación
     // B = Lago / Laguna Natural de Etapa 5 (ambas cuencas, excluyendo el puente vehicular)
-    float sdSea = (mUv.x > 1.0) ? 1.0 : masks.r;
-    float grassMask = masks.g;
+    float isClubPool = inMaster * (1.0 - smoothstep(0.845, 0.860, mUv.x));
+    float analyticSea = max(0.0, (mUv.x - extShoreX) * 8.2);
+    // Dentro de Playa Alma central manda la máscara exacta; hacia bordes N/S/Este funde C1 sin costuras con analyticSea
+    float masterCoastBlend = smoothstep(0.03, 0.12, mUv.y)
+                           * (1.0 - smoothstep(0.88, 0.97, mUv.y))
+                           * (1.0 - smoothstep(0.90, 0.96, mUv.x));
+    float coastalSeaDist = mix(analyticSea, masks.r, masterCoastBlend);
+    float nonSandInCoast = smoothstep(0.865, 0.885, mUv.x) * smoothstep(-0.015, 0.025, baseCol.b - baseCol.r);
+    float sdSea = (isClubPool > 0.5)
+      ? masks.r
+      : ((mUv.x > 0.845) ? max(coastalSeaDist, nonSandInCoast * 0.14) : 0.0);
+    float grassMask = masks.g * (1.0 - smoothstep(0.01, 0.06, sdSea));
     float lakeMask = masks.b * inMaster;
 
     float camDist = length(vWorldPos - uCameraPos);
@@ -2071,64 +2099,118 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
     }
 
     // ========================================================================
-    // CAPA 3: MAR CARIBE Y PISCINAS POR REFRACCIÓN ÓPTICA + BRILLO DIAMANTE SOLAR
+    // CAPA 3: MAR CARIBE BATIMÉTRICO 100% ORGÁNICO (CERO REPETICIÓN) Y PISCINAS
     // ========================================================================
-    if (sdSea >= 0.035) {
+    if (sdSea >= 0.025) {
       vec3 fbmData = sampleWaterFBM(mUv, uTime);
       vec2 waveN = fbmData.xy;
       float waveH = fbmData.z;
 
-      float shoreFade = smoothstep(0.035, 0.11, sdSea);
-      vec2 refractOffset = waveN * 0.0032 * (0.35 + 0.65 * shoreFade);
-      float swellPush = sin(uTime * 1.45 - sdSea * 24.0 + waveH * 4.5) * 0.0018 * (1.0 - smoothstep(0.02, 0.45, sdSea));
+      if (isClubPool > 0.5) {
+        // Piscinas de Alma Beach Club y Club House: refracción cristalina sobre el render base
+        float poolFade = smoothstep(0.035, 0.11, sdSea);
+        vec2 waterUv = clamp(sampleUv + waveN * 0.0028 * poolFade, 0.003, 0.997);
+        vec3 refractedPool = texture2D(uMasterTex, waterUv).rgb;
+        vec3 poolCol = mix(refractedPool, vec3(0.08, 0.62, 0.64), 0.28 * poolFade);
 
-      vec2 waterUv = clamp(sampleUv + refractOffset + vec2(swellPush, 0.0), 0.003, 0.997);
-      vec3 refractedSea = texture2D(uMasterTex, waterUv).rgb;
+        float c1 = texture2D(uDetailTex, mUv * 48.0 + waveN * 0.06 + vec2(uTime * 0.025, 0.0)).a;
+        float c2 = texture2D(uDetailTex, mUv * 54.0 - waveN * 0.06 - vec2(0.0, uTime * 0.022)).a;
+        poolCol += vec3(0.16, 0.36, 0.34) * pow(min(c1, c2) * 1.65, 2.2) * poolFade;
 
-      // En mar abierto profundo (mUv.x > 0.97) transicionar suavemente a Azul Zafiro Caribeño sin rayas
-      float deepOceanFactor = smoothstep(0.96, 1.28, mUv.x);
-      vec3 openSeaCol = mix(vec3(0.05, 0.42, 0.48), vec3(0.03, 0.19, 0.34), smoothstep(0.96, 1.75, mUv.x));
-      refractedSea = mix(refractedSea, openSeaCol, deepOceanFactor * 0.86);
+        vec3 Np = normalize(vec3(waveN.x * 0.35, 1.0, waveN.y * 0.35));
+        vec3 Vp = normalize(uCameraPos - vWorldPos);
+        vec3 Rfp = reflect(-Vp, Np);
+        float pGlitter = pow(max(dot(Rfp, uSunDir), 0.0), 220.0) * 2.6;
+        vec3 sunTintP = mix(vec3(1.0, 0.99, 0.92), vec3(1.0, 0.68, 0.28), uIsSunset);
+        poolCol += sunTintP * pGlitter * poolFade;
 
-      vec3 turquoiseBoost = mix(vec3(0.08, 0.58, 0.56), vec3(0.04, 0.24, 0.38), smoothstep(0.08, 0.75, sdSea));
-      vec3 seaCol = mix(refractedSea, turquoiseBoost, 0.24 * shoreFade);
+        finalCol = mix(baseCol, poolCol, smoothstep(0.035, 0.085, sdSea));
+      } else {
+        // MAR CARIBE REAL: Preserva el banco de arena dorada somera real de Playa Alma (R > G >= B)
+        // y reemplaza 100% el agua estática (manchas grises y puntos blancos repetidos) por océano procedural vivo
+        float shoreFade = smoothstep(0.025, 0.09, sdSea);
+        vec2 refractOffset = waveN * 0.0026 * (0.35 + 0.65 * shoreFade);
+        vec2 waterUv = clamp(sampleUv + refractOffset, 0.003, 0.997);
+        vec3 refractedSample = texture2D(uMasterTex, waterUv).rgb;
 
-      // Caústicas solares orgánicas
-      float caustic1 = texture2D(uDetailTex, mUv * 42.0 + waveN * 0.06 + vec2(uTime * 0.025, 0.0)).a;
-      float caustic2 = texture2D(uDetailTex, mUv * 48.0 - waveN * 0.06 - vec2(0.0, uTime * 0.022)).a;
-      float causticPattern = pow(min(caustic1, caustic2) * 1.65, 2.2);
-      seaCol += vec3(0.14, 0.32, 0.30) * causticPattern * (1.0 - smoothstep(0.03, 0.50, sdSea)) * shoreFade;
+        // Detector físico de arena dorada/arrecife somero (R > B y R >= G) vs agua/manchas/puntos blancos (B >= R)
+        float sandWarmth = (refractedSample.r - refractedSample.b) + min(0.0, refractedSample.r - refractedSample.g);
+        float isGoldenSandbar = smoothstep(0.016, 0.068, sandWarmth)
+                              * (1.0 - smoothstep(0.932, 0.958, mUv.x))
+                              * (1.0 - smoothstep(0.32, 0.58, sdSea));
 
-      // Espuma orgánica viva en la rompiente de toda la costa de Playa Alma
-      float naturalFoamBase = max(0.0, (refractedSea.r + refractedSea.g + refractedSea.b) / 3.0 - 0.58) * 2.2 * (1.0 - deepOceanFactor);
-      float rollingCrest = smoothstep(0.62, 0.88, sin(sdSea * 28.0 + uTime * 1.65 + waveH * 5.2) * 0.5 + 0.5);
-      float surfZone = (1.0 - smoothstep(0.04, 0.36, sdSea)) * smoothstep(0.035, 0.075, sdSea) * (1.0 - deepOceanFactor);
-      float foamLace = smoothstep(0.38, 0.75, waveH);
+        // Distancia efectiva desde el borde del banco de arena hacia mar abierto
+        float waterDepth = max(0.0, sdSea * (1.0 - isGoldenSandbar * 0.72));
 
-      float liveFoam = clamp(
-        naturalFoamBase * (0.25 + 0.45 * sin(uTime * 2.1 + waveH * 6.0)) +
-        rollingCrest * surfZone * foamLace * 0.52,
-        0.0,
-        0.85
-      );
-      vec3 foamColor = mix(vec3(0.95, 0.99, 1.0), vec3(1.0, 0.90, 0.76), uIsSunset * 0.6);
-      seaCol = mix(seaCol, foamColor, liveFoam);
+        // Variación orgánica submarina (arrecifes coralinos y bancos de arena a gran escala en coordenadas mundiales)
+        mat2 reefRot = mat2(0.866, -0.50, 0.50, 0.866);
+        float reefNoise1 = texture2D(uDetailTex, mUv * vec2(2.4, 1.6)).r;
+        float reefNoise2 = texture2D(uDetailTex, (reefRot * mUv) * vec2(5.8, 3.9) + vec2(0.37, 0.61)).g;
+        float reefNoise3 = texture2D(uDetailTex, mUv * vec2(13.5, 9.2) - vec2(0.19, 0.83)).b;
+        float reefMottle = clamp(reefNoise1 * 0.52 + reefNoise2 * 0.33 + reefNoise3 * 0.15, 0.0, 1.0);
 
-      // Iluminación Física: Fresnel + Destellos Diamante/Oro del Sol ("Sun Glitter")
-      vec3 N = normalize(vec3(waveN.x * 0.42, 1.0, waveN.y * 0.42));
-      vec3 V = normalize(uCameraPos - vWorldPos);
-      float fresnel = pow(1.0 - max(dot(N, V), 0.0), 4.0);
+        // Gradiente batimétrico Caribeño limpio (Turquesa Cristalino -> Azul Arrecifal -> Zafiro Profundo)
+        vec3 turquoiseReef = mix(vec3(0.09, 0.58, 0.57), vec3(0.04, 0.33, 0.43), smoothstep(0.25, 0.75, reefMottle));
+        vec3 openOceanBase = mix(turquoiseReef, vec3(0.03, 0.25, 0.39), smoothstep(0.16, 0.78, waterDepth));
+        openOceanBase = mix(openOceanBase, vec3(0.02, 0.15, 0.28), smoothstep(0.75, 2.80, waterDepth));
 
-      vec3 skyRefl = mix(vec3(0.58, 0.84, 0.96), vec3(0.98, 0.58, 0.28), uIsSunset);
-      seaCol = mix(seaCol, skyRefl, fresnel * 0.36);
+        // Fundir suavemente el banco de arena dorada real con el océano procedural libre de artefactos
+        vec3 shallowSandbarTint = mix(refractedSample, vec3(0.12, 0.58, 0.56), 0.22 * shoreFade);
+        vec3 seaCol = mix(openOceanBase, shallowSandbarTint, isGoldenSandbar);
 
-      vec3 Rf = reflect(-V, N);
-      float glitterSharp = pow(max(dot(Rf, uSunDir), 0.0), 260.0) * 3.4;
-      float glitterSoft  = pow(max(dot(Rf, uSunDir), 0.0), 32.0) * 0.38;
-      vec3 sunTint = mix(vec3(1.0, 0.99, 0.92), vec3(1.0, 0.68, 0.28), uIsSunset);
-      seaCol += sunTint * (glitterSharp + glitterSoft) * shoreFade;
+        // Tren de olas oceánicas de largo período (Swells del Mar Caribe viajando hacia la costa)
+        float swellPhase1 = waterDepth * 22.0 + uTime * 1.55 + waveH * 3.8 + sin(mUv.y * 9.5) * 1.1;
+        float swellPhase2 = waterDepth * 36.0 - mUv.y * 7.5 + uTime * 2.10 + waveN.x * 3.0;
+        float oceanSwell = sin(swellPhase1) * 0.62 + sin(swellPhase2) * 0.38;
+        seaCol *= 1.0 + oceanSwell * 0.06 * smoothstep(0.05, 0.25, waterDepth);
 
-      finalCol = mix(baseCol, seaCol, smoothstep(0.035, 0.08, sdSea));
+        // Caústicas solares doradas/turquesa en la zona somera y media
+        float caustic1 = texture2D(uDetailTex, mUv * 40.0 + waveN * 0.06 + vec2(uTime * 0.024, 0.0)).a;
+        float caustic2 = texture2D(uDetailTex, mUv * 46.0 - waveN * 0.06 - vec2(0.0, uTime * 0.021)).a;
+        float causticPattern = pow(min(caustic1, caustic2) * 1.65, 2.15);
+        seaCol += vec3(0.14, 0.32, 0.30) * causticPattern * (1.0 - smoothstep(0.12, 0.75, waterDepth)) * shoreFade;
+
+        // Rompiente viva multicapa siguiendo el contorno real del banco de arena (0 puntos fijos en mar abierto)
+        float foamCells1 = texture2D(uDetailTex, mUv * vec2(52.0, 34.0) + waveN * 0.08 + vec2(uTime * 0.015, -uTime * 0.01)).a;
+        float foamCells2 = texture2D(uDetailTex, (reefRot * mUv) * vec2(84.0, 58.0) - vec2(uTime * 0.018, 0.0)).b;
+        float organicLace = smoothstep(0.36, 0.74, foamCells1 * 0.6 + foamCells2 * 0.4);
+
+        // Espuma rompiendo exactamente en la transición del banco de arena al mar turquesa
+        float sandbarDropEdge = smoothstep(0.05, 0.45, isGoldenSandbar) * (1.0 - smoothstep(0.55, 0.92, isGoldenSandbar));
+        float rollingWave1 = smoothstep(0.58, 0.90, sin(waterDepth * 30.0 + uTime * 1.75 + waveH * 5.0) * 0.5 + 0.5);
+        float rollingWave2 = smoothstep(0.64, 0.93, sin(sdSea * 26.0 - uTime * 1.40 + waveH * 5.4 - mUv.y * 5.0) * 0.5 + 0.5);
+        float surfZone = smoothstep(0.03, 0.08, sdSea) * (1.0 - smoothstep(0.14, 0.42, waterDepth));
+
+        float liveFoam = clamp(
+          sandbarDropEdge * (0.28 + 0.52 * organicLace) * (0.55 + 0.45 * rollingWave1) +
+          rollingWave1 * surfZone * organicLace * 0.52 +
+          rollingWave2 * surfZone * organicLace * 0.34,
+          0.0,
+          0.85
+        );
+
+        vec3 foamColor = mix(vec3(0.95, 0.99, 1.0), vec3(1.0, 0.90, 0.76), uIsSunset * 0.6);
+        seaCol = mix(seaCol, foamColor, liveFoam);
+
+        // Iluminación Física: Normales de Olas + Fresnel + Destellos Diamante/Oro del Sol
+        vec2 swellGrad = vec2(cos(swellPhase1) * 0.13 + cos(swellPhase2) * 0.08, sin(swellPhase2) * 0.05);
+        vec3 N = normalize(vec3(waveN.x * 0.42 + swellGrad.x, 1.0, waveN.y * 0.42 + swellGrad.y));
+        vec3 V = normalize(uCameraPos - vWorldPos);
+        float fresnel = pow(1.0 - max(dot(N, V), 0.0), 4.0);
+
+        vec3 skyRefl = mix(vec3(0.58, 0.84, 0.96), vec3(0.98, 0.58, 0.28), uIsSunset);
+        seaCol = mix(seaCol, skyRefl, fresnel * 0.36 * shoreFade);
+
+        vec3 Rf = reflect(-V, N);
+        float glitterSharp = pow(max(dot(Rf, uSunDir), 0.0), 260.0) * 3.3;
+        float glitterSoft  = pow(max(dot(Rf, uSunDir), 0.0), 32.0) * 0.36;
+        vec3 sunTint = mix(vec3(1.0, 0.99, 0.92), vec3(1.0, 0.68, 0.28), uIsSunset);
+        seaCol += sunTint * (glitterSharp + glitterSoft) * shoreFade;
+
+        // Evitar que manchas frías de uMasterTex asomen donde sdSea es muy bajo (0.025..0.07)
+        vec3 safeShoreBase = mix(vec3(0.76, 0.69, 0.56), baseCol, isGoldenSandbar);
+        finalCol = mix(safeShoreBase, seaCol, smoothstep(0.025, 0.075, sdSea));
+      }
     }
 
     if (uIsSunset > 0.01 && sdSea < 0.035 && lakeMask < 0.04) {
