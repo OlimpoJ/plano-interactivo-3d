@@ -4595,17 +4595,17 @@ export default function Loom3DMaquetaView({
                   setMobileMenuOpen(null);
                 }}
                 className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border ${
-                  isSunset
+                  !isSunset
                     ? "bg-amber-500/25 border-amber-400/55 text-amber-100"
                     : "bg-sky-500/15 border-sky-400/35 text-sky-100"
                 }`}
               >
-                {isSunset ? (
+                {!isSunset ? (
                   <Sunset className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                 ) : (
                   <Sun className="w-3.5 h-3.5 text-sky-300 shrink-0" />
                 )}
-                <span>{isSunset ? (isEn ? "Sunset" : "Atardecer") : (isEn ? "Daylight" : "Día")}</span>
+                <span>{!isSunset ? (isEn ? "Sunset" : "Atardecer") : (isEn ? "Daylight" : "Día")}</span>
               </button>
 
               <button
@@ -4783,17 +4783,17 @@ export default function Loom3DMaquetaView({
           <button
             onClick={() => setIsSunset(!isSunset)}
             className={`flex items-center gap-1 px-2 py-1 rounded-xl text-[9.5px] font-bold uppercase tracking-wider border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              isSunset
-                ? "bg-amber-500/25 border-amber-400/55 text-amber-100"
+              !isSunset
+                ? "bg-amber-500/25 border-amber-400/55 text-amber-100 hover:bg-amber-500/35"
                 : "bg-sky-500/15 border-sky-400/35 text-sky-100 hover:bg-sky-500/25"
             }`}
           >
-            {isSunset ? (
+            {!isSunset ? (
               <Sunset className="w-3 h-3 text-amber-300 shrink-0" />
             ) : (
               <Sun className="w-3 h-3 text-sky-300 shrink-0" />
             )}
-            <span>{isSunset ? (isEn ? "Sunset" : "Atardecer") : (isEn ? "Day" : "Día")}</span>
+            <span>{!isSunset ? (isEn ? "Sunset" : "Atardecer") : (isEn ? "Day" : "Día")}</span>
           </button>
 
           <button
