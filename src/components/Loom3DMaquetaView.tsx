@@ -84,22 +84,22 @@ interface CameraPreset {
 const CAMERA_PRESETS: CameraPreset[] = [
   {
     id: "referencia",
-    labelEs: "Vista Referencia • Playa & Villas",
-    labelEn: "Reference View • Beach & Villas",
+    labelEs: "Playa & Villas",
+    labelEn: "Beach & Villas",
     position: [4.2, 5.4, 7.2],
     target: [7.8, 0.0, -0.6],
   },
   {
     id: "general",
-    labelEs: "Masterplan Completo (318)",
-    labelEn: "Full Masterplan (318)",
+    labelEs: "Masterplan (318)",
+    labelEn: "Masterplan (318)",
     position: [0, 21, 27],
     target: [0, 0, 0],
   },
   {
     id: "mar",
-    labelEs: "Playa Alma • Mar Caribe",
-    labelEn: "Playa Alma • Caribbean Sea",
+    labelEs: "Playa Alma",
+    labelEn: "Playa Alma",
     position: [15.5, 6.2, 8.5],
     target: [10.2, 0, -0.8],
     renderPreview: {
@@ -112,8 +112,8 @@ const CAMERA_PRESETS: CameraPreset[] = [
   },
   {
     id: "porteria",
-    labelEs: "Portería Loom • Vía del Mar Km 23",
-    labelEn: "Loom Gatehouse • Vía del Mar Km 23",
+    labelEs: "Portería Km 23",
+    labelEn: "Gatehouse Km 23",
     position: [-14.2, 6.4, 8.6],
     target: [-19.4, 0, 0.2],
     renderPreview: {
@@ -154,8 +154,8 @@ const CAMERA_PRESETS: CameraPreset[] = [
   },
   {
     id: "planta",
-    labelEs: "Vista Planta 90°",
-    labelEn: "Top-Down Plan 90°",
+    labelEs: "Planta 90°",
+    labelEn: "Top Plan 90°",
     position: [0, 34, 0.05],
     target: [0, 0, 0],
   },
@@ -863,6 +863,255 @@ function mergeNormalizedBoxes(specs: NormalizedBoxSpec[]): THREE.BufferGeometry 
   return merged;
 }
 
+// ============================================================================
+// CONSOLIDADOR DE GEOMETRÍAS POR MATERIAL ÚNICO (OPTIMIZACIÓN 60 FPS)
+// Convierte cajas multi-material (6 draw calls por caja) en mallas de 1 solo
+// material para renderizar 145-318 villas con ~24 InstancedMesh en total
+// ============================================================================
+function extractGeometrySlice(
+  geo: THREE.BufferGeometry,
+  indexStart: number,
+  indexCount: number
+): THREE.BufferGeometry {
+  const posAttr = geo.attributes.position;
+  const normAttr = geo.attributes.normal;
+  const uvAttr = geo.attributes.uv;
+  const idxAttr = geo.index;
+
+  const positions = new Float32Array(indexCount * 3);
+  const normals = new Float32Array(indexCount * 3);
+  const uvs = new Float32Array(indexCount * 2);
+  const indices = new Uint16Array(indexCount);
+
+  for (let i = 0; i < indexCount; i++) {
+    const vIdx = idxAttr ? idxAttr.getX(indexStart + i) : indexStart + i;
+    positions[i * 3] = posAttr.getX(vIdx);
+    positions[i * 3 + 1] = posAttr.getY(vIdx);
+    positions[i * 3 + 2] = posAttr.getZ(vIdx);
+    if (normAttr) {
+      normals[i * 3] = normAttr.getX(vIdx);
+      normals[i * 3 + 1] = normAttr.getY(vIdx);
+      normals[i * 3 + 2] = normAttr.getZ(vIdx);
+    }
+    if (uvAttr) {
+      uvs[i * 2] = uvAttr.getX(vIdx);
+      uvs[i * 2 + 1] = uvAttr.getY(vIdx);
+    }
+    indices[i] = i;
+  }
+
+  const out = new THREE.BufferGeometry();
+  out.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  out.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
+  out.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  out.setIndex(new THREE.BufferAttribute(indices, 1));
+  return out;
+}
+
+function mergeSimpleBufferGeometries(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
+  if (geos.length === 1) return geos[0];
+  let totalV = 0;
+  let totalI = 0;
+  const hasColor = Boolean(geos[0]?.attributes.color);
+  const hasUv = Boolean(geos[0]?.attributes.uv);
+
+  for (const g of geos) {
+    const v = g.attributes.position.count;
+    totalV += v;
+    totalI += g.index ? g.index.count : v;
+  }
+
+  const positions = new Float32Array(totalV * 3);
+  const normals = new Float32Array(totalV * 3);
+  const uvs = hasUv ? new Float32Array(totalV * 2) : null;
+  const colors = hasColor ? new Float32Array(totalV * 3) : null;
+  const indices = totalV > 65535 ? new Uint32Array(totalI) : new Uint16Array(totalI);
+
+  let vOffset = 0;
+  let iOffset = 0;
+
+  for (const g of geos) {
+    const pos = g.attributes.position;
+    const norm = g.attributes.normal;
+    const uv = g.attributes.uv;
+    const col = g.attributes.color;
+    const vCount = pos.count;
+
+    for (let i = 0; i < vCount; i++) {
+      positions[(vOffset + i) * 3] = pos.getX(i);
+      positions[(vOffset + i) * 3 + 1] = pos.getY(i);
+      positions[(vOffset + i) * 3 + 2] = pos.getZ(i);
+      if (norm) {
+        normals[(vOffset + i) * 3] = norm.getX(i);
+        normals[(vOffset + i) * 3 + 1] = norm.getY(i);
+        normals[(vOffset + i) * 3 + 2] = norm.getZ(i);
+      }
+      if (uvs && uv) {
+        uvs[(vOffset + i) * 2] = uv.getX(i);
+        uvs[(vOffset + i) * 2 + 1] = uv.getY(i);
+      }
+      if (colors && col) {
+        colors[(vOffset + i) * 3] = col.getX(i);
+        colors[(vOffset + i) * 3 + 1] = col.getY(i);
+        colors[(vOffset + i) * 3 + 2] = col.getZ(i);
+      }
+    }
+
+    if (g.index) {
+      const idx = g.index;
+      for (let i = 0; i < idx.count; i++) {
+        indices[iOffset + i] = idx.getX(i) + vOffset;
+      }
+      iOffset += idx.count;
+    } else {
+      for (let i = 0; i < vCount; i++) {
+        indices[iOffset + i] = vOffset + i;
+      }
+      iOffset += vCount;
+    }
+    vOffset += vCount;
+  }
+
+  const merged = new THREE.BufferGeometry();
+  merged.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  merged.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
+  if (uvs) merged.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  if (colors) merged.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  merged.setIndex(new THREE.BufferAttribute(indices, 1));
+  return merged;
+}
+
+function consolidateCanonicalSpecsByMaterial(rawSpecs: CanonicalVillaMeshSpec[]): CanonicalVillaMeshSpec[] {
+  const buckets = new Map<THREE.Material, { geos: THREE.BufferGeometry[]; castShadow: boolean }>();
+
+  const addSlice = (mat: THREE.Material, geo: THREE.BufferGeometry, castShadow: boolean) => {
+    let b = buckets.get(mat);
+    if (!b) {
+      b = { geos: [], castShadow: false };
+      buckets.set(mat, b);
+    }
+    b.geos.push(geo);
+    if (castShadow) b.castShadow = true;
+  };
+
+  for (const spec of rawSpecs) {
+    if (Array.isArray(spec.mat)) {
+      const groups = spec.geo.groups;
+      for (const grp of groups) {
+        const faceMat = spec.mat[grp.materialIndex ?? 0];
+        if (!faceMat) continue;
+        const sliceGeo = extractGeometrySlice(spec.geo, grp.start, grp.count);
+        addSlice(faceMat, sliceGeo, spec.castShadow);
+      }
+      spec.geo.dispose();
+    } else {
+      const idxCount = spec.geo.index ? spec.geo.index.count : spec.geo.attributes.position.count;
+      const sliceGeo = extractGeometrySlice(spec.geo, 0, idxCount);
+      addSlice(spec.mat, sliceGeo, spec.castShadow);
+      spec.geo.dispose();
+    }
+  }
+
+  const consolidated: CanonicalVillaMeshSpec[] = [];
+  buckets.forEach((b, mat) => {
+    const mergedGeo = mergeSimpleBufferGeometries(b.geos);
+    if (b.geos.length > 1) {
+      b.geos.forEach((g) => g.dispose());
+    }
+    consolidated.push({
+      geo: mergedGeo,
+      mat,
+      castShadow: b.castShadow,
+    });
+  });
+
+  return consolidated;
+}
+
+// ============================================================================
+// GENERADOR DE ÁRBOL TROPICAL ESCULPIDO MULTI-COPA (MAQUETA ARQUITECTÓNICA)
+// Reemplaza las esferas rayadas por un follaje orgánico de 6 cúmulos con
+// oclusión ambiental por vértice (Vertex Colors) sin costuras ni rayas UV
+// ============================================================================
+function createSculptedTropicalTreeGeometries(): {
+  crownGeo: THREE.BufferGeometry;
+  trunkGeo: THREE.BufferGeometry;
+} {
+  const puffs: { x: number; y: number; z: number; rx: number; ry: number; rz: number; tint: number }[] = [
+    { x: 0.0, y: 0.25, z: 0.0, rx: 0.145, ry: 0.105, rz: 0.14, tint: 1.0 },
+    { x: -0.075, y: 0.215, z: 0.045, rx: 0.105, ry: 0.082, rz: 0.102, tint: 0.92 },
+    { x: 0.082, y: 0.22, z: -0.038, rx: 0.108, ry: 0.084, rz: 0.1, tint: 0.96 },
+    { x: 0.025, y: 0.205, z: 0.082, rx: 0.095, ry: 0.075, rz: 0.095, tint: 0.88 },
+    { x: -0.035, y: 0.21, z: -0.078, rx: 0.098, ry: 0.076, rz: 0.092, tint: 0.9 },
+    { x: 0.012, y: 0.295, z: -0.01, rx: 0.102, ry: 0.072, rz: 0.098, tint: 1.08 },
+  ];
+
+  const puffGeos: THREE.BufferGeometry[] = [];
+  const cBottom = new THREE.Color("#1f3618");
+  const cMid = new THREE.Color("#3b5e2b");
+  const cTop = new THREE.Color("#5a823f");
+  const tmpCol = new THREE.Color();
+
+  puffs.forEach((p, pIdx) => {
+    const g = new THREE.IcosahedronGeometry(1, 2);
+    const pos = g.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+
+    for (let i = 0; i < pos.count; i++) {
+      const vx = pos.getX(i);
+      const vy = pos.getY(i);
+      const vz = pos.getZ(i);
+
+      const bump =
+        1.0 +
+        0.11 * Math.sin(vx * 5.2 + pIdx * 1.7) * Math.cos(vz * 4.8 - vy * 3.5) +
+        0.06 * Math.cos(vy * 6.1 + vx * 3.9);
+
+      const fx = vx * p.rx * bump + p.x;
+      const fy = vy * p.ry * bump + p.y;
+      const fz = vz * p.rz * bump + p.z;
+      pos.setXYZ(i, fx, fy, fz);
+
+      const hNorm = Math.max(0, Math.min(1, (vy + 1.0) * 0.5));
+      if (hNorm < 0.5) {
+        tmpCol.lerpColors(cBottom, cMid, hNorm * 2.0);
+      } else {
+        tmpCol.lerpColors(cMid, cTop, (hNorm - 0.5) * 2.0);
+      }
+      const leafVar = 0.94 + 0.12 * Math.sin(vx * 9.0 + vz * 7.0 + pIdx);
+      colors[i * 3] = Math.min(1, tmpCol.r * p.tint * leafVar);
+      colors[i * 3 + 1] = Math.min(1, tmpCol.g * p.tint * leafVar);
+      colors[i * 3 + 2] = Math.min(1, tmpCol.b * p.tint * leafVar);
+    }
+
+    g.computeVertexNormals();
+    g.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    puffGeos.push(g);
+  });
+
+  const crownGeo = mergeSimpleBufferGeometries(puffGeos);
+  puffGeos.forEach((g) => g.dispose());
+
+  const mainTrunk = new THREE.CylinderGeometry(0.012, 0.024, 0.19, 6);
+  mainTrunk.translate(0, 0.095, 0);
+
+  const branchL = new THREE.CylinderGeometry(0.007, 0.012, 0.09, 5);
+  branchL.rotateZ(0.52);
+  branchL.translate(-0.025, 0.165, 0.01);
+
+  const branchR = new THREE.CylinderGeometry(0.007, 0.012, 0.085, 5);
+  branchR.rotateZ(-0.48);
+  branchR.rotateY(0.9);
+  branchR.translate(0.022, 0.16, -0.014);
+
+  const trunkGeo = mergeSimpleBufferGeometries([mainTrunk, branchL, branchR]);
+  mainTrunk.dispose();
+  branchL.dispose();
+  branchR.dispose();
+
+  return { crownGeo, trunkGeo };
+}
+
 interface VillaReplicaMaterials {
   limestoneStuccoMat: THREE.MeshStandardMaterial;
   limestoneWarmMat: THREE.MeshStandardMaterial;
@@ -1351,8 +1600,9 @@ function getOrBuildCanonicalVillaMeshes(mats: VillaReplicaMaterials): CanonicalV
     },
   ];
 
-  mats.canonicalVillaMeshes = specs;
-  return specs;
+  const consolidated = consolidateCanonicalSpecsByMaterial(specs);
+  mats.canonicalVillaMeshes = consolidated;
+  return consolidated;
 }
 
 // ============================================================================
@@ -1647,7 +1897,7 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
     // CAPA 1: MICRO-DETALLE SUTIL DE GRAMA Y ARENA AL ACERCAR LA CÁMARA
     // ========================================================================
     if (sdSea < 0.035 && lakeMask < 0.04) {
-      if (grassMask > 0.1) {
+      if (grassMask > 0.1 && closeFactor > 0.005) {
         float diagCoord = vWorldPos.x * 0.78 + vWorldPos.z * 0.62;
         float mowStripe = sin(diagCoord * 18.0) * 0.5 + 0.5;
         float microBlade = texture2D(uDetailTex, mUv * 85.0).b - 0.5;
@@ -1659,7 +1909,7 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
 
       // Micro-destello de arena coralina en Playa Alma
       float isBeachSand = smoothstep(0.77, 0.81, sampleX) * smoothstep(0.52, 0.68, baseCol.r);
-      if (isBeachSand > 0.05) {
+      if (isBeachSand > 0.05 && closeFactor > 0.005) {
         float sandSparkle = texture2D(uDetailTex, mUv * 130.0).b - 0.5;
         finalCol += sandSparkle * 0.042 * isBeachSand * closeFactor;
       }
@@ -1825,6 +2075,8 @@ export default function Loom3DMaquetaView({
   const mountRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const hoveredLotIdRef = useRef<string | null>(null);
+  const radarMarkerRef = useRef<SVGGElement | null>(null);
+  const radarYawLabelRef = useRef<HTMLSpanElement | null>(null);
   const villaMatsCacheRef = useRef<{ day: VillaReplicaMaterials | null; sunset: VillaReplicaMaterials | null; unitBox: THREE.BoxGeometry | null }>({
     day: null,
     sunset: null,
@@ -1958,6 +2210,8 @@ export default function Loom3DMaquetaView({
 
   const lotsMapRef = useRef(lotsMap);
   lotsMapRef.current = lotsMap;
+  const unifiedLotsRef = useRef(unifiedLots);
+  unifiedLotsRef.current = unifiedLots;
   const onSelectLotRef = useRef(onSelectLot);
   onSelectLotRef.current = onSelectLot;
   const onChangeStageRef = useRef(onChangeStage);
@@ -2064,8 +2318,8 @@ export default function Loom3DMaquetaView({
       t.anisotropy = maxAniso;
     });
 
-    // Terreno Costero Extendido (172m x 118m en escala 3D) con subdivisión 220x220 para relieve topográfico
-    const terrainGeo = new THREE.PlaneGeometry(WORLD_W * 4.5, WORLD_D * 5.5, 220, 220);
+    // Terreno Costero Extendido (172m x 118m en escala 3D) con subdivisión optimizada 128x128 para 60 FPS
+    const terrainGeo = new THREE.PlaneGeometry(WORLD_W * 4.5, WORLD_D * 5.5, 128, 128);
     const terrainShaderMat = new THREE.ShaderMaterial({
       vertexShader: TERRAIN_WATER_VERTEX_GLSL,
       fragmentShader: TERRAIN_WATER_FRAGMENT_GLSL,
@@ -2127,24 +2381,63 @@ export default function Loom3DMaquetaView({
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
+    const groundPickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.012);
+    const planeHitVec = new THREE.Vector3();
     let pointerDownPos = { x: 0, y: 0 };
     let isPointerDown = false;
     let hoverRafPending = false;
     let lastClientX = 0;
     let lastClientY = 0;
 
+    // Detección matemática 2D ultra-rápida (0.003 ms vs 4 ms de raycasting 3D sobre 318 ExtrudeGeometry)
+    const pickLotOnGroundPlane = (clientX: number, clientY: number): Unified3DLot | null => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      if (!raycaster.ray.intersectPlane(groundPickPlane, planeHitVec)) return null;
+
+      const svgX = (planeHitVec.x / WORLD_W + 0.5) * 3840;
+      const svgY = (planeHitVec.z / WORLD_D + 0.5) * 2160;
+      if (svgX < 0 || svgX > 3840 || svgY < 0 || svgY > 2160) return null;
+
+      const lots = unifiedLotsRef.current;
+      for (let i = 0; i < lots.length; i++) {
+        const pLot = lots[i];
+        if (
+          Math.abs(svgX - pLot.cx) > pLot.width * 0.65 ||
+          Math.abs(svgY - pLot.cy) > pLot.height * 0.65
+        ) {
+          continue;
+        }
+        const verts = pLot.vertices;
+        if (verts.length < 3) continue;
+        let inside = false;
+        for (let j = 0, k = verts.length - 1; j < verts.length; k = j++) {
+          const xi = verts[j][0],
+            yi = verts[j][1];
+          const xj = verts[k][0],
+            yj = verts[k][1];
+          const intersect =
+            yi > svgY !== yj > svgY &&
+            svgX < ((xj - xi) * (svgY - yi)) / (yj - yi + 0.00001) + xi;
+          if (intersect) inside = !inside;
+        }
+        if (inside) return pLot;
+      }
+      return null;
+    };
+
     const handlePointerMove = (e: MouseEvent) => {
       lastClientX = e.clientX;
       lastClientY = e.clientY;
 
-      // Update floating tooltip DOM position directly at 60fps without triggering React re-renders
       if (tooltipRef.current && hoveredLotIdRef.current) {
         const tx = Math.min(lastClientX + 16, window.innerWidth - 230);
         const ty = Math.max(16, lastClientY - 48);
         tooltipRef.current.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
       }
 
-      // Skip raycasting while orbiting/dragging the camera
       if (isPointerDown && Math.hypot(lastClientX - pointerDownPos.x, lastClientY - pointerDownPos.y) > 5) {
         if (hoveredLotIdRef.current !== null) {
           hoveredLotIdRef.current = null;
@@ -2157,24 +2450,16 @@ export default function Loom3DMaquetaView({
       hoverRafPending = true;
       requestAnimationFrame(() => {
         hoverRafPending = false;
-        const rect = renderer.domElement.getBoundingClientRect();
-        pointer.x = ((lastClientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((lastClientY - rect.top) / rect.height) * 2 + 1;
-
-        raycaster.setFromCamera(pointer, camera);
-        const intersects = raycaster.intersectObjects(lotsGroup.children, false);
-        if (intersects.length > 0) {
-          const hit = intersects[0].object;
-          const lotId = hit.userData?.lotId as string | undefined;
-          const lotStage = (hit.userData?.stageId as string) || "etapa_1";
-          const lotData = lotId ? lotsMapRef.current[lotId] : null;
-          if (lotData && lotId) {
+        const pickedLot = pickLotOnGroundPlane(lastClientX, lastClientY);
+        if (pickedLot) {
+          const lotData = lotsMapRef.current[pickedLot.id];
+          if (lotData) {
             renderer.domElement.style.cursor = "pointer";
-            if (hoveredLotIdRef.current !== lotId) {
-              hoveredLotIdRef.current = lotId;
+            if (hoveredLotIdRef.current !== pickedLot.id) {
+              hoveredLotIdRef.current = pickedLot.id;
               setHoveredLot({
                 lot: lotData,
-                stageId: lotStage,
+                stageId: pickedLot.stageId || "etapa_1",
                 x: lastClientX,
                 y: lastClientY,
               });
@@ -2200,18 +2485,11 @@ export default function Loom3DMaquetaView({
       const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
       if (dist > 6) return;
 
-      const rect = renderer.domElement.getBoundingClientRect();
-      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointer, camera);
-      const intersects = raycaster.intersectObjects(lotsGroup.children, false);
-      if (intersects.length > 0) {
-        const hit = intersects[0].object;
-        const lotId = hit.userData?.lotId;
-        const lotStage = hit.userData?.stageId;
-        const lotData = lotId ? lotsMapRef.current[lotId] : null;
+      const pickedLot = pickLotOnGroundPlane(e.clientX, e.clientY);
+      if (pickedLot) {
+        const lotData = lotsMapRef.current[pickedLot.id];
         if (lotData) {
-          if (lotStage) onChangeStageRef.current(lotStage);
+          if (pickedLot.stageId) onChangeStageRef.current(pickedLot.stageId);
           onSelectLotRef.current(lotData);
         }
       }
@@ -2301,12 +2579,26 @@ export default function Loom3DMaquetaView({
         item.shadowObj.updateMatrix();
       }
 
-      if (elapsed - lastYawUpdate > 0.12) {
+      // Sincronización en tiempo real (60 FPS, 0 re-renders de React) de posición y orientación en el Radar
+      const dx = controls.target.x - camera.position.x;
+      const dz = controls.target.z - camera.position.z;
+      const deg = (Math.atan2(dx, -dz) * 180) / Math.PI;
+      if (radarMarkerRef.current) {
+        const normX = THREE.MathUtils.clamp(controls.target.x / WORLD_W + 0.5, 0.08, 0.92);
+        const normY = THREE.MathUtils.clamp(controls.target.z / WORLD_D + 0.5, 0.16, 0.84);
+        const rx = normX * 160;
+        const ry = normY * 90;
+        radarMarkerRef.current.setAttribute(
+          "transform",
+          `translate(${rx.toFixed(1)}, ${ry.toFixed(1)}) rotate(${deg.toFixed(1)})`
+        );
+      }
+      if (elapsed - lastYawUpdate > 0.15) {
         lastYawUpdate = elapsed;
-        const dx = controls.target.x - camera.position.x;
-        const dz = controls.target.z - camera.position.z;
-        const deg = Math.round((Math.atan2(dx, -dz) * 180) / Math.PI);
-        setCameraYaw((prev) => (Math.abs(prev - deg) >= 2 ? deg : prev));
+        const compassDeg = ((Math.round(deg) % 360) + 360) % 360;
+        if (radarYawLabelRef.current) {
+          radarYawLabelRef.current.textContent = `${compassDeg}°`;
+        }
       }
 
       renderer.render(scene, camera);
@@ -2405,85 +2697,69 @@ export default function Loom3DMaquetaView({
         if (cancelled || !sceneRefs.current.landscapeGroup) return;
         const grp = sceneRefs.current.landscapeGroup;
 
-        gltf.scene.traverse((node) => {
-          if ((node as THREE.Mesh).isMesh) {
-            const mesh = node as THREE.Mesh;
-            const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
-            if (isSunset) {
-              mat.color.multiply(new THREE.Color("#e8cfa8"));
+        // Filtrar palmeras a las zonas del proyecto y frente costero de Alma Beach Club
+        const filteredPalms = landscapeData.palms.filter(
+          ([sx, sy]) => sx < 2820 || (sy >= 520 && sy <= 1480)
+        );
+        const activePalmCount = filteredPalms.length;
+
+        if (activePalmCount > 0) {
+          gltf.scene.traverse((node) => {
+            if ((node as THREE.Mesh).isMesh) {
+              const mesh = node as THREE.Mesh;
+              const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+              // Corregir tono pálido/menta de las pencas hacia un verde palma caribeña natural y profundo
+              if (mat.color.g > mat.color.r * 1.04) {
+                mat.color.set(isSunset ? "#8a7a4f" : "#486e30");
+                mat.roughness = 0.72;
+                mat.metalness = 0.02;
+              } else if (isSunset) {
+                mat.color.multiply(new THREE.Color("#e8cfa8"));
+              }
+              const inst = new THREE.InstancedMesh(mesh.geometry, mat, activePalmCount);
+              inst.castShadow = true;
+              inst.receiveShadow = true;
+
+              filteredPalms.forEach(([sx, sy, sc, rot], i) => {
+                const [wx, wz] = svgToWorld(sx, sy);
+                const s = sc * 0.96;
+                dummy.position.set(wx, 0, wz);
+                dummy.rotation.set(0, rot, 0);
+                dummy.scale.set(s, s, s);
+                dummy.updateMatrix();
+                inst.setMatrixAt(i, dummy.matrix);
+              });
+              inst.instanceMatrix.needsUpdate = true;
+              grp.add(inst);
             }
-            const inst = new THREE.InstancedMesh(mesh.geometry, mat, palmCount);
-            inst.castShadow = true;
-            inst.receiveShadow = true;
-
-            landscapeData.palms.forEach(([sx, sy, sc, rot], i) => {
-              const [wx, wz] = svgToWorld(sx, sy);
-              dummy.position.set(wx, 0, wz);
-              dummy.rotation.set(0, rot, 0);
-              dummy.scale.set(sc * 1.12, sc * 1.12, sc * 1.12);
-              dummy.updateMatrix();
-              inst.setMatrixAt(i, dummy.matrix);
-            });
-            inst.instanceMatrix.needsUpdate = true;
-            grp.add(inst);
-          }
-        });
-
-        // Capa adicional de pencas plumosas con transparencia Alpha para follaje denso
-        if (palmCrownTex) {
-          const crownGeo = createRealisticPalmCrownGeometry();
-          crownGeo.translate(0.055, 0.48, 0);
-          const crownMat = new THREE.MeshStandardMaterial({
-            map: palmCrownTex,
-            alphaTest: 0.28,
-            transparent: true,
-            side: THREE.DoubleSide,
-            roughness: 0.6,
-            color: isSunset ? "#d9c29c" : "#ffffff",
           });
-          const crownInst = new THREE.InstancedMesh(crownGeo, crownMat, palmCount);
-          crownInst.castShadow = true;
-          landscapeData.palms.forEach(([sx, sy, sc, rot], i) => {
-            const [wx, wz] = svgToWorld(sx, sy);
-            dummy.position.set(wx, 0, wz);
-            dummy.rotation.set(0, rot + 0.35, 0);
-            dummy.scale.set(sc, sc, sc);
-            dummy.updateMatrix();
-            crownInst.setMatrixAt(i, dummy.matrix);
-          });
-          crownInst.instanceMatrix.needsUpdate = true;
-          grp.add(crownInst);
         }
 
-        // Árboles nativos costeros y de The Garden Walk (landscapeData.trees) vía InstancedMesh (2 draw calls)
-        const treeCount = landscapeData.trees ? landscapeData.trees.length : 0;
-        if (treeCount > 0) {
-          const foliageTex = createTropicalFoliageTexture();
-          const treeCrownGeo = new THREE.IcosahedronGeometry(0.16, 2);
-          treeCrownGeo.scale(1.25, 0.82, 1.15);
-          treeCrownGeo.translate(0, 0.22, 0);
+        // Árboles tropicales esculpidos multi-copa (sin esferas rayadas y solo en el borde/parques del proyecto)
+        const projectTrees = (landscapeData.trees || []).filter(
+          ([sx, sy]) => sy >= 590 && sy <= 1540 && sx >= 140 && sx <= 2900
+        );
+        if (projectTrees.length > 0) {
+          const { crownGeo, trunkGeo } = createSculptedTropicalTreeGeometries();
           const treeCrownMat = new THREE.MeshStandardMaterial({
-            map: foliageTex,
-            bumpMap: foliageTex,
-            bumpScale: 0.012,
-            color: isSunset ? "#b5a07c" : "#659148",
-            roughness: 0.82,
+            vertexColors: true,
+            color: isSunset ? "#d9c29e" : "#ffffff",
+            roughness: 0.86,
+            metalness: 0.02,
           });
-          const treeTrunkGeo = new THREE.CylinderGeometry(0.016, 0.026, 0.18, 6);
-          treeTrunkGeo.translate(0, 0.09, 0);
           const treeTrunkMat = new THREE.MeshStandardMaterial({
-            color: "#5c4430",
-            roughness: 0.88,
+            color: isSunset ? "#4d3826" : "#59422e",
+            roughness: 0.9,
           });
 
-          const treeCrownInst = new THREE.InstancedMesh(treeCrownGeo, treeCrownMat, treeCount);
-          const treeTrunkInst = new THREE.InstancedMesh(treeTrunkGeo, treeTrunkMat, treeCount);
+          const treeCrownInst = new THREE.InstancedMesh(crownGeo, treeCrownMat, projectTrees.length);
+          const treeTrunkInst = new THREE.InstancedMesh(trunkGeo, treeTrunkMat, projectTrees.length);
           treeCrownInst.castShadow = true;
           treeCrownInst.receiveShadow = true;
 
-          landscapeData.trees.forEach(([sx, sy, sc, rot], idx) => {
+          projectTrees.forEach(([sx, sy, sc, rot], idx) => {
             const [wx, wz] = svgToWorld(sx, sy);
-            const s = sc * 0.88;
+            const s = sc * 0.64;
             dummy.position.set(wx, 0, wz);
             dummy.rotation.set(0, rot, 0);
             dummy.scale.set(s, s, s);
@@ -2770,6 +3046,16 @@ export default function Loom3DMaquetaView({
     }
 
     const batchedBorderSegments = new Map<string, { col: string; op: number; coords: number[] }>();
+    const batchedLotGeos = new Map<string, { mat: THREE.MeshLambertMaterial; geos: THREE.BufferGeometry[] }>();
+
+    const instVillaMatrices: THREE.Matrix4[] = [];
+    const instPatioPalmMatrices: THREE.Matrix4[] = [];
+    const instCarShadows: THREE.Matrix4[] = [];
+    const instParkedCarsByModel: { matrix: THREE.Matrix4; paintColor: THREE.Color }[][] = carTemplates.map(() => []);
+
+    const dummyVilla = new THREE.Object3D();
+    const dummyChild = new THREE.Object3D();
+    const mat4VillaBase = new THREE.Matrix4();
 
     unifiedLots.forEach((pLot, lotIndex) => {
       const lotData = lotsMap[pLot.id];
@@ -2783,8 +3069,6 @@ export default function Loom3DMaquetaView({
       const isAmenity = pLot.isAmenity || lotData.status === "common";
       const isCurrentStage = focusMode === "all" || pLot.stageId === stageId;
 
-      // En modo "showcase" (Estilo Referencia), alternamos ~44% de lotes con Villa 3D
-      // y ~56% de lotes abiertos con césped iluminado y código de lote, más el lote seleccionado
       const isShowcaseVilla =
         villaMode === "all" ||
         (villaMode === "showcase" && (isSelected || (lotIndex * 7 + 3) % 11 < 5));
@@ -2811,7 +3095,6 @@ export default function Loom3DMaquetaView({
       }
 
       const extrudeHeight = isSelected ? 0.045 : 0.014;
-      // Lotes abiertos sin casa lucen su césped esmeralda/ámbar iluminado como en la referencia
       const opacity = dimmed
         ? 0.08
         : isSelected
@@ -2844,6 +3127,10 @@ export default function Loom3DMaquetaView({
         geometry = new THREE.BoxGeometry(ww * 0.85, wd * 0.85, extrudeHeight);
       }
 
+      // Transformar geometría del lote al espacio mundial para fusionarla por material (reduce 318 draw calls a ~5)
+      geometry.rotateX(-Math.PI / 2);
+      geometry.translate(wx, 0.004, wz);
+
       const matColor = isSelected ? "#f59e0b" : fillColor;
       const emissiveCol = isSelected ? "#fbbf24" : fillColor;
       const emissiveInt = isSelected ? 0.75 : isSunset ? 0.35 : 0.22;
@@ -2860,13 +3147,12 @@ export default function Loom3DMaquetaView({
         lotMatPool.set(matKey, mat);
       }
 
-      const mesh = new THREE.Mesh(geometry, mat);
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.position.set(wx, 0.004, wz);
-      mesh.matrixAutoUpdate = false;
-      mesh.updateMatrix();
-      mesh.userData = { lotId: pLot.id, stageId: pLot.stageId };
-      lotsGroup.add(mesh);
+      let lotBatch = batchedLotGeos.get(matKey);
+      if (!lotBatch) {
+        lotBatch = { mat, geos: [] };
+        batchedLotGeos.set(matKey, lotBatch);
+      }
+      lotBatch.geos.push(geometry);
 
       if (borderPoints.length >= 3) {
         const lCol = isSelected ? "#fde047" : fillColor;
@@ -2884,25 +3170,8 @@ export default function Loom3DMaquetaView({
         }
       }
 
-      // Etiqueta píldora en el lote seleccionado (ej. 'B-22 • 252') o en lotes abiertos destacados
-      if (!isAmenity && (isSelected || (!isShowcaseVilla && lotIndex % 6 === 0 && !dimmed))) {
-        const labelStr = isSelected
-          ? `${lotData.rawId} • ${lotData.areaNumeric || lotData.area}`
-          : lotData.rawId;
-        const lotPill = createFloatingPillSprite(
-          labelStr,
-          isSelected ? "#fde047" : fillColor,
-          isSelected ? 0.95 : 0.58,
-          isSelected ? 0.26 : 0.18
-        );
-        lotPill.position.set(wx, isShowcaseVilla ? 0.42 : 0.11, wz);
-        villasGroup.add(lotPill);
-      }
-
       // ======================================================================
-      // CAPA 5: ARQUITECTURA DE VILLA BIOCLIMÁTICA (ESTILO IMAGEN DE REFERENCIA)
-      // Con Jacuzzi iluminado en el Rooftop, Pérgola de vigas de teca, Jardinera
-      // perimetral en azotea, Celosías de madera en 2do piso y Piscina en jardín
+      // CAPA 5: ARQUITECTURA DE VILLA BIOCLIMÁTICA INSTANCIADA A 60 FPS
       // ======================================================================
       if (isShowcaseVilla && !isAmenity && worldVerts.length >= 3) {
         let bestLen = 0;
@@ -2919,21 +3188,168 @@ export default function Loom3DMaquetaView({
 
         const L = pLot.villaL ? (pLot.villaL / 100) * 0.98 : Math.max(0.52, bestLen * 0.92);
         const W = pLot.villaW ? (pLot.villaW / 100) * 0.98 : L * 0.47;
+        const H = L * 0.3583;
+        const zHouse = -W * 0.016;
+        const wHouse = W * 0.653;
 
-        const villaGrp = new THREE.Group();
-        const [vwx, vwz] = pLot.villaCx !== undefined && pLot.villaCy !== undefined ? svgToWorld(pLot.villaCx, pLot.villaCy) : [wx, wz];
-        villaGrp.position.set(vwx, extrudeHeight + 0.005, vwz);
-        villaGrp.rotation.y = pLot.backAngle !== undefined ? -pLot.backAngle : -lotAngle;
-        villaGrp.matrixAutoUpdate = false;
-        villaGrp.updateMatrix();
+        const [vwx, vwz] =
+          pLot.villaCx !== undefined && pLot.villaCy !== undefined
+            ? svgToWorld(pLot.villaCx, pLot.villaCy)
+            : [wx, wz];
+        const rotY = pLot.backAngle !== undefined ? -pLot.backAngle : -lotAngle;
 
-        buildLoomVillaReplica3D(villaGrp, L, W, villaMats, unitBox, lotIndex, carTemplates);
-        villasGroup.add(villaGrp);
+        // Matriz base (sin escala) para posicionar hijos (palmera de patio y vehículos estacionados)
+        dummyVilla.position.set(vwx, extrudeHeight + 0.005, vwz);
+        dummyVilla.rotation.set(0, rotY, 0);
+        dummyVilla.scale.set(1, 1, 1);
+        dummyVilla.updateMatrix();
+        mat4VillaBase.copy(dummyVilla.matrix);
+
+        // Matriz escalada [L, H, W] para los 24 bloques canónicos de la villa
+        dummyVilla.scale.set(L, H, W);
+        dummyVilla.updateMatrix();
+        instVillaMatrices.push(dummyVilla.matrix.clone());
+
+        // Corona de palmera interior del patio bioclimático
+        if (villaMats.palmCrownTexMat) {
+          const palmX = L * 0.005;
+          const palmZ = zHouse + wHouse * 0.12;
+          dummyChild.position.set(palmX + L * 0.01, H * 1.15, palmZ + W * 0.006);
+          dummyChild.rotation.set(0, 0, 0);
+          dummyChild.scale.set(L * 0.46, L * 0.46, L * 0.46);
+          dummyChild.updateMatrix();
+          dummyChild.matrix.premultiply(mat4VillaBase);
+          instPatioPalmMatrices.push(dummyChild.matrix.clone());
+        }
+
+        // Vehículos estacionados en el carport de la villa (InstancedMesh por modelo)
+        if (carTemplates.length > 0) {
+          const carSlots = [zHouse - wHouse * 0.225, zHouse + wHouse * 0.215];
+          const hasSecondCar = (lotIndex * 5 + 1) % 7 !== 0;
+          const activeSlots = hasSecondCar ? carSlots : [carSlots[lotIndex % 2]];
+
+          activeSlots.forEach((carZ, slotIdx) => {
+            const modelIdx = (lotIndex + slotIdx * 2 + (slotIdx === 1 ? 1 : 0)) % carTemplates.length;
+            const paintMat =
+              villaMats.carPaintPalette[
+                (lotIndex * 3 + slotIdx * 5 + modelIdx) % villaMats.carPaintPalette.length
+              ];
+
+            dummyChild.position.set(-L * 0.352, 0.0145, carZ);
+            dummyChild.rotation.set(0, 0, 0);
+            dummyChild.scale.set(L * 0.142, 0.002, W * 0.118);
+            dummyChild.updateMatrix();
+            dummyChild.matrix.premultiply(mat4VillaBase);
+            instCarShadows.push(dummyChild.matrix.clone());
+
+            const carScale = L * 0.0415;
+            dummyChild.position.set(-L * 0.352, 0.015, carZ);
+            dummyChild.rotation.set(0, (lotIndex + slotIdx) % 2 === 0 ? Math.PI : 0, 0);
+            dummyChild.scale.set(carScale, carScale, carScale);
+            dummyChild.updateMatrix();
+            dummyChild.matrix.premultiply(mat4VillaBase);
+            instParkedCarsByModel[modelIdx].push({
+              matrix: dummyChild.matrix.clone(),
+              paintColor: paintMat.color,
+            });
+          });
+        }
       }
-
     });
 
-    // Renderizar todos los bordes perimetrales de los 318 lotes en 3-4 llamadas agrupadas (LineSegments)
+    // 1. Añadir lotes fusionados por material (4-5 draw calls en lugar de 318)
+    batchedLotGeos.forEach((batch) => {
+      if (batch.geos.length === 0) return;
+      const mergedLotGeo = mergeSimpleBufferGeometries(batch.geos);
+      if (batch.geos.length > 1) {
+        batch.geos.forEach((g) => g.dispose());
+      }
+      const batchMesh = new THREE.Mesh(mergedLotGeo, batch.mat);
+      batchMesh.matrixAutoUpdate = false;
+      lotsGroup.add(batchMesh);
+    });
+
+    // 2. Añadir todas las Villas 3D mediante InstancedMesh (~24 draw calls en lugar de ~11,000)
+    if (instVillaMatrices.length > 0) {
+      const canonicalSpecs = getOrBuildCanonicalVillaMeshes(villaMats);
+      const vCount = instVillaMatrices.length;
+      for (let s = 0; s < canonicalSpecs.length; s++) {
+        const spec = canonicalSpecs[s];
+        const instMesh = new THREE.InstancedMesh(spec.geo, spec.mat, vCount);
+        instMesh.castShadow = spec.castShadow;
+        instMesh.receiveShadow = true;
+        for (let i = 0; i < vCount; i++) {
+          instMesh.setMatrixAt(i, instVillaMatrices[i]);
+        }
+        instMesh.instanceMatrix.needsUpdate = true;
+        villasGroup.add(instMesh);
+      }
+    }
+
+    // 3. Añadir coronas de palmera de patio interior en 1 solo InstancedMesh
+    if (instPatioPalmMatrices.length > 0 && villaMats.palmCrownTexMat) {
+      const palmInst = new THREE.InstancedMesh(
+        villaMats.palmCrownGeo,
+        villaMats.palmCrownTexMat,
+        instPatioPalmMatrices.length
+      );
+      palmInst.castShadow = true;
+      for (let i = 0; i < instPatioPalmMatrices.length; i++) {
+        palmInst.setMatrixAt(i, instPatioPalmMatrices[i]);
+      }
+      palmInst.instanceMatrix.needsUpdate = true;
+      villasGroup.add(palmInst);
+    }
+
+    // 4. Añadir sombras y vehículos estacionados en las villas mediante InstancedMesh (~20 draw calls en lugar de ~1,700)
+    if (instCarShadows.length > 0) {
+      const shadowInst = new THREE.InstancedMesh(unitBox, villaMats.darkBronzeMat, instCarShadows.length);
+      for (let i = 0; i < instCarShadows.length; i++) {
+        shadowInst.setMatrixAt(i, instCarShadows[i]);
+      }
+      shadowInst.instanceMatrix.needsUpdate = true;
+      villasGroup.add(shadowInst);
+    }
+
+    const instBodyPaintBaseMat = new THREE.MeshStandardMaterial({
+      color: "#ffffff",
+      roughness: 0.16,
+      metalness: 0.42,
+      envMapIntensity: 1.35,
+    });
+
+    instParkedCarsByModel.forEach((instances, modelIdx) => {
+      if (instances.length === 0 || !carTemplates[modelIdx]) return;
+      const tpl = carTemplates[modelIdx];
+      tpl.updateMatrixWorld(true);
+      const count = instances.length;
+      const combinedMat = new THREE.Matrix4();
+
+      tpl.traverse((node) => {
+        if ((node as THREE.Mesh).isMesh) {
+          const mesh = node as THREE.Mesh;
+          const mName = (mesh.material as THREE.Material)?.name || "";
+          const isBodyPaint = mName === "BodyPaint";
+          const useMat = isBodyPaint ? instBodyPaintBaseMat : mesh.material;
+          const inst = new THREE.InstancedMesh(mesh.geometry, useMat, count);
+          inst.castShadow = false;
+          inst.receiveShadow = false;
+
+          for (let i = 0; i < count; i++) {
+            combinedMat.multiplyMatrices(instances[i].matrix, mesh.matrixWorld);
+            inst.setMatrixAt(i, combinedMat);
+            if (isBodyPaint) {
+              inst.setColorAt(i, instances[i].paintColor);
+            }
+          }
+          inst.instanceMatrix.needsUpdate = true;
+          if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+          villasGroup.add(inst);
+        }
+      });
+    });
+
+    // 5. Renderizar todos los bordes perimetrales de los 318 lotes en 3-4 llamadas agrupadas (LineSegments)
     batchedBorderSegments.forEach((bucket, lKey) => {
       if (bucket.coords.length === 0) return;
       const segGeo = new THREE.BufferGeometry();
@@ -3672,29 +4088,29 @@ export default function Loom3DMaquetaView({
         </div>
       )}
 
-      {/* BARRA SUPERIOR */}
-      <div className="absolute top-3 left-14 sm:left-16 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        <div className="flex items-center gap-2 bg-[#EDE7E0]/95 border border-[#0A0D0B]/15 p-1.5 rounded-2xl shadow-2xl backdrop-blur-xl pointer-events-auto">
+      {/* BARRA SUPERIOR GLASSMORPHISM COMPACTA (1 SOLA FILA AJUSTADA) */}
+      <div className="absolute top-3 left-14 sm:left-16 right-3 z-20 flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 pointer-events-none">
+        <div className="flex items-center gap-1 bg-[#0b1210]/45 backdrop-blur-2xl border border-white/20 p-1 rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.22)] pointer-events-auto max-w-full overflow-x-auto no-scrollbar">
           <button
             onClick={onExit3D}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0A0D0B] hover:bg-[#B35F27] text-[#EDE7E0] text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/12 hover:bg-[#B35F27]/85 border border-white/15 text-[#EDE7E0] text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap shrink-0"
           >
-            <ChevronLeft className="w-4 h-4" />
-            <span>{isEn ? "2D Vector Plan" : "Plano 2D HD"}</span>
+            <ChevronLeft className="w-3.5 h-3.5" />
+            <span>{isEn ? "2D Plan" : "Plano 2D"}</span>
           </button>
 
-          <div className="h-5 w-[1px] bg-[#0A0D0B]/15" />
+          <div className="h-4 w-[1px] bg-white/15 shrink-0" />
 
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
             <button
               onClick={() => handleFlyToStage("all")}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-2 py-1 rounded-xl text-[9.5px] font-extrabold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                 focusMode === "all"
-                  ? "bg-[#0A0D0B] text-[#EBD9AB] shadow-sm"
-                  : "text-[#0A0D0B]/70 hover:bg-black/5 hover:text-[#0A0D0B]"
+                  ? "bg-[#B35F27]/85 text-white border border-[#EBD9AB]/40 shadow-sm"
+                  : "text-[#EDE7E0]/80 hover:bg-white/10 hover:text-white border border-transparent"
               }`}
             >
-              {isEn ? "All 318 Lots" : "Todo Loom (318)"}
+              {isEn ? "All (318)" : "Todo (318)"}
             </button>
             {["etapa_1", "etapa_2", "etapa_3", "etapa_4", "etapa_5", "etapa_6"].map((st) => {
               const active = focusMode === "stage" && stageId === st;
@@ -3702,10 +4118,10 @@ export default function Loom3DMaquetaView({
                 <button
                   key={st}
                   onClick={() => handleFlyToStage(st)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-2 py-1 rounded-xl text-[9.5px] font-extrabold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                     active
-                      ? "bg-[#B35F27] text-white shadow-sm"
-                      : "text-[#0A0D0B]/70 hover:bg-black/5 hover:text-[#0A0D0B]"
+                      ? "bg-[#B35F27]/85 text-white border border-[#EBD9AB]/40 shadow-sm"
+                      : "text-[#EDE7E0]/80 hover:bg-white/10 hover:text-white border border-transparent"
                   }`}
                 >
                   {getStageDisplayName(st, isEn)}
@@ -3715,25 +4131,25 @@ export default function Loom3DMaquetaView({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 bg-[#0A0D0B]/90 border border-white/15 p-1.5 rounded-2xl shadow-2xl backdrop-blur-xl pointer-events-auto">
-          <div className="flex items-center bg-white/10 rounded-xl p-0.5 border border-white/10">
-            <span className="text-[9px] uppercase tracking-wider text-[#EBD9AB] font-mono font-bold px-2 hidden sm:inline">
-              {isEn ? "Color by:" : "Colorear:"}
+        <div className="flex items-center flex-nowrap gap-1 bg-[#0b1210]/45 backdrop-blur-2xl border border-white/20 p-1 rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.22)] pointer-events-auto max-w-full overflow-x-auto no-scrollbar">
+          <div className="flex items-center bg-white/8 rounded-xl p-0.5 border border-white/12 shrink-0">
+            <span className="text-[8.5px] uppercase tracking-wider text-[#EBD9AB] font-mono font-bold px-1.5 hidden 2xl:inline">
+              {isEn ? "Color:" : "Color:"}
             </span>
             {(
               [
                 { id: "status", es: "Estado", en: "Status" },
-                { id: "area", es: "Área m²", en: "Area" },
-                { id: "typology", es: "Tipología", en: "Type" },
+                { id: "area", es: "Área", en: "Area" },
+                { id: "typology", es: "Tipo", en: "Type" },
               ] as const
             ).map((mode) => (
               <button
                 key={mode.id}
                 onClick={() => setColorMode(mode.id)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-[9.5px] font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                   colorMode === mode.id
-                    ? "bg-[#B35F27] text-white shadow"
-                    : "text-white/70 hover:text-white"
+                    ? "bg-[#B35F27]/85 text-white border border-[#EBD9AB]/35 shadow-sm"
+                    : "text-white/75 hover:text-white"
                 }`}
               >
                 {isEn ? mode.en : mode.es}
@@ -3747,66 +4163,66 @@ export default function Loom3DMaquetaView({
                 prev === "showcase" ? "all" : prev === "all" ? "off" : "showcase"
               )
             }
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-xl text-[9.5px] font-bold uppercase tracking-wider border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               villaMode !== "off"
-                ? "bg-emerald-500/20 border-emerald-400/50 text-emerald-300"
-                : "bg-white/5 border-white/15 text-white/70 hover:text-white"
+                ? "bg-emerald-500/20 border-emerald-400/45 text-emerald-200"
+                : "bg-white/8 border-white/15 text-white/75 hover:text-white"
             }`}
           >
-            <Home className="w-3.5 h-3.5" />
+            <Home className="w-3 h-3 shrink-0" />
             <span>
               {villaMode === "showcase"
                 ? isEn
-                  ? "Villas: Showcase"
+                  ? "Villas: Sample"
                   : "Villas: Muestra"
                 : villaMode === "all"
                 ? isEn
-                  ? "Villas: All 318"
-                  : "Villas: Todas"
+                  ? "Villas: 318"
+                  : "Villas: 318"
                 : isEn
-                ? "Villas: Off"
+                ? "Lots Only"
                 : "Solo Lotes"}
             </span>
           </button>
 
           <button
             onClick={() => setShowTrees3D(!showTrees3D)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all cursor-pointer ${
+            title={isEn ? "Toggle 3D Vegetation" : "Mostrar/Ocultar Vegetación 3D"}
+            className={`flex items-center justify-center p-1.5 rounded-xl border transition-all cursor-pointer shrink-0 ${
               showTrees3D
-                ? "bg-teal-500/20 border-teal-400/50 text-teal-200"
-                : "bg-white/5 border-white/15 text-white/70 hover:text-white"
+                ? "bg-teal-500/20 border-teal-400/45 text-teal-200"
+                : "bg-white/8 border-white/15 text-white/70 hover:text-white"
             }`}
           >
             <Trees className="w-3.5 h-3.5" />
-            <span className="hidden lg:inline">{isEn ? "3D Palms" : "Palmeras 3D"}</span>
           </button>
 
           <button
             onClick={() => setIsSunset(!isSunset)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-xl text-[9.5px] font-bold uppercase tracking-wider border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               isSunset
-                ? "bg-amber-500/25 border-amber-400/60 text-amber-200 shadow-lg shadow-amber-500/10"
-                : "bg-sky-500/15 border-sky-400/35 text-sky-200 hover:bg-sky-500/25"
+                ? "bg-amber-500/25 border-amber-400/55 text-amber-100"
+                : "bg-sky-500/15 border-sky-400/35 text-sky-100 hover:bg-sky-500/25"
             }`}
           >
             {isSunset ? (
-              <Sunset className="w-3.5 h-3.5 text-amber-400" />
+              <Sunset className="w-3 h-3 text-amber-300 shrink-0" />
             ) : (
-              <Sun className="w-3.5 h-3.5 text-sky-300" />
+              <Sun className="w-3 h-3 text-sky-300 shrink-0" />
             )}
-            <span>{isSunset ? (isEn ? "Sunset" : "Atardecer") : (isEn ? "Daylight" : "Día")}</span>
+            <span>{isSunset ? (isEn ? "Sunset" : "Atardecer") : (isEn ? "Day" : "Día")}</span>
           </button>
 
           <button
             onClick={() => setShowDronePins(!showDronePins)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all cursor-pointer ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-xl text-[9.5px] font-bold uppercase tracking-wider border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               showDronePins
-                ? "bg-[#B35F27]/25 border-[#B35F27]/60 text-[#EBD9AB]"
-                : "bg-white/5 border-white/15 text-white/60"
+                ? "bg-[#B35F27]/25 border-[#B35F27]/55 text-[#EBD9AB]"
+                : "bg-white/8 border-white/15 text-white/65"
             }`}
           >
-            <Camera className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">{isEn ? "Real Views" : "Vistas Reales"}</span>
+            <Camera className="w-3 h-3 shrink-0" />
+            <span>{isEn ? "Views" : "Vistas"}</span>
           </button>
 
           <button
@@ -3814,30 +4230,31 @@ export default function Loom3DMaquetaView({
             disabled={isExportingMap}
             title={
               isEn
-                ? "Download lightweight HD Availability Map for WhatsApp / CRM (~280 KB)"
-                : "Descargar Mapa de Disponibilidad ligero en vivo para WhatsApp / CRM (~280 KB)"
+                ? "Download lightweight HD Availability Map for WhatsApp / CRM"
+                : "Descargar Mapa de Disponibilidad oficial para WhatsApp / CRM"
             }
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 border border-emerald-300/40 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/30 hover:bg-emerald-500/45 border border-emerald-300/45 text-emerald-50 text-[9.5px] font-bold uppercase tracking-wider shadow-sm backdrop-blur-md transition-all cursor-pointer whitespace-nowrap shrink-0"
           >
-            <Download className="w-3.5 h-3.5 text-white" />
+            <Download className="w-3 h-3 text-emerald-200 shrink-0" />
             <span>
               {isExportingMap
                 ? isEn
-                  ? "Generating..."
+                  ? "Exporting..."
                   : "Generando..."
                 : isEn
-                ? "Download Plan (WA)"
-                : "Descargar Disponibilidad"}
+                ? "Download Map"
+                : "Descargar Plano"}
             </span>
           </button>
 
           {onOpenLocation && (
             <button
               onClick={onOpenLocation}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-[#B35F27] border border-white/15 text-white text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+              title={isEn ? "Open 3D Satellite Location" : "Abrir Ubicación Satelital 3D"}
+              className="flex items-center gap-1 px-2 py-1 rounded-xl bg-white/10 hover:bg-[#B35F27]/80 border border-white/18 text-white text-[9.5px] font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
-              <Globe className="w-3.5 h-3.5 text-[#EBD9AB]" />
-              <span className="hidden xl:inline">{isEn ? "Earth 3D" : "Satélite 3D"}</span>
+              <Globe className="w-3.5 h-3.5 text-[#EBD9AB] shrink-0" />
+              <span className="hidden 2xl:inline">{isEn ? "Satellite" : "Satélite"}</span>
             </button>
           )}
         </div>
@@ -3885,48 +4302,75 @@ export default function Loom3DMaquetaView({
         </div>
       )}
 
-      {/* MINI-MAPA RADAR */}
-      <div className="hidden md:flex absolute bottom-20 left-4 z-20 flex-col bg-[#0A0D0B]/90 border border-white/15 rounded-2xl p-2.5 shadow-2xl backdrop-blur-xl w-56 pointer-events-auto">
-        <div className="flex items-center justify-between mb-1.5 px-1">
+      {/* MINI-MAPA RADAR EQUILIBRADO Y SINCRONIZADO EN TIEMPO REAL (60 FPS) */}
+      <div className="hidden md:flex absolute bottom-16 left-4 z-20 flex-col bg-[#0b1210]/45 backdrop-blur-2xl border border-white/20 rounded-2xl p-2 shadow-[0_12px_36px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.22)] w-52 pointer-events-auto">
+        <div className="flex items-center justify-between mb-1 px-1">
           <div className="flex items-center gap-1.5">
-            <Compass className="w-3.5 h-3.5 text-[#B35F27]" />
-            <span className="text-[9px] font-mono uppercase tracking-widest text-[#EBD9AB] font-bold">
+            <Compass className="w-3.5 h-3.5 text-[#EBD9AB]" />
+            <span className="text-[8.5px] font-mono uppercase tracking-widest text-[#EDE7E0]/90 font-bold">
               {isEn ? "Masterplan Radar" : "Radar Masterplan 3D"}
             </span>
           </div>
-          <span className="text-[9px] font-mono text-white/60">{cameraYaw}°</span>
+          <span ref={radarYawLabelRef} className="text-[8.5px] font-mono text-[#EBD9AB]">
+            25°
+          </span>
         </div>
-        <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden border border-white/10 bg-[#051415]">
+        <div
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const u = (e.clientX - rect.left) / rect.width;
+            const v = (e.clientY - rect.top) / rect.height;
+            const wx = (u - 0.5) * WORLD_W;
+            const wz = (v - 0.5) * WORLD_D;
+            sceneRefs.current.desiredTarget.set(wx, 0, wz);
+            sceneRefs.current.desiredPos.set(wx - 2.5, 7.5, wz + 9.2);
+            sceneRefs.current.isFlying = true;
+          }}
+          title={isEn ? "Click anywhere on radar to fly camera" : "Haz clic en cualquier punto del radar para volar ahí"}
+          className="relative w-full aspect-[16/9] rounded-xl overflow-hidden border border-white/15 bg-[#051415] cursor-crosshair"
+        >
           <img
             src="/loom/loom_masterplan_bg.webp?v=5"
             alt="Masterplan Radar"
-            className="w-full h-full object-cover opacity-85"
+            className="w-full h-full object-fill opacity-85"
           />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div
-              className="w-20 h-20 transition-transform duration-150 ease-out flex items-center justify-center"
-              style={{ transform: `rotate(${cameraYaw}deg)` }}
-            >
-              <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
-                <path
-                  d="M 50 50 L 18 8 A 55 55 0 0 1 82 8 Z"
-                  fill="rgba(179, 95, 39, 0.38)"
-                  stroke="#EBD9AB"
-                  strokeWidth="1.5"
-                />
-                <circle cx="50" cy="50" r="5" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
-              </svg>
-            </div>
-          </div>
+          <svg viewBox="0 0 160 90" className="absolute inset-0 w-full h-full pointer-events-none">
+            <defs>
+              <radialGradient id="radarConeGrad" cx="50%" cy="100%" r="90%">
+                <stop offset="0%" stopColor="#B35F27" stopOpacity="0.65" />
+                <stop offset="70%" stopColor="#EBD9AB" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="#EBD9AB" stopOpacity="0.0" />
+              </radialGradient>
+            </defs>
+            {/* Contorno sutil del polígono de Loom para referencia visual equilibrada */}
+            <polygon
+              points="7,42 118,30 129,56 12,62"
+              fill="rgba(235, 217, 171, 0.05)"
+              stroke="rgba(235, 217, 171, 0.45)"
+              strokeWidth="0.8"
+              strokeDasharray="2 1.5"
+            />
+            <g ref={radarMarkerRef} transform="translate(112, 42) rotate(25)">
+              <path
+                d="M 0 0 L -13 -22 A 25 25 0 0 1 13 -22 Z"
+                fill="url(#radarConeGrad)"
+                stroke="#EBD9AB"
+                strokeWidth="0.9"
+                strokeOpacity="0.8"
+              />
+              <circle cx="0" cy="0" r="6" fill="none" stroke="#10b981" strokeOpacity="0.45" strokeWidth="1" />
+              <circle cx="0" cy="0" r="3.2" fill="#10b981" stroke="#ffffff" strokeWidth="1.4" />
+            </g>
+          </svg>
         </div>
-        <div className="mt-1.5 flex items-center justify-between text-[9px] text-white/60 px-1">
+        <div className="mt-1 flex items-center justify-between text-[8.5px] text-white/65 px-1">
           <span>{isEn ? "Left click: Orbit" : "Clic izq: Orbitar 360°"}</span>
           <span>{isEn ? "Scroll: Zoom" : "Scroll: Zoom"}</span>
         </div>
       </div>
 
-      {/* BARRA INFERIOR */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 p-1.5 bg-[#0A0D0B]/92 border border-[#B35F27]/45 rounded-2xl shadow-2xl backdrop-blur-xl max-w-[95vw] overflow-x-auto no-scrollbar pointer-events-auto">
+      {/* BARRA INFERIOR GLASSMORPHISM AJUSTADA (CABE COMPLETA EN 1 SOLA LÍNEA) */}
+      <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center flex-nowrap gap-1 p-1 bg-[#0b1210]/45 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.22)] max-w-[96vw] overflow-x-auto no-scrollbar pointer-events-auto">
         {CAMERA_PRESETS.map((preset) => {
           const isCurrent = activePreset.id === preset.id;
           return (
@@ -3943,16 +4387,16 @@ export default function Loom3DMaquetaView({
                   setDroneRenderModal(null);
                 }
               }}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                 isCurrent
-                  ? "bg-[#B35F27] text-white shadow-lg shadow-[#B35F27]/30"
-                  : "text-[#EDE7E0]/75 hover:bg-white/10 hover:text-white"
+                  ? "bg-[#B35F27]/85 backdrop-blur-md text-white border border-[#EBD9AB]/45 shadow-[0_4px_14px_rgba(179,95,39,0.4)]"
+                  : "text-[#EDE7E0]/85 hover:bg-white/12 hover:text-white border border-transparent"
               }`}
             >
               {preset.renderPreview ? (
-                <Camera className="w-3.5 h-3.5 text-[#EBD9AB] shrink-0" />
+                <Camera className="w-3 h-3 text-[#EBD9AB] shrink-0" />
               ) : (
-                <Box className="w-3.5 h-3.5 text-[#EBD9AB] shrink-0" />
+                <Box className="w-3 h-3 text-[#EBD9AB] shrink-0" />
               )}
               <span>{isEn ? preset.labelEn : preset.labelEs}</span>
             </button>
