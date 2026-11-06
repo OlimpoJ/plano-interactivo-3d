@@ -25,8 +25,146 @@
     return [lng, lat];
   }
 
+  function injectSubtleGlassStyles() {
+    if (document.getElementById("patrimofy-subtle-glass-styles")) return;
+    const style = document.createElement("style");
+    style.id = "patrimofy-subtle-glass-styles";
+    style.textContent = `
+      @keyframes glassFloatSlow {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-3px); }
+      }
+      @keyframes calloutPulseSlow {
+        0% { transform: scale(0.75); opacity: 0.55; }
+        70% { transform: scale(2.1); opacity: 0; }
+        100% { transform: scale(2.1); opacity: 0; }
+      }
+      /* Tarjetas de proyecto minimalistas en Glassmorphism */
+      .luxury-callout-marker {
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease !important;
+      }
+      .callout-card {
+        background: rgba(14, 20, 26, 0.26) !important;
+        border: 1px solid rgba(255, 255, 255, 0.22) !important;
+        border-radius: 999px !important;
+        padding: 4px 11px !important;
+        -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+        backdrop-filter: blur(16px) saturate(140%) !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+        gap: 1px !important;
+        animation: glassFloatSlow 7.5s ease-in-out infinite !important;
+        transition: all 0.55s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      .luxury-callout-marker:hover .callout-card {
+        background: rgba(14, 20, 26, 0.48) !important;
+        border-color: rgba(255, 255, 255, 0.42) !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+      }
+      .callout-header {
+        gap: 6px !important;
+      }
+      .callout-dot {
+        width: 5px !important;
+        height: 5px !important;
+        box-shadow: 0 0 5px var(--marker-color) !important;
+      }
+      .callout-name {
+        font-family: var(--font-sans) !important;
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.8px !important;
+        color: rgba(255, 255, 255, 0.92) !important;
+      }
+      .callout-sub {
+        display: none !important;
+      }
+      .callout-stem-v {
+        width: 1px !important;
+        height: 26px !important;
+        background: linear-gradient(to top, rgba(255,255,255,0.45), rgba(255,255,255,0.08)) !important;
+        box-shadow: none !important;
+      }
+      .callout-stem-h {
+        height: 1px !important;
+        width: 26px !important;
+        background: linear-gradient(to right, rgba(255,255,255,0.45), rgba(255,255,255,0.08)) !important;
+        box-shadow: none !important;
+      }
+      .arrow-down, .arrow-up, .arrow-left, .arrow-right {
+        display: none !important;
+      }
+      .callout-target {
+        width: 12px !important;
+        height: 12px !important;
+      }
+      .callout-target-dot {
+        width: 5px !important;
+        height: 5px !important;
+        border: 1px solid rgba(255, 255, 255, 0.85) !important;
+        box-shadow: 0 0 6px var(--marker-color) !important;
+      }
+      .callout-target-pulse {
+        width: 12px !important;
+        height: 12px !important;
+        border-width: 1px !important;
+        animation: calloutPulseSlow 5.5s cubic-bezier(0.25, 1, 0.5, 1) infinite !important;
+      }
+
+      /* Puntos de referencia (Alma Beach Club, etc.) en Glassmorphism ultra-sutil */
+      .ref-point-marker {
+        gap: 6px !important;
+        transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease !important;
+      }
+      .ref-point-marker:hover {
+        transform: scale(1.03) !important;
+      }
+      .ref-point-dot {
+        width: 6px !important;
+        height: 6px !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+        box-shadow: 0 0 6px rgba(255, 255, 255, 0.5) !important;
+      }
+      .ref-point-card {
+        background: rgba(14, 20, 26, 0.24) !important;
+        border: 1px solid rgba(255, 255, 255, 0.20) !important;
+        border-radius: 999px !important;
+        padding: 3.5px 10px !important;
+        -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+        backdrop-filter: blur(16px) saturate(140%) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+        animation: glassFloatSlow 8.5s ease-in-out infinite !important;
+      }
+      .ref-point-title {
+        font-family: var(--font-sans) !important;
+        font-size: 9.5px !important;
+        font-weight: 500 !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        letter-spacing: 0.5px !important;
+      }
+      .ref-point-desc {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function initLoom3DEarthLayer(map) {
     try {
+      injectSubtleGlassStyles();
+
+      // Suavizar la velocidad de vuelo de cámara (flyTo) para transiciones cinematográficas más lentas
+      if (!map.__subtleFlyPatched) {
+        map.__subtleFlyPatched = true;
+        const origFlyTo = map.flyTo.bind(map);
+        map.flyTo = function (opts) {
+          return origFlyTo({
+            ...opts,
+            speed: opts && opts.speed ? Math.min(opts.speed, 0.65) : 0.6,
+            curve: opts && opts.curve ? opts.curve : 1.25,
+          });
+        };
+      }
       // Coordenadas exactas del recorte rectificado (u: -0.015..1.120, v: -0.025..1.025)
       // donde u in [0, 1] y v in [0, 1] encajan al 100% con el polígono amarillo de Loom
       // y u in [1.0, 1.12] proyecta las sombrillas y malocas del Alma Beach Club sobre la playa real

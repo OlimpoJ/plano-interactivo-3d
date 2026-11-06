@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   Globe,
   Trees,
+  Download,
 } from "lucide-react";
 import {
   useLoomLang,
@@ -3102,6 +3103,231 @@ export default function Loom3DMaquetaView({
     sceneRefs.current.isFlying = true;
   }, [selectedLot, unifiedLots]);
 
+  const [isExportingMap, setIsExportingMap] = useState(false);
+
+  const handleDownloadAvailabilityMap = async () => {
+    if (isExportingMap || unifiedLots.length === 0) return;
+    setIsExportingMap(true);
+    try {
+      const bgImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const im = new Image();
+        im.crossOrigin = "anonymous";
+        im.onload = () => resolve(im);
+        im.onerror = reject;
+        im.src = "/loom/loom_masterplan_bg.webp";
+      });
+
+      const W = 2400;
+      const HEADER_H = 112;
+      const FOOTER_H = 76;
+      // Recorte enfocado al corredor del proyecto + Alma Beach Club (x: 60..3420, y: 615..1475)
+      const SX = 60;
+      const SY = 615;
+      const SW = 3360;
+      const SH = 860;
+      const MAP_H = Math.round((W * SH) / SW); // ~614 px
+      const H = HEADER_H + MAP_H + FOOTER_H;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // Fondo general oscuro editorial
+      ctx.fillStyle = "#0A0D0B";
+      ctx.fillRect(0, 0, W, H);
+
+      // Dibujar masterplan recortado
+      ctx.drawImage(bgImg, SX, SY, SW, SH, 0, HEADER_H, W, MAP_H);
+
+      // Contadores de inventario en tiempo real
+      let countAvail = 0;
+      let countRes = 0;
+      let countSold = 0;
+
+      const mapX = (svgX: number) => ((svgX - SX) / SW) * W;
+      const mapY = (svgY: number) => HEADER_H + ((svgY - SY) / SH) * MAP_H;
+
+      // Dibujar cada lote con su estado actual y código
+      unifiedLots.forEach((pLot) => {
+        if (!pLot.vertices || pLot.vertices.length < 3) return;
+        const lotData = lotsMap[pLot.id];
+        const status = lotData?.status || (pLot.isAmenity ? "common" : "available");
+        const isAmenity = pLot.isAmenity || status === "common";
+        if (isAmenity) return;
+
+        if (status === "available") countAvail++;
+        else if (status === "blocked" || status === "reserved") countRes++;
+        else if (status === "sold") countSold++;
+
+        const isSel = selectedLot?.id === pLot.id;
+
+        ctx.beginPath();
+        pLot.vertices.forEach(([vx, vy], i) => {
+          const px = mapX(vx);
+          const py = mapY(vy);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        });
+        ctx.closePath();
+
+        if (isSel) {
+          ctx.fillStyle = "rgba(253, 224, 71, 0.68)";
+          ctx.strokeStyle = "#fde047";
+          ctx.lineWidth = 3.2;
+        } else if (status === "available") {
+          ctx.fillStyle = "rgba(16, 185, 129, 0.44)";
+          ctx.strokeStyle = "rgba(52, 211, 153, 0.92)";
+          ctx.lineWidth = 1.4;
+        } else if (status === "blocked" || status === "reserved") {
+          ctx.fillStyle = "rgba(245, 158, 11, 0.52)";
+          ctx.strokeStyle = "rgba(251, 191, 36, 0.95)";
+          ctx.lineWidth = 1.5;
+        } else {
+          ctx.fillStyle = "rgba(239, 68, 68, 0.54)";
+          ctx.strokeStyle = "rgba(248, 113, 113, 0.92)";
+          ctx.lineWidth = 1.4;
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        // Etiqueta del lote (ej: A-01, K-04)
+        const rawCode = (lotData?.rawId || pLot.id).replace(/^etapa_\d+_/i, "");
+        const cx = mapX(pLot.cx);
+        const cy = mapY(pLot.cy);
+        ctx.font = isSel ? "bold 12px sans-serif" : "bold 9.5px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = 2.6;
+        ctx.strokeStyle = "rgba(10, 13, 11, 0.88)";
+        ctx.strokeText(rawCode, cx, cy);
+        ctx.fillStyle = isSel ? "#fde047" : "#ffffff";
+        ctx.fillText(rawCode, cx, cy);
+      });
+
+      // Header Editorial Superior
+      ctx.fillStyle = "#0A0D0B";
+      ctx.fillRect(0, 0, W, HEADER_H);
+      ctx.strokeStyle = "rgba(212, 175, 55, 0.45)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, HEADER_H);
+      ctx.lineTo(W, HEADER_H);
+      ctx.stroke();
+
+      // Título y fecha en vivo
+      const nowStr = new Date().toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#EBD9AB";
+      ctx.font = "bold 30px serif";
+      ctx.fillText("LOOM LUXURY RESIDENCE · MAPA DE DISPONIBILIDAD", 42, 46);
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "500 17px sans-serif";
+      ctx.fillText(
+        `Playa Alma · Vía al Mar Km 23, Zona Norte (Cartagena)   |   Actualizado en tiempo real: ${nowStr}`,
+        42,
+        82
+      );
+
+      // Píldoras de resumen a la derecha del Header
+      const pills = [
+        { label: `DISPONIBLES: ${countAvail}`, bg: "rgba(16, 185, 129, 0.18)", border: "#10b981", dot: "#10b981", text: "#ecfdf5" },
+        { label: `RESERVADOS: ${countRes}`, bg: "rgba(245, 158, 11, 0.18)", border: "#f59e0b", dot: "#f59e0b", text: "#fffbeb" },
+        { label: `VENDIDOS: ${countSold}`, bg: "rgba(239, 68, 68, 0.18)", border: "#ef4444", dot: "#ef4444", text: "#fef2f2" },
+      ];
+      let pxRight = W - 42;
+      for (let i = pills.length - 1; i >= 0; i--) {
+        const p = pills[i];
+        ctx.font = "bold 18px sans-serif";
+        const tw = ctx.measureText(p.label).width;
+        const pw = tw + 54;
+        const ph = 46;
+        const x0 = pxRight - pw;
+        const y0 = Math.round((HEADER_H - ph) / 2);
+
+        ctx.fillStyle = p.bg;
+        ctx.strokeStyle = p.border;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.roundRect(x0, y0, pw, ph, 23);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = p.dot;
+        ctx.beginPath();
+        ctx.arc(x0 + 22, y0 + ph / 2, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = p.text;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(p.label, x0 + 36, y0 + ph / 2 + 1);
+
+        pxRight = x0 - 16;
+      }
+
+      // Footer Comercial Inferior
+      const fy = HEADER_H + MAP_H;
+      ctx.fillStyle = "#0A0D0B";
+      ctx.fillRect(0, fy, W, FOOTER_H);
+      ctx.strokeStyle = "rgba(212, 175, 55, 0.35)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, fy);
+      ctx.lineTo(W, fy);
+      ctx.stroke();
+
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#EDE7E0";
+      ctx.font = "600 17px sans-serif";
+      const footerLeft = selectedLot
+        ? `⭐ LOTE DESTACADO: Lote ${selectedLot.rawId} (${getStageDisplayName(stageId, isEn)})  •  Área: ${selectedLot.area} m²  •  Precio: ${selectedLot.totalPrice}`
+        : "🟢 Verde: Lote Disponible   •   🟡 Ámbar: Reservado / Bloqueado   •   🔴 Rojo: Lote Vendido   •   🏖️ Derecha: Salida Directa a Playa Alma & Alma Beach Club";
+      ctx.fillText(footerLeft, 42, fy + FOOTER_H / 2);
+
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#EBD9AB";
+      ctx.font = "bold 17px sans-serif";
+      ctx.fillText(
+        "Patrimofy Inmobiliaria · Comercializador Autorizado   |   Financiación hasta 48 meses 0% interés",
+        W - 42,
+        fy + FOOTER_H / 2
+      );
+
+      // Exportar como JPG ligero (~280 KB) ideal para WhatsApp y CRM
+      const blob = await new Promise<Blob | null>((res) =>
+        canvas.toBlob((b) => res(b), "image/jpeg", 0.88)
+      );
+      if (!blob) return;
+
+      const dateSlug = new Date().toISOString().slice(0, 10);
+      const fileName = selectedLot
+        ? `Loom_Disponibilidad_Lote_${selectedLot.rawId}_${dateSlug}.jpg`
+        : `Loom_Mapa_Disponibilidad_${dateSlug}.jpg`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) {
+      console.error("Error exporting availability map:", e);
+    } finally {
+      setIsExportingMap(false);
+    }
+  };
+
   const handleFlyToStage = (targetStage: string) => {
     if (targetStage === "all") {
       setFocusMode("all");
@@ -3290,6 +3516,28 @@ export default function Loom3DMaquetaView({
           >
             <Camera className="w-3.5 h-3.5" />
             <span className="hidden md:inline">{isEn ? "Real Views" : "Vistas Reales"}</span>
+          </button>
+
+          <button
+            onClick={handleDownloadAvailabilityMap}
+            disabled={isExportingMap}
+            title={
+              isEn
+                ? "Download lightweight HD Availability Map for WhatsApp / CRM (~280 KB)"
+                : "Descargar Mapa de Disponibilidad ligero en vivo para WhatsApp / CRM (~280 KB)"
+            }
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 border border-emerald-300/40 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-white" />
+            <span>
+              {isExportingMap
+                ? isEn
+                  ? "Generating..."
+                  : "Generando..."
+                : isEn
+                ? "Download Plan (WA)"
+                : "Descargar Disponibilidad"}
+            </span>
           </button>
 
           {onOpenLocation && (
