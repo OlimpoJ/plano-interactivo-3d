@@ -74,15 +74,15 @@ export default function LoomLocationModal({
           transition={{ duration: 0.3, ease: "easeOut" }}
           className="fixed inset-0 z-50 w-screen h-dvh bg-[#07090e] overflow-hidden"
         >
-          {/* Fullscreen Patrimofy Earth 3D Geospatial Viewer */}
+          {/* Fullscreen Alma Beach Earth 3D Geospatial Viewer */}
           <iframe
             ref={iframeRef}
             title={
               isEn
-                ? "Patrimofy Earth 3D • Loom Luxury Residence"
-                : "Patrimofy Earth 3D • Loom Luxury Residence"
+                ? "Alma Beach Earth 3D • Loom Luxury Residence"
+                : "Alma Beach Earth 3D • Loom Luxury Residence"
             }
-            src={`/earth/${onJumpTo3DMaqueta ? "index-3d.html" : "index.html"}?project=loom&embed=true&lang=${lang}`}
+            src={`/earth/index-3d.html?project=loom&embed=true&lang=${lang}`}
             className="w-full h-full border-0 block bg-[#07090e]"
             allow="fullscreen; geolocation"
           />

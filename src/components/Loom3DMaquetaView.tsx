@@ -3297,7 +3297,7 @@ export default function Loom3DMaquetaView({
       ctx.fillStyle = "#EBD9AB";
       ctx.font = "bold 17px sans-serif";
       ctx.fillText(
-        "Patrimofy Inmobiliaria · Comercializador Autorizado   |   Financiación hasta 48 meses 0% interés",
+        "Loom Luxury Residence · Proyecto Alma Beach   |   Financiación hasta 48 meses 0% interés",
         W - 42,
         fy + FOOTER_H / 2
       );
