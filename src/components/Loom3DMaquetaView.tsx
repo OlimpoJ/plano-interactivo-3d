@@ -1926,26 +1926,26 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
                     + smoothstep(0.0, 0.45, outSouth) * 0.008
                     + (fbmCoast + waveCoast) * smoothstep(0.0, 0.16, outDistY);
 
-    // Continuación C0 hacia el Norte (mUv.y > 1) y Sur (mUv.y < 0) para el bosque y la arena
-    float sampleY = clamp(mUv.y, 0.004, 0.996);
-    if (mUv.y > 1.0) {
-      float dy = mUv.y - 1.0;
-      float triY = 1.0 - abs(fract(dy * 1.45) * 2.0 - 1.0);
-      // En la franja de playa (mUv.x > 0.76) usamos una banda angosta + FBM para no desfasar la orilla
-      float yBand = mix(0.155, 0.035, smoothstep(0.74, 0.83, mUv.x));
-      sampleY = 0.994 - triY * yBand;
-    } else if (mUv.y < 0.0) {
-      float dy = -mUv.y;
-      float triY = 1.0 - abs(fract(dy * 1.45) * 2.0 - 1.0);
-      float yBand = mix(0.155, 0.035, smoothstep(0.74, 0.83, mUv.x));
-      sampleY = 0.006 + triY * yBand;
+    // Continuación exacta sin escalones ni contacto con los bordes blancos de la imagen (yMin=0.018, yMax=0.982)
+    float yBand = mix(0.155, 0.042, smoothstep(0.74, 0.83, mUv.x));
+    float yMin = 0.018;
+    float yMax = 0.982;
+    float sampleY = mUv.y;
+    if (sampleY > yMax) {
+      float dy = sampleY - yMax;
+      float triY = 1.0 - abs(fract(dy * 1.35) * 2.0 - 1.0);
+      sampleY = yMax - triY * yBand;
+    } else if (sampleY < yMin) {
+      float dy = yMin - sampleY;
+      float triY = 1.0 - abs(fract(dy * 1.35) * 2.0 - 1.0);
+      sampleY = yMin + triY * yBand;
     }
 
-    float sampleX = clamp(mUv.x, 0.004, 0.996);
+    float sampleX = clamp(mUv.x, 0.008, 0.985);
     if (outDistY > 0.0 && mUv.x > 0.76) {
       float shoreSampleY = 0.930 - 0.074 * sampleY + 0.014 * sampleY * sampleY;
       float coastAlign = smoothstep(0.0, 0.08, outDistY) * smoothstep(0.76, 0.84, mUv.x);
-      sampleX = clamp(mUv.x + (shoreSampleY - extShoreX) * coastAlign, 0.004, 0.996);
+      sampleX = clamp(mUv.x + (shoreSampleY - extShoreX) * coastAlign, 0.008, 0.985);
     }
 
     // Deformación orgánica FBM en el bosque exterior Norte/Sur y en la arena exterior
