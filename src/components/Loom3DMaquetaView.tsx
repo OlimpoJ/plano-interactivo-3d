@@ -3333,7 +3333,7 @@ export default function Loom3DMaquetaView({
         ctx.fillText(lm.label, bx + 8, by + 0.5);
       });
 
-      // Rosa de los Vientos en Marfil & Cobre Terracota
+      // Rosa de los Vientos en Marfil & Cobre Terracota (Norte orientado hacia la derecha / Playa)
       const compX = PAD_X + 58;
       const compY = HEADER_H + MAP_H - 46;
       ctx.fillStyle = "rgba(245, 241, 236, 0.93)";
@@ -3346,10 +3346,10 @@ export default function Loom3DMaquetaView({
 
       ctx.fillStyle = "#B35F27";
       ctx.beginPath();
-      ctx.moveTo(compX, compY - 18);
-      ctx.lineTo(compX - 5.5, compY + 3);
-      ctx.lineTo(compX, compY - 2);
-      ctx.lineTo(compX + 5.5, compY + 3);
+      ctx.moveTo(compX + 18, compY);
+      ctx.lineTo(compX - 3, compY - 5.5);
+      ctx.lineTo(compX + 2, compY);
+      ctx.lineTo(compX - 3, compY + 5.5);
       ctx.closePath();
       ctx.fill();
 
@@ -3357,7 +3357,7 @@ export default function Loom3DMaquetaView({
       ctx.textBaseline = "middle";
       ctx.font = "700 10.5px 'Galano Grotesque', sans-serif";
       ctx.fillStyle = "#3B2210";
-      ctx.fillText("N", compX, compY + 13);
+      ctx.fillText("N", compX - 12, compY + 0.5);
 
       ctx.restore(); // Fin del clip del mapa
 
