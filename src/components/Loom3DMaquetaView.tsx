@@ -3124,8 +3124,8 @@ export default function Loom3DMaquetaView({
       ]);
 
       const W = 2800;
-      const HEADER_H = 166;
-      const FOOTER_H = 98;
+      const HEADER_H = 168;
+      const FOOTER_H = 100;
       const PAD_X = 40;
       const MAP_W = W - PAD_X * 2;
 
@@ -3143,8 +3143,11 @@ export default function Loom3DMaquetaView({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // 1. Fondo general oscuro editorial
-      ctx.fillStyle = "#0A0E0D";
+      // 1. Fondo general en Marfil Natural & Arena Cálida Oficial Loom (#EDE7E0 -> #E5DDD2)
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, "#EFE9E1");
+      bgGrad.addColorStop(1, "#E5DCD1");
+      ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, W, H);
 
       // 2. Viewport del Masterplan con esquinas redondeadas (20px)
@@ -3155,24 +3158,18 @@ export default function Loom3DMaquetaView({
 
       ctx.drawImage(bgImg, SX, SY, SW, SH, PAD_X, HEADER_H, MAP_W, MAP_H);
 
-      // Viñeta oscura cinematográfica en bordes superior/inferior/izquierdo para contraste de etiquetas
-      const topGrad = ctx.createLinearGradient(0, HEADER_H, 0, HEADER_H + 115);
-      topGrad.addColorStop(0, "rgba(8, 12, 11, 0.72)");
-      topGrad.addColorStop(1, "rgba(8, 12, 11, 0)");
+      // Viñeta cálida espresso en bordes superior/inferior para resaltar píldoras tipo Brochure Loom
+      const topGrad = ctx.createLinearGradient(0, HEADER_H, 0, HEADER_H + 105);
+      topGrad.addColorStop(0, "rgba(28, 20, 14, 0.54)");
+      topGrad.addColorStop(1, "rgba(28, 20, 14, 0)");
       ctx.fillStyle = topGrad;
-      ctx.fillRect(PAD_X, HEADER_H, MAP_W, 115);
+      ctx.fillRect(PAD_X, HEADER_H, MAP_W, 105);
 
-      const botGrad = ctx.createLinearGradient(0, HEADER_H + MAP_H - 95, 0, HEADER_H + MAP_H);
-      botGrad.addColorStop(0, "rgba(8, 12, 11, 0)");
-      botGrad.addColorStop(1, "rgba(8, 12, 11, 0.72)");
+      const botGrad = ctx.createLinearGradient(0, HEADER_H + MAP_H - 85, 0, HEADER_H + MAP_H);
+      botGrad.addColorStop(0, "rgba(28, 20, 14, 0)");
+      botGrad.addColorStop(1, "rgba(28, 20, 14, 0.54)");
       ctx.fillStyle = botGrad;
-      ctx.fillRect(PAD_X, HEADER_H + MAP_H - 95, MAP_W, 95);
-
-      const leftGrad = ctx.createLinearGradient(PAD_X, 0, PAD_X + 90, 0);
-      leftGrad.addColorStop(0, "rgba(8, 12, 11, 0.48)");
-      leftGrad.addColorStop(1, "rgba(8, 12, 11, 0)");
-      ctx.fillStyle = leftGrad;
-      ctx.fillRect(PAD_X, HEADER_H, 90, MAP_H);
+      ctx.fillRect(PAD_X, HEADER_H + MAP_H - 85, MAP_W, 85);
 
       let countAvail = 0;
       let countRes = 0;
@@ -3181,7 +3178,7 @@ export default function Loom3DMaquetaView({
       const mapX = (svgX: number) => PAD_X + ((svgX - SX) / SW) * MAP_W;
       const mapY = (svgY: number) => HEADER_H + ((svgY - SY) / SH) * MAP_H;
 
-      // 3. Dibujar polígonos de lotes y códigos limpios sin borde negro pesado
+      // 3. Dibujar polígonos de lotes con la paleta bioclimática oficial de Loom
       unifiedLots.forEach((pLot) => {
         if (!pLot.vertices || pLot.vertices.length < 3) return;
         const lotData = lotsMap[pLot.id];
@@ -3205,20 +3202,23 @@ export default function Loom3DMaquetaView({
         ctx.closePath();
 
         if (isSel) {
-          ctx.fillStyle = "rgba(253, 224, 71, 0.78)";
-          ctx.strokeStyle = "#fde047";
+          ctx.fillStyle = "rgba(235, 217, 171, 0.85)";
+          ctx.strokeStyle = "#FFFFFF";
           ctx.lineWidth = 3.2;
         } else if (status === "available") {
-          ctx.fillStyle = "rgba(16, 172, 118, 0.56)";
-          ctx.strokeStyle = "rgba(134, 239, 172, 0.93)";
+          // Salvia Bioclimático Loom (#3E8E76)
+          ctx.fillStyle = "rgba(62, 142, 118, 0.64)";
+          ctx.strokeStyle = "rgba(212, 245, 233, 0.92)";
           ctx.lineWidth = 1.8;
         } else if (status === "blocked" || status === "reserved") {
-          ctx.fillStyle = "rgba(234, 158, 22, 0.63)";
-          ctx.strokeStyle = "rgba(253, 224, 71, 0.95)";
+          // Ocre Sol Loom (#D48E26)
+          ctx.fillStyle = "rgba(212, 142, 38, 0.68)";
+          ctx.strokeStyle = "rgba(253, 230, 138, 0.96)";
           ctx.lineWidth = 1.8;
         } else {
-          ctx.fillStyle = "rgba(212, 54, 68, 0.59)";
-          ctx.strokeStyle = "rgba(253, 164, 175, 0.90)";
+          // Cobre Terracota Oficial Loom (#B34E27)
+          ctx.fillStyle = "rgba(179, 78, 39, 0.68)";
+          ctx.strokeStyle = "rgba(245, 208, 190, 0.90)";
           ctx.lineWidth = 1.8;
         }
         ctx.fill();
@@ -3229,118 +3229,124 @@ export default function Loom3DMaquetaView({
         const cy = mapY(pLot.cy);
         ctx.save();
         ctx.font = isSel
-          ? "700 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-          : "700 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          ? "700 15px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif"
+          : "700 12.5px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+        ctx.shadowColor = "rgba(24, 16, 10, 0.72)";
         ctx.shadowBlur = 2.5;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 1;
-        ctx.fillStyle = isSel ? "#0A0E0D" : "#FFFFFF";
+        ctx.fillStyle = isSel ? "#3B2210" : "#FFFDF9";
         ctx.fillText(rawCode, cx, cy);
         ctx.restore();
       });
 
-      // 4. Indicadores arquitectónicos de Etapas y Amenidades (superiores)
+      // 4. Píldoras de Etapas y Amenidades estilo Brochure Oficial Loom (Marfil #F5F1EC + Cobre #B35F27 + línea punteada)
       const topCallouts = [
-        { title: "ETAPA 1", sub: "MANZANAS A · B · C", svgX: 450, svgY: 695, targetY: 798, gold: false },
-        { title: "ETAPA 2", sub: "MANZANAS D · E", svgX: 920, svgY: 680, targetY: 782, gold: false },
-        { title: "ETAPA 3", sub: "MANZANAS F · G", svgX: 1390, svgY: 665, targetY: 766, gold: false },
-        { title: "ETAPA 4", sub: "MANZANAS H · I", svgX: 1845, svgY: 650, targetY: 748, gold: false },
-        { title: "CLUB HOUSE & OASIS", sub: "WELLNESS · PISCINAS", svgX: 2235, svgY: 642, targetY: 742, gold: true },
-        { title: "ETAPA 5", sub: "MANZANAS J · K · L", svgX: 2650, svgY: 632, targetY: 722, gold: false },
-        { title: "ALMA BEACH CLUB", sub: "SALIDA DIRECTA AL MAR", svgX: 3130, svgY: 625, targetY: 706, gold: true },
+        { title: "ETAPA 1", sub: "MANZANAS A · B · C", svgX: 450, svgY: 692, targetY: 798, copper: false },
+        { title: "ETAPA 2", sub: "MANZANAS D · E", svgX: 920, svgY: 678, targetY: 782, copper: false },
+        { title: "ETAPA 3", sub: "MANZANAS F · G", svgX: 1390, svgY: 664, targetY: 766, copper: false },
+        { title: "ETAPA 4", sub: "MANZANAS H · I", svgX: 1845, svgY: 650, targetY: 748, copper: false },
+        { title: "CLUB HOUSE & OASIS", sub: "WELLNESS · PISCINAS", svgX: 2235, svgY: 640, targetY: 742, copper: true },
+        { title: "ETAPA 5", sub: "MANZANAS J · K · L", svgX: 2650, svgY: 630, targetY: 722, copper: false },
+        { title: "ALMA BEACH CLUB", sub: "SALIDA DIRECTA AL MAR", svgX: 3130, svgY: 622, targetY: 706, copper: true },
       ];
 
       topCallouts.forEach((c) => {
         const bx = mapX(c.svgX);
         const by = mapY(c.svgY);
         const ty = mapY(c.targetY);
-        const pw = c.gold ? 212 : 174;
-        const ph = 42;
+        const pw = c.copper ? 210 : 172;
+        const ph = 40;
         const x0 = bx - pw / 2;
         const y0 = by - ph / 2;
 
-        ctx.strokeStyle = c.gold ? "rgba(218, 188, 122, 0.82)" : "rgba(255, 255, 255, 0.56)";
+        ctx.save();
+        ctx.strokeStyle = "rgba(245, 241, 236, 0.9)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(bx, y0 + ph + 2);
+        ctx.lineTo(bx, ty - 5);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = "#B35F27";
+        ctx.strokeStyle = "#F5F1EC";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(bx, y0 + ph);
-        ctx.lineTo(bx, ty);
+        ctx.arc(bx, ty, 4.5, 0, Math.PI * 2);
+        ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = c.gold ? "rgba(218, 188, 122, 0.9)" : "rgba(255, 255, 255, 0.75)";
+        ctx.fillStyle = c.copper ? "rgba(179, 95, 39, 0.95)" : "rgba(245, 241, 236, 0.95)";
+        ctx.strokeStyle = c.copper ? "rgba(237, 231, 224, 0.96)" : "rgba(179, 95, 39, 0.78)";
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(bx, ty, 3.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = c.gold ? "rgba(22, 20, 14, 0.92)" : "rgba(12, 18, 16, 0.90)";
-        ctx.strokeStyle = c.gold ? "rgba(218, 188, 122, 0.94)" : "rgba(148, 163, 184, 0.62)";
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        ctx.roundRect(x0, y0, pw, ph, 9);
+        ctx.roundRect(x0, y0, pw, ph, 20);
         ctx.fill();
         ctx.stroke();
 
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.font = "700 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        ctx.fillStyle = c.gold ? "#EBD9AB" : "#F8FAFC";
-        ctx.fillText(c.title, bx, y0 + 14);
+        ctx.font = "700 13px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.fillStyle = c.copper ? "#FFFDF9" : "#3B2210";
+        ctx.fillText(c.title, bx, y0 + 13);
 
-        ctx.font = "500 10.5px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        ctx.fillStyle = c.gold ? "rgba(203, 182, 138, 0.92)" : "rgba(148, 163, 184, 0.92)";
-        ctx.fillText(c.sub, bx, y0 + 29);
+        ctx.font = "500 10px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.fillStyle = c.copper ? "#EBD9AB" : "#8A5229";
+        ctx.fillText(c.sub, bx, y0 + 28);
       });
 
-      // Hitos inferiores (Portería, Parque Lineal, Laguna Central)
+      // Hitos inferiores en Marfil Natural & Cobre Terracota
       const bottomLandmarks = [
         { label: "PORTERÍA PRINCIPAL · VÍA AL MAR", svgX: 340, svgY: 1445 },
-        { label: "PARQUE LINEAL & CORREDOR BIOCLIMÁTICO", svgX: 1380, svgY: 1445 },
-        { label: "LAGUNA CENTRAL & RESERVA NATURAL", svgX: 2440, svgY: 1445 },
+        { label: "THE GARDEN WALK · CORREDOR BIOCLIMÁTICO", svgX: 1380, svgY: 1445 },
+        { label: "LAGO LOOM & RESERVA NATURAL", svgX: 2440, svgY: 1445 },
       ];
       bottomLandmarks.forEach((lm) => {
         const bx = mapX(lm.svgX);
         const by = mapY(lm.svgY);
-        const pw = 304;
-        const ph = 32;
+        const pw = 310;
+        const ph = 30;
         const x0 = bx - pw / 2;
         const y0 = by - ph / 2;
 
-        ctx.fillStyle = "rgba(12, 18, 16, 0.90)";
-        ctx.strokeStyle = "rgba(212, 182, 120, 0.68)";
+        ctx.fillStyle = "rgba(245, 241, 236, 0.93)";
+        ctx.strokeStyle = "rgba(179, 95, 39, 0.75)";
         ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.roundRect(x0, y0, pw, ph, 16);
+        ctx.roundRect(x0, y0, pw, ph, 15);
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = "#DABC7A";
+        ctx.fillStyle = "#B35F27";
         ctx.beginPath();
-        ctx.arc(x0 + 18, by, 4, 0, Math.PI * 2);
+        ctx.arc(x0 + 17, by, 4, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.font = "600 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        ctx.fillStyle = "#EBD9AB";
+        ctx.font = "600 10.5px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.fillStyle = "#3B2210";
         ctx.fillText(lm.label, bx + 8, by + 0.5);
       });
 
-      // Rosa de los Vientos minimalista (abajo a la izquierda del mapa)
+      // Rosa de los Vientos en Marfil & Cobre Terracota
       const compX = PAD_X + 58;
       const compY = HEADER_H + MAP_H - 46;
-      ctx.fillStyle = "rgba(12, 17, 15, 0.90)";
-      ctx.strokeStyle = "rgba(218, 188, 122, 0.85)";
+      ctx.fillStyle = "rgba(245, 241, 236, 0.93)";
+      ctx.strokeStyle = "rgba(179, 95, 39, 0.86)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(compX, compY, 28, 0, Math.PI * 2);
+      ctx.arc(compX, compY, 27, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = "#DABC7A";
+      ctx.fillStyle = "#B35F27";
       ctx.beginPath();
-      ctx.moveTo(compX, compY - 19);
+      ctx.moveTo(compX, compY - 18);
       ctx.lineTo(compX - 5.5, compY + 3);
       ctx.lineTo(compX, compY - 2);
       ctx.lineTo(compX + 5.5, compY + 3);
@@ -3349,34 +3355,48 @@ export default function Loom3DMaquetaView({
 
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = "700 11px sans-serif";
-      ctx.fillStyle = "#EBD9AB";
+      ctx.font = "700 10.5px 'Galano Grotesque', sans-serif";
+      ctx.fillStyle = "#3B2210";
       ctx.fillText("N", compX, compY + 13);
 
       ctx.restore(); // Fin del clip del mapa
 
-      // Doble marco dorado champagne alrededor del Masterplan
-      ctx.strokeStyle = "rgba(212, 182, 120, 0.72)";
+      // Doble marco Cobre Terracota alrededor del Masterplan
+      ctx.strokeStyle = "rgba(179, 95, 39, 0.82)";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.roundRect(PAD_X, HEADER_H, MAP_W, MAP_H, 20);
       ctx.stroke();
 
-      ctx.strokeStyle = "rgba(212, 182, 120, 0.22)";
+      ctx.strokeStyle = "rgba(179, 95, 39, 0.28)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.roundRect(PAD_X - 4, HEADER_H - 4, MAP_W + 8, MAP_H + 8, 23);
       ctx.stroke();
 
-      // 5. HEADER EDITORIAL SUPERIOR: Logo Oficial + Título + 4 Tarjetas KPI
+      // 5. HEADER EDITORIAL SUPERIOR: Logo Oficial en Espresso/Cobre + Tipografía Branch + 4 Tarjetas KPI
       const logoH = 100;
       const logoW = Math.round(logoImg.width * (logoH / logoImg.height));
       const logoX = PAD_X + 12;
       const logoY = Math.round((HEADER_H - logoH) / 2);
-      ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+
+      // Tintar logo_loom.png al tono Espresso/Cobre oficial del Brochure (#733A16) sobre fondo Marfil
+      const logoCanvas = document.createElement("canvas");
+      logoCanvas.width = logoW;
+      logoCanvas.height = logoH;
+      const lCtx = logoCanvas.getContext("2d");
+      if (lCtx) {
+        lCtx.drawImage(logoImg, 0, 0, logoW, logoH);
+        lCtx.globalCompositeOperation = "source-in";
+        lCtx.fillStyle = "#733A16";
+        lCtx.fillRect(0, 0, logoW, logoH);
+        ctx.drawImage(logoCanvas, logoX, logoY);
+      } else {
+        ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+      }
 
       const divX = logoX + logoW + 34;
-      ctx.strokeStyle = "rgba(212, 182, 120, 0.45)";
+      ctx.strokeStyle = "rgba(179, 95, 39, 0.44)";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(divX, 34);
@@ -3393,23 +3413,23 @@ export default function Loom3DMaquetaView({
       });
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillStyle = "#DABC7A";
-      ctx.font = "700 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.fillText("MASTERPLAN OFICIAL   ·   REPORTE DE INVENTARIO EN TIEMPO REAL", tx, 34);
+      ctx.fillStyle = "#B35F27";
+      ctx.font = "700 12.5px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText("URBANISMO GENERAL   ·   REPORTE DE INVENTARIO EN TIEMPO REAL", tx, 34);
 
-      ctx.fillStyle = "#F8F5EE";
-      ctx.font = "bold 32px Georgia, 'Times New Roman', serif";
-      ctx.fillText("MAPA GENERAL DE DISPONIBILIDAD", tx, 58);
+      ctx.fillStyle = "#3B2210";
+      ctx.font = "400 35px 'Branch', Georgia, 'Times New Roman', serif";
+      ctx.fillText("MAPA OFICIAL DE DISPONIBILIDAD", tx, 56);
 
-      ctx.fillStyle = "#9CA8A2";
-      ctx.font = "500 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillStyle = "#705C4C";
+      ctx.font = "400 15px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
       ctx.fillText(
         `Playa Alma · Vía al Mar Km 23, Zona Norte (Cartagena de Indias)   |   Corte: ${nowStr}`,
         tx,
-        106
+        108
       );
 
-      // 4 Tarjetas KPI Arquitectónicas a la derecha
+      // 4 Tarjetas KPI en paleta oficial Loom (Marfil #F8F5F0 + Salvia + Ocre + Cobre + Espresso)
       const totalLots = Math.max(1, countAvail + countRes + countSold);
       const pctAvail = Math.round((countAvail / totalLots) * 100);
       const pctRes = Math.round((countRes / totalLots) * 100);
@@ -3420,37 +3440,41 @@ export default function Loom3DMaquetaView({
           num: String(countAvail),
           badge: `${pctAvail}%`,
           label: "LOTES DISPONIBLES",
-          accent: "#10B981",
-          badgeBg: "#0E2C22",
-          border: "rgba(16, 185, 129, 0.62)",
-          textSub: "#6EE7B7",
+          accent: "#3E8E76",
+          badgeBg: "#E0F2EB",
+          border: "rgba(62, 142, 118, 0.56)",
+          numCol: "#225848",
+          textSub: "#347662",
         },
         {
           num: String(countRes),
           badge: `${pctRes}%`,
           label: "RESERVADOS",
-          accent: "#F59E0B",
-          badgeBg: "#30220C",
-          border: "rgba(245, 158, 11, 0.62)",
-          textSub: "#FCD34D",
+          accent: "#D48E26",
+          badgeBg: "#FCF1DA",
+          border: "rgba(212, 142, 38, 0.58)",
+          numCol: "#925810",
+          textSub: "#A86814",
         },
         {
           num: String(countSold),
           badge: `${pctSold}%`,
           label: "LOTES VENDIDOS",
-          accent: "#E11D48",
-          badgeBg: "#301018",
-          border: "rgba(225, 29, 72, 0.62)",
-          textSub: "#FDA4AF",
+          accent: "#B34E27",
+          badgeBg: "#F8E7DE",
+          border: "rgba(179, 78, 39, 0.58)",
+          numCol: "#883418",
+          textSub: "#9E401E",
         },
         {
           num: String(countAvail + countRes + countSold),
-          badge: "72.480 m²",
+          badge: "6 ETAPAS",
           label: "TOTAL UNIDADES",
-          accent: "#DABC7A",
-          badgeBg: "#282216",
-          border: "rgba(218, 188, 122, 0.65)",
-          textSub: "#EBD9AB",
+          accent: "#5C3314",
+          badgeBg: "#EDE4D8",
+          border: "rgba(140, 102, 72, 0.58)",
+          numCol: "#3B2210",
+          textSub: "#5C3314",
         },
       ];
 
@@ -3464,7 +3488,7 @@ export default function Loom3DMaquetaView({
         const cx0 = startX + idx * (cardW + cardGap);
         const cy0 = cardY;
 
-        ctx.fillStyle = "#101614";
+        ctx.fillStyle = "#F8F5F0";
         ctx.strokeStyle = k.border;
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -3478,14 +3502,14 @@ export default function Loom3DMaquetaView({
         ctx.roundRect(cx0 + 18, cy0 + 1, cardW - 36, 4, 2);
         ctx.fill();
 
-        // Número principal
+        // Número principal en Branch
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
-        ctx.fillStyle = "#F8FAFC";
-        ctx.font = "700 38px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        ctx.fillText(k.num, cx0 + 20, cy0 + 15);
+        ctx.fillStyle = k.numCol;
+        ctx.font = "400 38px 'Branch', Georgia, serif";
+        ctx.fillText(k.num, cx0 + 20, cy0 + 14);
 
-        // Píldora de porcentaje / área
+        // Píldora de porcentaje / etapas
         const bw = idx === 3 ? 84 : 54;
         const bh = 26;
         const bx0 = cx0 + cardW - bw - 16;
@@ -3501,14 +3525,14 @@ export default function Loom3DMaquetaView({
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = k.textSub;
-        ctx.font = "700 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.font = "600 12.5px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
         ctx.fillText(k.badge, bx0 + bw / 2, by0 + bh / 2 + 0.5);
 
         // Subtítulo de tarjeta
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
         ctx.fillStyle = k.textSub;
-        ctx.font = "700 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.font = "600 11.5px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
         ctx.fillText(k.label, cx0 + 20, cy0 + 70);
       });
 
@@ -3519,8 +3543,8 @@ export default function Loom3DMaquetaView({
       if (selectedLot) {
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = "#EBD9AB";
-        ctx.font = "700 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillStyle = "#5C3314";
+        ctx.font = "700 15.5px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
         ctx.fillText(
           `★ LOTE DESTACADO EN PLANO: Lote ${selectedLot.rawId} (${getStageDisplayName(stageId, isEn)})   ·   Área: ${selectedLot.area} m²   ·   Precio: ${selectedLot.totalPrice}`,
           PAD_X + 6,
@@ -3528,10 +3552,10 @@ export default function Loom3DMaquetaView({
         );
       } else {
         const legendItems = [
-          { label: "Disponible para inversión", fill: "#10AC76", border: "#86EFAC" },
-          { label: "Reservado / En proceso", fill: "#EA9E16", border: "#FDE047" },
-          { label: "Lote Vendido", fill: "#D43644", border: "#FDA4AF" },
-          { label: "Amenidades & Club de Playa", fill: "#DABC7A", border: "#F5E6C4" },
+          { label: "Disponible (Salvia)", fill: "#3E8E76", border: "#2A6C58" },
+          { label: "Reservado (Ocre Sol)", fill: "#D48E26", border: "#A86814" },
+          { label: "Vendido (Cobre Terracota)", fill: "#B34E27", border: "#883418" },
+          { label: "Amenidades & Club de Playa", fill: "#5C3314", border: "#B35F27" },
         ];
         let lx = PAD_X + 6;
         legendItems.forEach((item) => {
@@ -3545,25 +3569,25 @@ export default function Loom3DMaquetaView({
 
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
-          ctx.fillStyle = "#E2E8F0";
-          ctx.font = "500 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+          ctx.fillStyle = "#3B2210";
+          ctx.font = "500 14.5px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
           ctx.fillText(item.label, lx + 32, cyFoot);
-          lx += 32 + ctx.measureText(item.label).width + 34;
+          lx += 32 + ctx.measureText(item.label).width + 32;
         });
       }
 
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(218, 188, 122, 0.95)";
-      ctx.font = "700 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillStyle = "#733A16";
+      ctx.font = "700 14px 'Galano Grotesque', -apple-system, BlinkMacSystemFont, sans-serif";
       ctx.fillText(
         "DISEÑO BIOCLIMÁTICO: MAADGA GROUP   ·   CONSTRUYE: ICG   ·   PROMUEVE: RUBIK 5   ·   FINANCIACIÓN HASTA 48 MESES (0% INTERÉS)",
         W - PAD_X - 6,
         cyFoot
       );
 
-      // Marco exterior fino alrededor de toda la lámina
-      ctx.strokeStyle = "rgba(212, 182, 120, 0.34)";
+      // Marco exterior fino Cobre Terracota alrededor de toda la lámina
+      ctx.strokeStyle = "rgba(179, 95, 39, 0.42)";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.roundRect(14, 14, W - 28, H - 28, 26);
