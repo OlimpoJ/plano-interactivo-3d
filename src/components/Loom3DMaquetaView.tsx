@@ -2373,7 +2373,7 @@ export default function Loom3DMaquetaView({
 
   useEffect(() => {
     let isMounted = true;
-    fetch("/loom/loom_unified_3d_lots.json?v=3")
+    fetch("/loom/loom_unified_3d_lots.json?v=4")
       .then((r) => r.json())
       .then((data: Unified3DLot[]) => {
         if (isMounted) setUnifiedLots(data);
