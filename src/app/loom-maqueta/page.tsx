@@ -7,5 +7,27 @@ export const metadata = {
 };
 
 export default function LoomDirect3DMaquetaPage() {
-  return <LoomShowroomApp defaultLang="es" initialView="maqueta3d" enable3DMaqueta={true} />;
+  return (
+    <>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            if (typeof window !== 'undefined') {
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(regs) {
+                  for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
+                });
+              }
+              if ('caches' in window) {
+                caches.keys().then(function(keys) {
+                  for (var j = 0; j < keys.length; j++) { caches.delete(keys[j]); }
+                });
+              }
+            }
+          `,
+        }}
+      />
+      <LoomShowroomApp defaultLang="es" initialView="maqueta3d" enable3DMaqueta={true} />
+    </>
+  );
 }

@@ -357,10 +357,12 @@ function getTerrainElevationAt(wx: number, wz: number): number {
 
 // ============================================================================
 // GENERADOR DE RUIDO FBM ORGÁNICO (PERLIN/VALUE NOISE 512x512 CONTINUO Y SIN COSTURAS)
-// Evita por completo las rayas artificiales y genera ondas de agua hiperrealistas
+// Optimizado (Paso 1): Precalcula tablas hash periódicas y evalúa FBM en 1 sola pasada
+// usando diferencias finitas sobre el buffer de alturas (0 llamadas a Math.sin en FBM)
 // ============================================================================
 function createOrganicWaterAndGrassTexture(): THREE.DataTexture {
   const size = 512;
+  const mask = size - 1;
   const data = new Uint8Array(size * size * 4);
 
   // Hash 2D periódico (Tileable en bordes 0..period)
@@ -371,52 +373,72 @@ function createOrganicWaterAndGrassTexture(): THREE.DataTexture {
     return h - Math.floor(h);
   };
 
-  // Value Noise suave y periódico
-  const tileNoise = (u: number, v: number, freq: number) => {
-    const x = u * freq;
-    const y = v * freq;
-    const ix = Math.floor(x);
-    const iy = Math.floor(y);
-    const fx = x - ix;
-    const fy = y - iy;
-    const ux = fx * fx * (3.0 - 2.0 * fx);
-    const uy = fy * fy * (3.0 - 2.0 * fy);
+  const freqs = [6, 14, 30, 62] as const;
+  const weights = [0.5, 0.28, 0.14, 0.08] as const;
 
-    const a = hash2(ix, iy, freq);
-    const b = hash2(ix + 1, iy, freq);
-    const c = hash2(ix, iy + 1, freq);
-    const d = hash2(ix + 1, iy + 1, freq);
+  // Precalcular grillas de ruido y coordenadas de interpolación 1D para las 4 octavas
+  const octaveTables = freqs.map((freq) => {
+    const table = new Float32Array(freq * freq);
+    for (let iy = 0; iy < freq; iy++) {
+      for (let ix = 0; ix < freq; ix++) {
+        table[iy * freq + ix] = hash2(ix, iy, freq);
+      }
+    }
+    const i0 = new Int32Array(size);
+    const i1 = new Int32Array(size);
+    const uSmooth = new Float32Array(size);
+    for (let s = 0; s < size; s++) {
+      const coord = (s / size) * freq;
+      const idx0 = Math.floor(coord);
+      const frac = coord - idx0;
+      i0[s] = ((idx0 % freq) + freq) % freq;
+      i1[s] = (i0[s] + 1) % freq;
+      uSmooth[s] = frac * frac * (3.0 - 2.0 * frac);
+    }
+    return { freq, table, i0, i1, uSmooth };
+  });
 
-    return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
-  };
-
-  // FBM de 4 octavas para altura de agua orgánica
-  const fbm = (u: number, v: number) => {
-    let val = 0;
-    val += tileNoise(u, v, 6) * 0.5;
-    val += tileNoise(u, v, 14) * 0.28;
-    val += tileNoise(u, v, 30) * 0.14;
-    val += tileNoise(u, v, 62) * 0.08;
-    return val;
-  };
-
-  const eps = 1.0 / size;
+  // Pasada 1: Evaluar altura FBM una sola vez por píxel (3x menos evaluaciones)
+  const hBuffer = new Float32Array(size * size);
   for (let y = 0; y < size; y++) {
+    const rowOffset = y * size;
     for (let x = 0; x < size; x++) {
-      const idx = (y * size + x) * 4;
-      const u = x / size;
-      const v = y / size;
+      let val = 0;
+      for (let o = 0; o < 4; o++) {
+        const oct = octaveTables[o];
+        const f = oct.freq;
+        const ix0 = oct.i0[x];
+        const ix1 = oct.i1[x];
+        const iy0 = oct.i0[y] * f;
+        const iy1 = oct.i1[y] * f;
+        const ux = oct.uSmooth[x];
+        const uy = oct.uSmooth[y];
 
-      const hC = fbm(u, v);
-      const hR = fbm(u + eps, v);
-      const hU = fbm(u, v + eps);
+        const a = oct.table[iy0 + ix0];
+        const b = oct.table[iy0 + ix1];
+        const c = oct.table[iy1 + ix0];
+        const d = oct.table[iy1 + ix1];
 
-      // Derivadas espaciales reales (Normales X, Y sin patrones de rejilla)
+        val += (a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy) * weights[o];
+      }
+      hBuffer[rowOffset + x] = val;
+    }
+  }
+
+  // Pasada 2: Derivadas espaciales exactas desde hBuffer y empaquetado RGBA
+  for (let y = 0; y < size; y++) {
+    const rowOffset = y * size;
+    const nextRowOffset = ((y + 1) & mask) * size;
+    for (let x = 0; x < size; x++) {
+      const idx = (rowOffset + x) * 4;
+      const hC = hBuffer[rowOffset + x];
+      const hR = hBuffer[rowOffset + ((x + 1) & mask)];
+      const hU = hBuffer[nextRowOffset + x];
+
       const dx = (hR - hC) * 18.0;
       const dy = (hU - hC) * 18.0;
-
-      // Micro-grano orgánico para grama y arena
-      const grain = hash2(x, y, size);
+      const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+      const grain = h - Math.floor(h);
 
       data[idx] = Math.floor(Math.max(0, Math.min(1, dx * 0.5 + 0.5)) * 255);
       data[idx + 1] = Math.floor(Math.max(0, Math.min(1, dy * 0.5 + 0.5)) * 255);
@@ -1208,12 +1230,9 @@ function createSculptedTropicalTreeGeometries(): {
 interface VillaReplicaMaterials {
   limestoneStuccoMat: THREE.MeshStandardMaterial;
   limestoneWarmMat: THREE.MeshStandardMaterial;
-  perforatedLatticeMat: THREE.MeshStandardMaterial;
-  cobblestoneMat: THREE.MeshStandardMaterial;
   teakDeckMat: THREE.MeshStandardMaterial;
   teakSlatsMat: THREE.MeshStandardMaterial;
   darkBronzeMat: THREE.MeshStandardMaterial;
-  glassWindowMat: THREE.MeshStandardMaterial;
   balconyGlassMat: THREE.MeshStandardMaterial;
   poolWaterMat: THREE.MeshStandardMaterial;
   roofHedgeMat: THREE.MeshStandardMaterial;
@@ -1227,8 +1246,9 @@ interface VillaReplicaMaterials {
   palmFrondMat: THREE.MeshStandardMaterial;
   palmCrownTexMat: THREE.MeshStandardMaterial | null;
   palmCrownGeo: THREE.BufferGeometry;
-  // Materiales Ortográficos V-Ray Reales (axonometria_01, alzado_01..04, luxury_planta_01..04)
+  // Materiales Ortográficos V-Ray Reales (axonometria_01, alzado_01..04, luxury_planta_01..04, garden_nivel_01)
   vrayGroundBoxMats: THREE.MeshStandardMaterial[];
+  vrayGroundGardenBoxMats: THREE.MeshStandardMaterial[];
   vrayFrontBlockMats: THREE.MeshStandardMaterial[];
   vrayLatticeBoxMats: THREE.MeshStandardMaterial[];
   vrayRearBlockMats: THREE.MeshStandardMaterial[];
@@ -1242,26 +1262,52 @@ interface VillaReplicaMaterials {
   vrayRearFenceMat: THREE.MeshStandardMaterial;
   carPaintPalette: THREE.MeshStandardMaterial[];
   canonicalVillaMeshes: CanonicalVillaMeshSpec[];
+  canonicalGardenVillaMeshes: CanonicalVillaMeshSpec[];
+  splitInstancedVillaMeshes?: {
+    sharedSpecs: CanonicalVillaMeshSpec[];
+    luxuryOnlySpecs: CanonicalVillaMeshSpec[];
+    gardenOnlySpecs: CanonicalVillaMeshSpec[];
+  };
 }
 
-function createVillaReplicaMaterials(
-  isSunset: boolean,
-  palmCrownTex?: THREE.CanvasTexture | null
-): VillaReplicaMaterials {
-  const latticeTex = createPerforatedLatticeTexture(isSunset);
-  const limestoneTex = createLimestoneFacadeTexture();
-  const windowTex = createArchitecturalWindowTexture(isSunset);
-  const poolTex = createPoolWaterCausticsTexture();
-  const foliageTex = createTropicalFoliageTexture();
-  const cobbleTex = createCobblestoneTexture();
-  const deckTex = createTeakDeckTexture();
-  const palmCrownGeo = createRealisticPalmCrownGeometry();
+// Caché compartida de texturas V-Ray y procedurales (Paso 4: evita duplicar 20 texturas GPU al alternar Día/Atardecer)
+let sharedVillaTextureAssets: {
+  limestoneTex: THREE.CanvasTexture;
+  poolTex: THREE.CanvasTexture;
+  foliageTex: THREE.CanvasTexture;
+  deckTex: THREE.CanvasTexture;
+  palmCrownGeo: THREE.BufferGeometry;
+  vrayTexMap: Map<string, THREE.Texture>;
+  texLoader: THREE.TextureLoader;
+} | null = null;
 
-  const texLoader = new THREE.TextureLoader();
+function getSharedVillaTextureAssets() {
+  if (!sharedVillaTextureAssets) {
+    sharedVillaTextureAssets = {
+      limestoneTex: createLimestoneFacadeTexture(),
+      poolTex: createPoolWaterCausticsTexture(),
+      foliageTex: createTropicalFoliageTexture(),
+      deckTex: createTeakDeckTexture(),
+      palmCrownGeo: createRealisticPalmCrownGeometry(),
+      vrayTexMap: new Map<string, THREE.Texture>(),
+      texLoader: new THREE.TextureLoader(),
+    };
+  }
+  return sharedVillaTextureAssets;
+}
+
+function createVillaReplicaMaterials(isSunset: boolean): VillaReplicaMaterials {
+  const shared = getSharedVillaTextureAssets();
+  const { limestoneTex, poolTex, foliageTex, deckTex, palmCrownGeo, vrayTexMap, texLoader } = shared;
+
   const loadVrayTex = (url: string) => {
-    const t = texLoader.load(url);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 8;
+    let t = vrayTexMap.get(url);
+    if (!t) {
+      t = texLoader.load(url);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 8;
+      vrayTexMap.set(url, t);
+    }
     return t;
   };
 
@@ -1300,6 +1346,7 @@ function createVillaReplicaMaterials(
   });
 
   const vrayGroundTopMat = makeVrayMat("/loom/vray/vray_ground_plan.webp?v=2", 0.62, 0.04);
+  const vrayGroundGardenTopMat = makeVrayMat("/loom/vray/vray_ground_plan_garden.webp?v=1", 0.68, 0.03);
   const vrayRoofSlabMat = makeVrayMat("/loom/vray/vray_roof_slab.webp", 0.68, 0.03);
   const vrayRooftopTopMat = makeVrayMat("/loom/vray/vray_rooftop_plan.webp", 0.52, 0.05);
   const vrayPergolaTopMat = makeVrayMat("/loom/vray/vray_pergola_top.webp", 0.55, 0.06);
@@ -1350,6 +1397,15 @@ function createVillaReplicaMaterials(
     limestoneWarmMat,
     limestoneWarmMat,
     vrayGroundTopMat,
+    limestoneWarmMat,
+    limestoneWarmMat,
+    limestoneWarmMat,
+  ];
+
+  const vrayGroundGardenBoxMats = [
+    limestoneWarmMat,
+    limestoneWarmMat,
+    vrayGroundGardenTopMat,
     limestoneWarmMat,
     limestoneWarmMat,
     limestoneWarmMat,
@@ -1430,22 +1486,6 @@ function createVillaReplicaMaterials(
   return {
     limestoneStuccoMat,
     limestoneWarmMat,
-    perforatedLatticeMat: new THREE.MeshStandardMaterial({
-      map: latticeTex,
-      bumpMap: latticeTex,
-      bumpScale: 0.01,
-      color: isSunset ? "#f2d6b3" : "#ffffff",
-      roughness: 0.46,
-      metalness: 0.08,
-    }),
-    cobblestoneMat: new THREE.MeshStandardMaterial({
-      map: cobbleTex,
-      bumpMap: cobbleTex,
-      bumpScale: 0.008,
-      color: isSunset ? "#dfd0be" : "#ffffff",
-      roughness: 0.85,
-      metalness: 0.02,
-    }),
     teakDeckMat: new THREE.MeshStandardMaterial({
       map: deckTex,
       bumpMap: deckTex,
@@ -1461,14 +1501,6 @@ function createVillaReplicaMaterials(
       metalness: 0.08,
     }),
     darkBronzeMat,
-    glassWindowMat: new THREE.MeshStandardMaterial({
-      map: windowTex,
-      emissive: isSunset ? "#f59e0b" : "#fef08a",
-      emissiveMap: windowTex,
-      emissiveIntensity: isSunset ? 0.55 : 0.18,
-      roughness: 0.08,
-      metalness: 0.45,
-    }),
     balconyGlassMat: new THREE.MeshStandardMaterial({
       color: "#bae6fd",
       transparent: true,
@@ -1524,18 +1556,10 @@ function createVillaReplicaMaterials(
       roughness: 0.65,
       side: THREE.DoubleSide,
     }),
-    palmCrownTexMat: vrayPalmCrownMat || (palmCrownTex
-      ? new THREE.MeshStandardMaterial({
-          map: palmCrownTex,
-          alphaTest: 0.26,
-          transparent: true,
-          side: THREE.DoubleSide,
-          roughness: 0.58,
-          color: isSunset ? "#dfc8a2" : "#ffffff",
-        })
-      : null),
+    palmCrownTexMat: vrayPalmCrownMat,
     palmCrownGeo,
     vrayGroundBoxMats,
+    vrayGroundGardenBoxMats,
     vrayFrontBlockMats,
     vrayLatticeBoxMats,
     vrayRearBlockMats,
@@ -1549,13 +1573,17 @@ function createVillaReplicaMaterials(
     vrayRearFenceMat,
     carPaintPalette,
     canonicalVillaMeshes: [],
+    canonicalGardenVillaMeshes: [],
   };
 }
 
-function getOrBuildCanonicalVillaMeshes(mats: VillaReplicaMaterials): CanonicalVillaMeshSpec[] {
-  if (mats.canonicalVillaMeshes.length > 0) return mats.canonicalVillaMeshes;
+// ============================================================================
+// CONSOLIDACIÓN DE INSTANCIAS COMPARTIDAS (95% COMÚN ENTRE LUXURY Y GARDEN)
+// Reduce a la mitad los draw calls de las villas manteniendo 100% la geometría
+// ============================================================================
+function getOrBuildSplitInstancedVillaMeshes(mats: VillaReplicaMaterials) {
+  if (mats.splitInstancedVillaMeshes) return mats.splitInstancedVillaMeshes;
 
-  // Espacio Canónico Normalizado: L = 1, H = 1, W = 1 (se escala por [L, H, W] en cada lote)
   const zH = -0.016;
   const wH = 0.653;
   const zP = 0.395;
@@ -1583,9 +1611,8 @@ function getOrBuildCanonicalVillaMeshes(mats: VillaReplicaMaterials): CanonicalV
     castShadow,
   });
 
-  const specs: CanonicalVillaMeshSpec[] = [
-    // Cajas multi-material ortográficas V-Ray
-    singleBox(1.0, 0.054, 1.0, 0, 0.027, 0, mats.vrayGroundBoxMats, false),
+  // 1. Geometría compartida por TODAS las villas (Luxury + Garden)
+  const rawSharedSpecs: CanonicalVillaMeshSpec[] = [
     singleBox(0.032, 0.35, 0.205, -0.222, 0.175, zP, mats.vrayGatePortalMats, false),
     singleBox(0.173, 0.99, wH, -0.1485, 0.495, zH, mats.vrayFrontBlockMats, true),
     singleBox(0.097, 0.63, wH * 0.995, -0.2835, 0.675, zH, mats.vrayLatticeBoxMats, true),
@@ -1598,12 +1625,10 @@ function getOrBuildCanonicalVillaMeshes(mats: VillaReplicaMaterials): CanonicalV
     singleBox(0.022, rWallH, wH, 0.333, rWallY, zH, mats.vrayRearParapetMats, false),
     singleBox(0.142, rWallH, 0.022, 0.273, rWallY, zH - wH * 0.485, mats.vrayRearParapetMats, false),
     singleBox(0.142, rWallH, 0.022, 0.273, rWallY, zH + wH * 0.485, mats.vrayRearParapetMats, false),
-
-    // Buffers fusionados por material (reduce 27 draw calls por villa a solo 9 draw calls)
+    // Espejo de agua de acceso y jacuzzi en el rooftop (presentes en Luxury y Garden)
     {
       geo: mergeNormalizedBoxes([
         { sx: 0.54, sy: 0.07, sz: 0.085, px: 0.05, py: 0.035, pz: 0.435 },
-        { sx: 0.082, sy: 0.085, sz: 0.88, px: 0.435, py: 0.0425, pz: 0 },
         { sx: 0.078, sy: 0.082, sz: wH * 0.34, px: jacX, py: 0.732, pz: jacZ },
       ]),
       mat: mats.poolWaterMat,
@@ -1693,9 +1718,60 @@ function getOrBuildCanonicalVillaMeshes(mats: VillaReplicaMaterials): CanonicalV
     },
   ];
 
-  const consolidated = consolidateCanonicalSpecsByMaterial(specs);
-  mats.canonicalVillaMeshes = consolidated;
-  return consolidated;
+  // 2. Exclusivo de Villa Luxury: planta baja con piscina + volumen de agua trasero en 1er piso
+  const rawLuxuryOnlySpecs: CanonicalVillaMeshSpec[] = [
+    singleBox(1.0, 0.054, 1.0, 0, 0.027, 0, mats.vrayGroundBoxMats, false),
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.082, sy: 0.085, sz: 0.88, px: 0.435, py: 0.0425, pz: 0 },
+      ]),
+      mat: mats.poolWaterMat,
+      castShadow: false,
+    },
+  ];
+
+  // 3. Exclusivo de Villa Garden: planta baja Garden + patio verde 3D + arbustos perimetrales en 1er piso
+  const rawGardenOnlySpecs: CanonicalVillaMeshSpec[] = [
+    singleBox(1.0, 0.054, 1.0, 0, 0.027, 0, mats.vrayGroundGardenBoxMats, false),
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.094, sy: 0.062, sz: 0.90, px: 0.432, py: 0.031, pz: 0 },
+      ]),
+      mat: mats.lawnGrassMat,
+      castShadow: false,
+    },
+    {
+      geo: mergeNormalizedBoxes([
+        { sx: 0.042, sy: 0.115, sz: 0.92, px: 0.460, py: 0.058, pz: 0 },
+        { sx: 0.088, sy: 0.105, sz: 0.044, px: 0.432, py: 0.052, pz: -0.44 },
+        { sx: 0.088, sy: 0.105, sz: 0.044, px: 0.432, py: 0.052, pz: 0.44 },
+      ]),
+      mat: mats.roofHedgeMat,
+      castShadow: false,
+    },
+  ];
+
+  const result = {
+    sharedSpecs: consolidateCanonicalSpecsByMaterial(rawSharedSpecs),
+    luxuryOnlySpecs: consolidateCanonicalSpecsByMaterial(rawLuxuryOnlySpecs),
+    gardenOnlySpecs: consolidateCanonicalSpecsByMaterial(rawGardenOnlySpecs),
+  };
+  mats.splitInstancedVillaMeshes = result;
+  return result;
+}
+
+function getOrBuildCanonicalVillaMeshes(mats: VillaReplicaMaterials): CanonicalVillaMeshSpec[] {
+  if (mats.canonicalVillaMeshes.length > 0) return mats.canonicalVillaMeshes;
+  const split = getOrBuildSplitInstancedVillaMeshes(mats);
+  mats.canonicalVillaMeshes = [...split.sharedSpecs, ...split.luxuryOnlySpecs];
+  return mats.canonicalVillaMeshes;
+}
+
+function getOrBuildCanonicalGardenVillaMeshes(mats: VillaReplicaMaterials): CanonicalVillaMeshSpec[] {
+  if (mats.canonicalGardenVillaMeshes.length > 0) return mats.canonicalGardenVillaMeshes;
+  const split = getOrBuildSplitInstancedVillaMeshes(mats);
+  mats.canonicalGardenVillaMeshes = [...split.sharedSpecs, ...split.gardenOnlySpecs];
+  return mats.canonicalGardenVillaMeshes;
 }
 
 // ============================================================================
@@ -1716,8 +1792,11 @@ function buildLoomVillaReplica3D(
   const zHouse = -W * 0.016;
   const wHouse = W * 0.653;
 
-  // 1. Cuerpo arquitectónico canónico con buffers pre-fusionados (0 nuevas geometrías por villa)
-  const canonicalSpecs = getOrBuildCanonicalVillaMeshes(mats);
+  // 1. Cuerpo arquitectónico canónico con buffers pre-fusionados (alterna Luxury con piscina y Garden con patio verde)
+  const isGardenEdition = lotIndex % 2 === 1;
+  const canonicalSpecs = isGardenEdition
+    ? getOrBuildCanonicalGardenVillaMeshes(mats)
+    : getOrBuildCanonicalVillaMeshes(mats);
   const bodyGrp = new THREE.Group();
   bodyGrp.scale.set(L, H, W);
   bodyGrp.matrixAutoUpdate = false;
@@ -1917,14 +1996,23 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
     float outSouth = max(0.0, -mUv.y);
     float outDistY = outNorth + outSouth;
 
-    // Ondulación costera orgánica no periódica para las extensiones de playa Norte/Sur
-    float fbmCoast = (texture2D(uDetailTex, vec2(mUv.y * 0.37, 0.23)).r - 0.5) * 0.015
-                   + (texture2D(uDetailTex, vec2(mUv.y * 1.13, 0.71)).g - 0.5) * 0.008;
-    float waveCoast = sin(mUv.y * 2.15) * 0.007 + sin(mUv.y * 5.35 + 1.3) * 0.0035;
-    float extShoreX = baseShoreX
-                    - smoothstep(0.0, 0.45, outNorth) * 0.010
-                    + smoothstep(0.0, 0.45, outSouth) * 0.008
-                    + (fbmCoast + waveCoast) * smoothstep(0.0, 0.16, outDistY);
+    // Paso 6: Evaluar FBM costero y de bosque únicamente fuera del masterplan central (ahorra 3 lookups/píxel en todo el proyecto)
+    float extShoreX = baseShoreX;
+    vec2 fbmForestWarp = vec2(0.0);
+    if (outDistY > 0.0005) {
+      float fbmCoast = (texture2D(uDetailTex, vec2(mUv.y * 0.37, 0.23)).r - 0.5) * 0.015
+                     + (texture2D(uDetailTex, vec2(mUv.y * 1.13, 0.71)).g - 0.5) * 0.008;
+      float waveCoast = sin(mUv.y * 2.15) * 0.007 + sin(mUv.y * 5.35 + 1.3) * 0.0035;
+      extShoreX = baseShoreX
+                - smoothstep(0.0, 0.45, outNorth) * 0.010
+                + smoothstep(0.0, 0.45, outSouth) * 0.008
+                + (fbmCoast + waveCoast) * smoothstep(0.0, 0.16, outDistY);
+
+      float outerForestFactor = clamp(outDistY * 4.0, 0.0, 1.0) * step(0.02, mUv.x) * (1.0 - smoothstep(0.76, 0.84, mUv.x));
+      if (outerForestFactor > 0.001) {
+        fbmForestWarp = (texture2D(uDetailTex, mUv * 3.2).rg - 0.5) * 0.06 * outerForestFactor;
+      }
+    }
 
     // Continuación exacta sin escalones ni contacto con los bordes blancos de la imagen (yMin=0.018, yMax=0.982)
     float yBand = mix(0.155, 0.042, smoothstep(0.74, 0.83, mUv.x));
@@ -1947,10 +2035,6 @@ const TERRAIN_WATER_FRAGMENT_GLSL = /* glsl */ `
       float coastAlign = smoothstep(0.0, 0.08, outDistY) * smoothstep(0.76, 0.84, mUv.x);
       sampleX = clamp(mUv.x + (shoreSampleY - extShoreX) * coastAlign, 0.008, 0.985);
     }
-
-    // Deformación orgánica FBM en el bosque exterior Norte/Sur y en la arena exterior
-    float outerForestFactor = clamp(outDistY * 4.0, 0.0, 1.0) * step(0.02, mUv.x) * (1.0 - smoothstep(0.76, 0.84, mUv.x));
-    vec2 fbmForestWarp = (texture2D(uDetailTex, mUv * 3.2).rg - 0.5) * 0.06 * outerForestFactor;
 
     vec2 sampleUv = clamp(vec2(sampleX, sampleY) + fbmForestWarp, 0.003, 0.997);
 
@@ -2305,10 +2389,10 @@ export default function Loom3DMaquetaView({
 
     const carLoader = new GLTFLoader();
     const carModelUrls = [
-      "/loom/models/car_suv_luxury.glb?v=5",
-      "/loom/models/car_coupe_gt.glb?v=5",
-      "/loom/models/car_sedan_exec.glb?v=5",
-      "/loom/models/car_pickup_luxury.glb?v=5",
+      "/loom/models/car_suv_luxury.glb?v=6",
+      "/loom/models/car_coupe_gt.glb?v=6",
+      "/loom/models/car_sedan_exec.glb?v=6",
+      "/loom/models/car_pickup_luxury.glb?v=6",
     ];
     Promise.all(
       carModelUrls.map(
@@ -2489,11 +2573,10 @@ export default function Loom3DMaquetaView({
     scene.add(skyDome);
 
     const detailTex = createOrganicWaterAndGrassTexture();
-    const palmCrownTex = createPalmFrondCrownTexture();
     const loader = new THREE.TextureLoader();
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
 
-    const masterTex = loader.load("/loom/loom_masterplan_bg.webp?v=5", (t) => {
+    const masterTex = loader.load("/loom/loom_masterplan_bg.webp?v=7", (t) => {
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = maxAniso;
     });
@@ -2565,7 +2648,7 @@ export default function Loom3DMaquetaView({
       villasGroup,
       landscapeGroup,
       telemetryGroup,
-      palmCrownTex,
+      palmCrownTex: null,
     };
 
     const raycaster = new THREE.Raycaster();
@@ -2704,6 +2787,9 @@ export default function Loom3DMaquetaView({
 
     const animate = () => {
       rafId = requestAnimationFrame(animate);
+      // Paso 6: Pausar renderizado GPU cuando la pestaña está en segundo plano
+      if (document.hidden) return;
+
       const elapsed = clock.getElapsedTime();
 
       if (sceneRefs.current.terrainShaderMat) {
@@ -2736,28 +2822,36 @@ export default function Loom3DMaquetaView({
         camera.position.y = minSafeCamY;
       }
 
-      // Animación a 60 FPS del tráfico vehicular 3D entrando/saliendo por las avenidas de Loom
-      const trafficList = animatedTrafficRef.current;
-      for (let i = 0; i < trafficList.length; i++) {
-        const item = trafficList[i];
-        if (item.totalLength <= 0.001) continue;
-        const dist = ((elapsed * item.speed + item.phaseOffset) % item.totalLength + item.totalLength) % item.totalLength;
+      // Animación a 60 FPS del tráfico vehicular 3D en circuitos cerrados continuos con giro suave por las avenidas de Loom
+      const sampleLoopPoint = (
+        item: { waypoints: [number, number][]; segLengths: number[]; totalLength: number },
+        rawDist: number
+      ): [number, number] => {
+        const d = ((rawDist % item.totalLength) + item.totalLength) % item.totalLength;
         let acc = 0;
         let segIdx = 0;
         for (let s = 0; s < item.segLengths.length; s++) {
-          if (dist <= acc + item.segLengths[s] || s === item.segLengths.length - 1) {
+          if (d <= acc + item.segLengths[s] || s === item.segLengths.length - 1) {
             segIdx = s;
             break;
           }
           acc += item.segLengths[s];
         }
         const segLen = Math.max(0.0001, item.segLengths[segIdx]);
-        const t = Math.max(0, Math.min(1, (dist - acc) / segLen));
+        const t = Math.max(0, Math.min(1, (d - acc) / segLen));
         const [x0, z0] = item.waypoints[segIdx];
         const [x1, z1] = item.waypoints[segIdx + 1];
-        const cx = x0 + (x1 - x0) * t;
-        const cz = z0 + (z1 - z0) * t;
-        const headingRad = -Math.atan2(z1 - z0, x1 - x0);
+        return [x0 + (x1 - x0) * t, z0 + (z1 - z0) * t];
+      };
+
+      const trafficList = animatedTrafficRef.current;
+      for (let i = 0; i < trafficList.length; i++) {
+        const item = trafficList[i];
+        if (item.totalLength <= 0.001) continue;
+        const dist = ((elapsed * item.speed + item.phaseOffset) % item.totalLength + item.totalLength) % item.totalLength;
+        const [cx, cz] = sampleLoopPoint(item, dist);
+        const [lx, lz] = sampleLoopPoint(item, dist + 0.048);
+        const headingRad = -Math.atan2(lz - cz, lx - cx);
 
         item.carObj.position.set(cx, 0.005, cz);
         item.carObj.rotation.y = headingRad;
@@ -2865,18 +2959,28 @@ export default function Loom3DMaquetaView({
     }
   }, [isSunset]);
 
+  // Caché de geometrías de vegetación 3D (Paso 5: evita recargar palmera_caribe_hd.glb o recalcular árboles al alternar Día/Atardecer)
+  const landscapeAssetCacheRef = useRef<{
+    palmScene: THREE.Group | null;
+    sculptedTrees: { crownGeo: THREE.BufferGeometry; trunkGeo: THREE.BufferGeometry } | null;
+  }>({
+    palmScene: null,
+    sculptedTrees: null,
+  });
+
   // ==========================================================================
   // CAPA 4: PALMERAS COCOTERAS HD DESDE ARCHIVO .GLB + CORONA ORGÁNICA
   // Carga /loom/models/palmera_caribe_hd.glb (tronco anillado + cocos + 15 pencas
   // pinnadas 3D en 3 anillos de filotaxis) e instancia las 165 palmeras a 60 FPS
   // ==========================================================================
   useEffect(() => {
-    const { landscapeGroup, palmCrownTex } = sceneRefs.current;
+    const { landscapeGroup } = sceneRefs.current;
     if (!landscapeGroup) return;
 
     while (landscapeGroup.children.length > 0) {
       const child = landscapeGroup.children[0] as THREE.Mesh;
-      child.geometry?.dispose();
+      if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+      else child.material?.dispose();
       landscapeGroup.remove(child);
     }
 
@@ -2887,97 +2991,106 @@ export default function Loom3DMaquetaView({
     if (palmCount === 0) return;
 
     let cancelled = false;
-    const loader = new GLTFLoader();
 
-    loader.load(
-      "/loom/models/palmera_caribe_hd.glb",
-      (gltf) => {
-        if (cancelled || !sceneRefs.current.landscapeGroup) return;
-        const grp = sceneRefs.current.landscapeGroup;
+    const buildLandscapeInstances = (palmScene: THREE.Group) => {
+      if (cancelled || !sceneRefs.current.landscapeGroup) return;
+      const grp = sceneRefs.current.landscapeGroup;
 
-        // Filtrar palmeras a las zonas del proyecto y frente costero de Alma Beach Club
-        const filteredPalms = landscapeData.palms.filter(
-          ([sx, sy]) => sx < 2820 || (sy >= 520 && sy <= 1480)
-        );
-        const activePalmCount = filteredPalms.length;
+      const filteredPalms = landscapeData.palms.filter(
+        ([sx, sy]) => sx < 2820 || (sy >= 520 && sy <= 1480)
+      );
+      const activePalmCount = filteredPalms.length;
 
-        if (activePalmCount > 0) {
-          gltf.scene.traverse((node) => {
-            if ((node as THREE.Mesh).isMesh) {
-              const mesh = node as THREE.Mesh;
-              const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
-              // Corregir tono pálido/menta de las pencas hacia un verde palma caribeña natural y profundo
-              if (mat.color.g > mat.color.r * 1.04) {
-                mat.color.set(isSunset ? "#8a7a4f" : "#486e30");
-                mat.roughness = 0.72;
-                mat.metalness = 0.02;
-              } else if (isSunset) {
-                mat.color.multiply(new THREE.Color("#e8cfa8"));
-              }
-              const inst = new THREE.InstancedMesh(mesh.geometry, mat, activePalmCount);
-              inst.castShadow = true;
-              inst.receiveShadow = true;
-
-              filteredPalms.forEach(([sx, sy, sc, rot], i) => {
-                const [wx, wz] = svgToWorld(sx, sy);
-                const s = sc * 0.96;
-                dummy.position.set(wx, 0, wz);
-                dummy.rotation.set(0, rot, 0);
-                dummy.scale.set(s, s, s);
-                dummy.updateMatrix();
-                inst.setMatrixAt(i, dummy.matrix);
-              });
-              inst.instanceMatrix.needsUpdate = true;
-              grp.add(inst);
+      if (activePalmCount > 0) {
+        palmScene.traverse((node) => {
+          if ((node as THREE.Mesh).isMesh) {
+            const mesh = node as THREE.Mesh;
+            const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+            if (mat.color.g > mat.color.r * 1.04) {
+              mat.color.set(isSunset ? "#8a7a4f" : "#486e30");
+              mat.roughness = 0.72;
+              mat.metalness = 0.02;
+            } else if (isSunset) {
+              mat.color.multiply(new THREE.Color("#e8cfa8"));
             }
-          });
+            const inst = new THREE.InstancedMesh(mesh.geometry, mat, activePalmCount);
+            inst.castShadow = true;
+            inst.receiveShadow = true;
+
+            filteredPalms.forEach(([sx, sy, sc, rot], i) => {
+              const [wx, wz] = svgToWorld(sx, sy);
+              const s = sc * 0.96;
+              dummy.position.set(wx, 0, wz);
+              dummy.rotation.set(0, rot, 0);
+              dummy.scale.set(s, s, s);
+              dummy.updateMatrix();
+              inst.setMatrixAt(i, dummy.matrix);
+            });
+            inst.instanceMatrix.needsUpdate = true;
+            grp.add(inst);
+          }
+        });
+      }
+
+      const projectTrees = (landscapeData.trees || []).filter(
+        ([sx, sy]) => sy >= 590 && sy <= 1540 && sx >= 140 && sx <= 2900
+      );
+      if (projectTrees.length > 0) {
+        if (!landscapeAssetCacheRef.current.sculptedTrees) {
+          landscapeAssetCacheRef.current.sculptedTrees = createSculptedTropicalTreeGeometries();
         }
+        const { crownGeo, trunkGeo } = landscapeAssetCacheRef.current.sculptedTrees;
+        const treeCrownMat = new THREE.MeshStandardMaterial({
+          vertexColors: true,
+          color: isSunset ? "#d9c29e" : "#ffffff",
+          roughness: 0.86,
+          metalness: 0.02,
+        });
+        const treeTrunkMat = new THREE.MeshStandardMaterial({
+          color: isSunset ? "#4d3826" : "#59422e",
+          roughness: 0.9,
+        });
 
-        // Árboles tropicales esculpidos multi-copa (sin esferas rayadas y solo en el borde/parques del proyecto)
-        const projectTrees = (landscapeData.trees || []).filter(
-          ([sx, sy]) => sy >= 590 && sy <= 1540 && sx >= 140 && sx <= 2900
-        );
-        if (projectTrees.length > 0) {
-          const { crownGeo, trunkGeo } = createSculptedTropicalTreeGeometries();
-          const treeCrownMat = new THREE.MeshStandardMaterial({
-            vertexColors: true,
-            color: isSunset ? "#d9c29e" : "#ffffff",
-            roughness: 0.86,
-            metalness: 0.02,
-          });
-          const treeTrunkMat = new THREE.MeshStandardMaterial({
-            color: isSunset ? "#4d3826" : "#59422e",
-            roughness: 0.9,
-          });
+        const treeCrownInst = new THREE.InstancedMesh(crownGeo, treeCrownMat, projectTrees.length);
+        const treeTrunkInst = new THREE.InstancedMesh(trunkGeo, treeTrunkMat, projectTrees.length);
+        treeCrownInst.castShadow = true;
+        treeCrownInst.receiveShadow = true;
 
-          const treeCrownInst = new THREE.InstancedMesh(crownGeo, treeCrownMat, projectTrees.length);
-          const treeTrunkInst = new THREE.InstancedMesh(trunkGeo, treeTrunkMat, projectTrees.length);
-          treeCrownInst.castShadow = true;
-          treeCrownInst.receiveShadow = true;
+        projectTrees.forEach(([sx, sy, sc, rot], idx) => {
+          const [wx, wz] = svgToWorld(sx, sy);
+          const s = sc * 0.64;
+          dummy.position.set(wx, 0, wz);
+          dummy.rotation.set(0, rot, 0);
+          dummy.scale.set(s, s, s);
+          dummy.updateMatrix();
+          treeCrownInst.setMatrixAt(idx, dummy.matrix);
+          treeTrunkInst.setMatrixAt(idx, dummy.matrix);
+        });
+        treeCrownInst.instanceMatrix.needsUpdate = true;
+        treeTrunkInst.instanceMatrix.needsUpdate = true;
+        grp.add(treeTrunkInst);
+        grp.add(treeCrownInst);
+      }
 
-          projectTrees.forEach(([sx, sy, sc, rot], idx) => {
-            const [wx, wz] = svgToWorld(sx, sy);
-            const s = sc * 0.64;
-            dummy.position.set(wx, 0, wz);
-            dummy.rotation.set(0, rot, 0);
-            dummy.scale.set(s, s, s);
-            dummy.updateMatrix();
-            treeCrownInst.setMatrixAt(idx, dummy.matrix);
-            treeTrunkInst.setMatrixAt(idx, dummy.matrix);
-          });
-          treeCrownInst.instanceMatrix.needsUpdate = true;
-          treeTrunkInst.instanceMatrix.needsUpdate = true;
-          grp.add(treeTrunkInst);
-          grp.add(treeCrownInst);
-        }
+      if (sceneRefs.current.renderer) {
+        sceneRefs.current.renderer.shadowMap.needsUpdate = true;
+      }
+    };
 
-        if (sceneRefs.current.renderer) {
-          sceneRefs.current.renderer.shadowMap.needsUpdate = true;
-        }
-      },
-      undefined,
-      (err) => console.warn("Fallback palm loader:", err)
-    );
+    if (landscapeAssetCacheRef.current.palmScene) {
+      buildLandscapeInstances(landscapeAssetCacheRef.current.palmScene);
+    } else {
+      const loader = new GLTFLoader();
+      loader.load(
+        "/loom/models/palmera_caribe_hd.glb",
+        (gltf) => {
+          landscapeAssetCacheRef.current.palmScene = gltf.scene;
+          buildLandscapeInstances(gltf.scene);
+        },
+        undefined,
+        (err) => console.warn("Fallback palm loader:", err)
+      );
+    }
 
     return () => {
       cancelled = true;
@@ -2985,112 +3098,291 @@ export default function Loom3DMaquetaView({
   }, [landscapeData, showTrees3D, isSunset]);
 
   // ==========================================================================
-  // CAPAS 3 & 5: LOS 318 LOTES UNIFICADOS + VILLAS ARQUITECTÓNICAS DETALLADAS
+  // PASO 3: CACHÉ DE GEOMETRÍAS BASE DE LOS 318 LOTES Y PARÁMETROS DE VILLA
+  // Se calcula 1 sola vez al cargar unifiedLots (evita 318 ExtrudeGeometry en cada clic de filtro/etapa)
+  // ==========================================================================
+  const cachedLotsGeometryRef = useRef<{
+    sourceLots: Unified3DLot[] | null;
+    items: {
+      pLot: Unified3DLot;
+      lotIndex: number;
+      wx: number;
+      wz: number;
+      ww: number;
+      wd: number;
+      extrudeHeight: number;
+      geometry: THREE.BufferGeometry;
+      borderCoords: number[];
+      hasValidPolygon: boolean;
+      vwx: number;
+      vwz: number;
+      L: number;
+      W: number;
+      H: number;
+      zHouse: number;
+      wHouse: number;
+      rotY: number;
+    }[];
+  }>({
+    sourceLots: null,
+    items: [],
+  });
+
+  if (cachedLotsGeometryRef.current.sourceLots !== unifiedLots && unifiedLots.length > 0) {
+    cachedLotsGeometryRef.current.items.forEach((it) => it.geometry.dispose());
+    const extrudeHeight = 0.014;
+    cachedLotsGeometryRef.current.items = unifiedLots.map((pLot, lotIndex) => {
+      const [wx, wz] = svgToWorld(pLot.cx, pLot.cy);
+      const ww = (pLot.width / 3840) * WORLD_W;
+      const wd = (pLot.height / 2160) * WORLD_D;
+
+      let geometry: THREE.BufferGeometry;
+      const borderPoints: THREE.Vector3[] = [];
+      const worldVerts: [number, number][] = [];
+
+      if (pLot.vertices.length >= 3) {
+        const shape = new THREE.Shape();
+        pLot.vertices.forEach(([vx, vy], idx) => {
+          const [px, pz] = svgToWorld(vx, vy);
+          worldVerts.push([px, pz]);
+          const localX = px - wx;
+          const localY = -(pz - wz);
+          if (idx === 0) shape.moveTo(localX, localY);
+          else shape.lineTo(localX, localY);
+          borderPoints.push(new THREE.Vector3(px, extrudeHeight + 0.005, pz));
+        });
+        shape.closePath();
+        geometry = new THREE.ExtrudeGeometry(shape, {
+          depth: extrudeHeight,
+          bevelEnabled: false,
+        });
+      } else {
+        geometry = new THREE.BoxGeometry(ww * 0.85, wd * 0.85, extrudeHeight);
+      }
+
+      geometry.rotateX(-Math.PI / 2);
+      geometry.translate(wx, 0.004, wz);
+
+      const borderCoords: number[] = [];
+      if (borderPoints.length >= 3) {
+        for (let i = 0; i < borderPoints.length; i++) {
+          const pA = borderPoints[i];
+          const pB = borderPoints[(i + 1) % borderPoints.length];
+          borderCoords.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z);
+        }
+      }
+
+      let bestLen = 0;
+      let lotAngle = -0.68;
+      for (let i = 0; i < worldVerts.length; i++) {
+        const [x1, z1] = worldVerts[i];
+        const [x2, z2] = worldVerts[(i + 1) % worldVerts.length];
+        const segLen = Math.hypot(x2 - x1, z2 - z1);
+        if (segLen > bestLen) {
+          bestLen = segLen;
+          lotAngle = Math.atan2(z2 - z1, x2 - x1);
+        }
+      }
+
+      const L = pLot.villaL ? (pLot.villaL / 100) * 0.98 : Math.max(0.52, bestLen * 0.92);
+      const W = pLot.villaW ? (pLot.villaW / 100) * 0.98 : L * 0.47;
+      const H = L * 0.3583;
+      const zHouse = -W * 0.016;
+      const wHouse = W * 0.653;
+      const [vwx, vwz] =
+        pLot.villaCx !== undefined && pLot.villaCy !== undefined
+          ? svgToWorld(pLot.villaCx, pLot.villaCy)
+          : [wx, wz];
+      const rotY = pLot.backAngle !== undefined ? -pLot.backAngle : -lotAngle;
+
+      return {
+        pLot,
+        lotIndex,
+        wx,
+        wz,
+        ww,
+        wd,
+        extrudeHeight,
+        geometry,
+        borderCoords,
+        hasValidPolygon: worldVerts.length >= 3,
+        vwx,
+        vwz,
+        L,
+        W,
+        H,
+        zHouse,
+        wHouse,
+        rotY,
+      };
+    });
+    cachedLotsGeometryRef.current.sourceLots = unifiedLots;
+  }
+
+  // ==========================================================================
+  // CAPA 3 (DESACOPLADA - PASO 3): LOS 318 LOTES Y BORDES PERIMETRALES (< 1.5 ms)
+  // Cambiar etapa, modo de color o filtro de área SOLO actualiza los lotes sin tocar las villas
   // ==========================================================================
   useEffect(() => {
-    const { lotsGroup, villasGroup, telemetryGroup } = sceneRefs.current;
-    if (!lotsGroup || !villasGroup || !telemetryGroup) return;
+    const { lotsGroup } = sceneRefs.current;
+    if (!lotsGroup) return;
 
     while (lotsGroup.children.length > 0) {
-      const obj = lotsGroup.children[0] as THREE.Mesh;
+      const obj = lotsGroup.children[0] as THREE.Mesh | THREE.LineSegments;
       obj.geometry?.dispose();
       if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose());
       else obj.material?.dispose();
       lotsGroup.remove(obj);
     }
+
+    const cachedItems = cachedLotsGeometryRef.current.items;
+    if (cachedItems.length === 0) return;
+
+    const lotMatPool = new Map<string, THREE.MeshLambertMaterial>();
+    const lineMatPool = new Map<string, THREE.LineBasicMaterial>();
+    const batchedBorderSegments = new Map<string, { col: string; op: number; coords: number[] }>();
+    const batchedLotGeos = new Map<string, { mat: THREE.MeshLambertMaterial; geos: THREE.BufferGeometry[] }>();
+
+    for (let idx = 0; idx < cachedItems.length; idx++) {
+      const item = cachedItems[idx];
+      const { pLot, lotIndex, geometry, borderCoords } = item;
+      const lotData = lotsMap[pLot.id];
+      if (!lotData) continue;
+
+      const isAmenity = pLot.isAmenity || lotData.status === "common";
+      const isCurrentStage = focusMode === "all" || pLot.stageId === stageId;
+      const isShowcaseVilla =
+        villaMode === "all" ||
+        (villaMode === "showcase" && (lotIndex * 7 + 3) % 11 < 5);
+
+      let fillColor = "#10b981";
+      let dimmed = !isCurrentStage;
+
+      if (isAmenity) {
+        fillColor = "#c27838";
+      } else if (colorMode === "status") {
+        if (lotData.status === "available") fillColor = "#10b981";
+        else if (lotData.status === "blocked" || lotData.status === "reserved")
+          fillColor = "#f59e0b";
+        else fillColor = "#ef4444";
+      } else if (colorMode === "area") {
+        const tier = getAreaTier(lotData.areaNumeric);
+        fillColor = tier.fillHex;
+        if (activeAreaFilter !== "all" && tier.key !== activeAreaFilter) {
+          dimmed = true;
+        }
+      } else if (colorMode === "typology") {
+        const isCorner = (lotData.location || "").toUpperCase().includes("ESQUINERO");
+        fillColor = isCorner ? "#f59e0b" : "#14b8a6";
+      }
+
+      const opacity = dimmed ? 0.08 : isShowcaseVilla ? 0.18 : 0.34;
+      const emissiveInt = isSunset ? 0.35 : 0.22;
+      const matKey = `${fillColor}_${emissiveInt}_${opacity}`;
+
+      let mat = lotMatPool.get(matKey);
+      if (!mat) {
+        mat = new THREE.MeshLambertMaterial({
+          color: fillColor,
+          emissive: fillColor,
+          emissiveIntensity: emissiveInt,
+          transparent: true,
+          opacity,
+        });
+        lotMatPool.set(matKey, mat);
+      }
+
+      let lotBatch = batchedLotGeos.get(matKey);
+      if (!lotBatch) {
+        lotBatch = { mat, geos: [] };
+        batchedLotGeos.set(matKey, lotBatch);
+      }
+      lotBatch.geos.push(geometry);
+
+      if (borderCoords.length > 0) {
+        const lOp = dimmed ? 0.22 : 0.92;
+        const lKey = `${fillColor}_${lOp}`;
+        let bucket = batchedBorderSegments.get(lKey);
+        if (!bucket) {
+          bucket = { col: fillColor, op: lOp, coords: [] };
+          batchedBorderSegments.set(lKey, bucket);
+        }
+        for (let k = 0; k < borderCoords.length; k++) {
+          bucket.coords.push(borderCoords[k]);
+        }
+      }
+    }
+
+    // 1. Añadir lotes fusionados por material (4-5 draw calls en lugar de 318)
+    batchedLotGeos.forEach((batch) => {
+      if (batch.geos.length === 0) return;
+      // Si solo hay 1 geometría en el lote, clonar para no hacer dispose de la caché base al limpiar lotsGroup
+      const mergedLotGeo =
+        batch.geos.length === 1 ? batch.geos[0].clone() : mergeSimpleBufferGeometries(batch.geos);
+      const batchMesh = new THREE.Mesh(mergedLotGeo, batch.mat);
+      batchMesh.matrixAutoUpdate = false;
+      lotsGroup.add(batchMesh);
+    });
+
+    // 2. Renderizar todos los bordes perimetrales de los 318 lotes en 2-3 llamadas agrupadas (LineSegments)
+    batchedBorderSegments.forEach((bucket, lKey) => {
+      if (bucket.coords.length === 0) return;
+      const segGeo = new THREE.BufferGeometry();
+      segGeo.setAttribute("position", new THREE.Float32BufferAttribute(bucket.coords, 3));
+      let lineMat = lineMatPool.get(lKey);
+      if (!lineMat) {
+        lineMat = new THREE.LineBasicMaterial({
+          color: bucket.col,
+          transparent: true,
+          opacity: bucket.op,
+        });
+        lineMatPool.set(lKey, lineMat);
+      }
+      const lineSegs = new THREE.LineSegments(segGeo, lineMat);
+      lineSegs.matrixAutoUpdate = false;
+      lotsGroup.add(lineSegs);
+    });
+  }, [unifiedLots, lotsMap, stageId, focusMode, colorMode, activeAreaFilter, villaMode, isSunset]);
+
+  // ==========================================================================
+  // CAPA 5 (DESACOPLADA - PASOS 3, 4 Y 5): VILLAS LUXURY & GARDEN + VEHÍCULOS 3D
+  // Independiente de stageId, focusMode, colorMode y activeAreaFilter
+  // ==========================================================================
+  useEffect(() => {
+    const { villasGroup } = sceneRefs.current;
+    if (!villasGroup) return;
+
+    // Paso 5: Liberar recursos transitorios (CanvasTextures de píldoras y materiales temporales) sin tocar cachés compartidas
+    const transientDisposables: { dispose: () => void }[] = [];
     while (villasGroup.children.length > 0) {
-      villasGroup.remove(villasGroup.children[0]);
-    }
-    while (telemetryGroup.children.length > 0) {
-      telemetryGroup.remove(telemetryGroup.children[0]);
+      const child = villasGroup.children[0];
+      if ((child as THREE.Sprite).isSprite) {
+        const sp = child as THREE.Sprite;
+        sp.material.map?.dispose();
+        sp.material.dispose();
+        sp.geometry?.dispose();
+      }
+      villasGroup.remove(child);
     }
 
-    // Materiales Arquitectónicos Maadga Group (Concreto Blanco Marfil, Madera Teca, Bronce Negro y Cristal)
-    const stuccoWhiteMat = new THREE.MeshStandardMaterial({
-      color: isSunset ? "#f2e5d5" : "#fcfaf7",
-      roughness: 0.32,
-      metalness: 0.05,
-    });
-    const coralBaseMat = new THREE.MeshStandardMaterial({
-      color: isSunset ? "#d6c3ae" : "#e3d7c8",
-      roughness: 0.62,
-      metalness: 0.05,
-    });
-    const teakWoodMat = new THREE.MeshStandardMaterial({
-      color: "#9e5827",
-      roughness: 0.42,
-      metalness: 0.08,
-    });
-    const thatchBambooMat = new THREE.MeshStandardMaterial({
-      color: isSunset ? "#c2935a" : "#d4aa72",
-      roughness: 0.78,
-      metalness: 0.02,
-      side: THREE.DoubleSide,
-    });
-    const roofHedgeMat = new THREE.MeshStandardMaterial({
-      color: isSunset ? "#315427" : "#2d5e29",
-      roughness: 0.85,
-    });
-    const darkBronzeMat = new THREE.MeshStandardMaterial({
-      color: "#1e1b18",
-      roughness: 0.3,
-      metalness: 0.6,
-    });
-    const glassWindowMat = new THREE.MeshStandardMaterial({
-      color: isSunset ? "#ffd27d" : "#ffe49e",
-      emissive: isSunset ? "#ff9914" : "#f59e0b",
-      emissiveIntensity: isSunset ? 1.9 : 0.75,
-      roughness: 0.08,
-      metalness: 0.5,
-    });
-    const poolWaterMat = new THREE.MeshStandardMaterial({
-      color: "#06b6d4",
-      emissive: "#22d3ee",
-      emissiveIntensity: isSunset ? 1.15 : 0.78,
-      roughness: 0.04,
-    });
+    const cachedItems = cachedLotsGeometryRef.current.items;
+    if (cachedItems.length === 0) return;
 
-    // Geometrías y materiales V-Ray cacheados en memoria para no recargar texturas al cambiar filtros
     if (!villaMatsCacheRef.current.unitBox) {
       villaMatsCacheRef.current.unitBox = new THREE.BoxGeometry(1, 1, 1);
     }
     const unitBox = villaMatsCacheRef.current.unitBox;
     const cacheKey = isSunset ? "sunset" : "day";
     if (!villaMatsCacheRef.current[cacheKey]) {
-      villaMatsCacheRef.current[cacheKey] = createVillaReplicaMaterials(isSunset, sceneRefs.current.palmCrownTex);
+      villaMatsCacheRef.current[cacheKey] = createVillaReplicaMaterials(isSunset);
     }
     const villaMats = villaMatsCacheRef.current[cacheKey]!;
-    const lotMatPool = new Map<string, THREE.MeshLambertMaterial>();
-    const lineMatPool = new Map<string, THREE.LineBasicMaterial>();
 
-    // ========================================================================
-    // MALOCAS ORGÁNICAS 3D DE ALMA BEACH CLUB + ETIQUETAS PÍLDORA PRINCIPALES
-    // ========================================================================
+    // Etiquetas Píldora Principales
     const [beachX, beachZ] = svgToWorld(2885, 895);
-    const malocaGeo = new THREE.SphereGeometry(0.42, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.48);
-    malocaGeo.scale(1.55, 0.38, 0.92);
-
-    const maloca1 = new THREE.Mesh(malocaGeo, thatchBambooMat);
-    maloca1.position.set(beachX - 0.36, 0.06, beachZ - 0.18);
-    maloca1.rotation.y = -0.52;
-    maloca1.castShadow = true;
-    // maloca1 removida por solicitud del usuario
-
-    const maloca2 = new THREE.Mesh(malocaGeo, thatchBambooMat);
-    maloca2.position.set(beachX + 0.32, 0.055, beachZ + 0.24);
-    maloca2.rotation.y = 0.38;
-    maloca2.scale.set(0.88, 0.88, 0.88);
-    maloca2.castShadow = true;
-    // maloca2 removida por solicitud del usuario
-
     const beachPill = createFloatingPillSprite("Alma Beach Club", "#EBD9AB", 1.55, 0.38);
     beachPill.position.set(beachX + 0.15, 0.56, beachZ - 0.05);
     villasGroup.add(beachPill);
-
-    const [gwX, gwZ] = svgToWorld(2390, 995);
-    const gardenWalkPill = createFloatingPillSprite("The Garden Walk", "#10b981", 1.45, 0.36);
-    gardenWalkPill.position.set(gwX, 0.52, gwZ);
-    // gardenWalkPill removido por solicitud del usuario
 
     const [chX, chZ] = svgToWorld(2196, 972);
     const clubHousePill = createFloatingPillSprite("Club House & Oasis", "#EBD9AB", 1.55, 0.38);
@@ -3117,9 +3409,30 @@ export default function Loom3DMaquetaView({
     viaPill.position.set(viaX, 0.45, viaZ);
     villasGroup.add(viaPill);
 
-    // Vehículos 3D reales en movimiento continuo a 60 FPS entrando y saliendo por las avenidas de Loom
+    // Vehículos 3D reales en circuitos cerrados continuos a 60 FPS por las avenidas internas y el Bulevar Principal de Loom
     animatedTrafficRef.current = [];
     if (carTemplates.length > 0) {
+      const smoothClosedSvgLoop = (controlPts: [number, number][], iterations = 2): [number, number][] => {
+        let pts = controlPts.slice();
+        for (let iter = 0; iter < iterations; iter++) {
+          const nextPts: [number, number][] = [];
+          const n = pts.length;
+          for (let i = 0; i < n; i++) {
+            const p0 = pts[i];
+            const p1 = pts[(i + 1) % n];
+            const segDist = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
+            const cut = Math.min(0.22, 14.0 / Math.max(1.0, segDist));
+            nextPts.push([p0[0] + (p1[0] - p0[0]) * cut, p0[1] + (p1[1] - p0[1]) * cut]);
+            nextPts.push([p0[0] + (p1[0] - p0[0]) * (1 - cut), p0[1] + (p1[1] - p0[1]) * (1 - cut)]);
+          }
+          pts = nextPts;
+        }
+        if (pts.length > 0) {
+          pts.push([pts[0][0], pts[0][1]]);
+        }
+        return pts;
+      };
+
       const roadRoutesSpecs: {
         svgPoints: [number, number][];
         modelIdx: number;
@@ -3127,74 +3440,115 @@ export default function Loom3DMaquetaView({
         speed: number;
         phase: number;
       }[] = [
-        // 1. Entrando por Portería Loom hacia el Bulevar Principal Norte
+        // Circuito 1: Portería <-> Bulevar Principal Norte <-> Avenida Etapa 1/2 (Calle S3)
         {
-          svgPoints: [[18, 1106], [140, 1085], [221, 1074], [340, 882], [920, 848]],
+          svgPoints: [
+            [118, 1088], [218, 1074], [302, 892], [345, 884],
+            [522.5, 878.9], [914.8, 1332], [925.6, 1339], [932.0, 1342],
+            [933.2, 1339], [931.8, 1332], [531.3, 869.4], [338, 876],
+            [292, 886], [208, 1064], [116, 1076], [104, 1082],
+          ],
           modelIdx: 0,
           paintIdx: 0,
           speed: 0.34,
           phase: 0.5,
         },
-        // 2. Saliendo desde el Bulevar Norte hacia Portería Loom / Vía del Mar Km 23
+        // Circuito 2: Portería <-> Avenida Interna Etapa 1 (Calle S2)
         {
-          svgPoints: [[880, 858], [345, 892], [216, 1080], [125, 1094], [-18, 1112]],
+          svgPoints: [
+            [122, 1088], [218, 1074], [328, 950], [663.3, 1332],
+            [673.7, 1339], [679.9, 1342], [680.9, 1339], [679.3, 1332],
+            [352, 956], [302, 892], [292, 886], [208, 1064],
+            [116, 1076], [104, 1082],
+          ],
           modelIdx: 3,
           paintIdx: 2,
-          speed: 0.32,
-          phase: 2.1,
+          speed: 0.31,
+          phase: 2.3,
         },
-        // 3. Recorriendo el Bulevar Principal Norte (Etapa 1 -> Etapa 4 Club House)
+        // Circuito 3: Etapa 1 / Etapa 2 (Calle S3 <-> Bulevar Principal <-> Calle S4)
         {
-          svgPoints: [[350, 882], [1150, 836], [1955, 790], [2680, 748]],
+          svgPoints: [
+            [522.5, 878.9], [763.1, 865.0], [1166.5, 1332], [1177.3, 1339],
+            [1183.7, 1342], [1184.9, 1339], [1183.5, 1332], [771.9, 855.4],
+            [531.3, 869.4], [830.5, 1215], [831.9, 1222], [830.7, 1225],
+            [824.3, 1222], [813.5, 1215],
+          ],
           modelIdx: 1,
           paintIdx: 4,
-          speed: 0.42,
-          phase: 1.2,
+          speed: 0.36,
+          phase: 1.4,
         },
-        // 4. Regresando por el Bulevar Principal Norte (Club House -> Etapa 1)
+        // Circuito 4: Etapa 2 / Etapa 3 (Calle S5 <-> Bulevar Principal <-> Calle S6)
         {
-          svgPoints: [[2650, 758], [1950, 798], [1150, 845], [360, 892]],
+          svgPoints: [
+            [1004.0, 851.0], [1238.2, 837.4], [1665.7, 1332], [1676.5, 1339],
+            [1682.9, 1342], [1684.1, 1339], [1682.7, 1332], [1246.9, 827.9],
+            [1012.9, 841.5], [1433.4, 1332], [1434.7, 1339], [1433.4, 1342],
+            [1427.0, 1339], [1416.4, 1332],
+          ],
           modelIdx: 2,
           paintIdx: 1,
-          speed: 0.38,
+          speed: 0.35,
           phase: 4.8,
         },
-        // 5. Avenida Diagonal Club House & Canchas de Tenis (Etapa 4 rumbo Sur)
+        // Circuito 5: Etapa 3 / Etapa 4 (Calle S7 <-> Bulevar Principal <-> Calle S8)
         {
-          svgPoints: [[1962, 795], [2162, 1025], [2385, 1285]],
+          svgPoints: [
+            [1475.1, 823.7], [1715.5, 809.7], [2165.5, 1332], [2176.2, 1339],
+            [2182.6, 1342], [2183.8, 1339], [2182.5, 1332], [1724.3, 800.2],
+            [1483.9, 814.2], [1932.3, 1332], [1933.7, 1339], [1932.5, 1342],
+            [1926.0, 1339], [1915.3, 1332],
+          ],
           modelIdx: 0,
           paintIdx: 5,
-          speed: 0.30,
-          phase: 1.7,
+          speed: 0.33,
+          phase: 1.9,
         },
-        // 6. Bulevar Costero frente al Club House hacia Alma Beach Club
+        // Circuito 6: Avenida Club House & Oasis <-> Bulevar Principal <-> Etapa 3 (Calle S6)
         {
-          svgPoints: [[1980, 788], [2443, 762], [2840, 738]],
+          svgPoints: [
+            [1238.2, 837.4], [1953.9, 795.9], [2357.2, 1260], [2367.9, 1267],
+            [2374.3, 1270], [2375.6, 1267], [2374.2, 1260], [1962.7, 786.4],
+            [1246.9, 827.9], [1495.1, 1115], [1496.5, 1122], [1495.3, 1125],
+            [1488.9, 1122], [1478.1, 1115],
+          ],
           modelIdx: 1,
           paintIdx: 3,
-          speed: 0.36,
+          speed: 0.37,
           phase: 3.3,
         },
-        // 7. Avenida del Lago Central (Etapa 5 saliendo hacia el Bulevar Norte)
+        // Circuito 7: Etapa 5 & Lago Central (Calle S11 <-> Bulevar Principal <-> Calle S12)
         {
-          svgPoints: [[2556, 1118], [2531, 998], [2505, 858]],
+          svgPoints: [
+            [2467.6, 766.1], [2658.6, 755.0], [2720.9, 1035], [2726.0, 1042],
+            [2729.6, 1045], [2731.8, 1042], [2733.9, 1035], [2669.4, 745.4],
+            [2478.4, 756.5], [2585.5, 1230], [2583.5, 1237], [2581.2, 1240],
+            [2577.6, 1237], [2572.5, 1230],
+          ],
           modelIdx: 3,
           paintIdx: 0,
-          speed: 0.28,
+          speed: 0.29,
           phase: 0.9,
         },
-        // 8. Avenida del Lago Central Oriental (Etapa 5 rumbo al Oasis del Lago)
+        // Circuito 8: Gran Bulevar Principal Norte Express (Etapa 2 <-> Etapa 5)
         {
-          svgPoints: [[2690, 842], [2725, 1008], [2762, 1168]],
+          svgPoints: [
+            [764.0, 864.9], [2466.6, 766.2], [2529.6, 1045], [2535.4, 1052],
+            [2539.4, 1055], [2542.1, 1052], [2544.6, 1045], [2479.4, 756.4],
+            [770.9, 855.5], [995.1, 1115], [997.0, 1122], [996.2, 1125],
+            [990.2, 1122], [980.1, 1115],
+          ],
           modelIdx: 2,
           paintIdx: 6,
-          speed: 0.29,
-          phase: 2.4,
+          speed: 0.41,
+          phase: 2.7,
         },
       ];
 
       roadRoutesSpecs.forEach((rc) => {
-        const waypoints = rc.svgPoints.map(([sx, sy]) => svgToWorld(sx, sy));
+        const closedSvgPts = smoothClosedSvgLoop(rc.svgPoints, 2);
+        const waypoints = closedSvgPts.map(([sx, sy]) => svgToWorld(sx, sy));
         const segLengths: number[] = [];
         let totalLength = 0;
         for (let i = 0; i < waypoints.length - 1; i++) {
@@ -3243,10 +3597,9 @@ export default function Loom3DMaquetaView({
       });
     }
 
-    const batchedBorderSegments = new Map<string, { col: string; op: number; coords: number[] }>();
-    const batchedLotGeos = new Map<string, { mat: THREE.MeshLambertMaterial; geos: THREE.BufferGeometry[] }>();
-
-    const instVillaMatrices: THREE.Matrix4[] = [];
+    const instAllVillaMatrices: THREE.Matrix4[] = [];
+    const instLuxuryVillaMatrices: THREE.Matrix4[] = [];
+    const instGardenVillaMatrices: THREE.Matrix4[] = [];
     const instPatioPalmMatrices: THREE.Matrix4[] = [];
     const instCarShadows: THREE.Matrix4[] = [];
     const instParkedCarsByModel: { matrix: THREE.Matrix4; paintColor: THREE.Color }[][] = carTemplates.map(() => []);
@@ -3255,160 +3608,36 @@ export default function Loom3DMaquetaView({
     const dummyChild = new THREE.Object3D();
     const mat4VillaBase = new THREE.Matrix4();
 
-    unifiedLots.forEach((pLot, lotIndex) => {
-      const lotData = lotsMap[pLot.id];
-      if (!lotData) return;
+    if (villaMode !== "off") {
+      for (let idx = 0; idx < cachedItems.length; idx++) {
+        const item = cachedItems[idx];
+        const { pLot, lotIndex, extrudeHeight, hasValidPolygon, vwx, vwz, L, W, H, zHouse, wHouse, rotY } = item;
+        const lotData = lotsMap[pLot.id];
+        if (!lotData) continue;
 
-      const [wx, wz] = svgToWorld(pLot.cx, pLot.cy);
-      const ww = (pLot.width / 3840) * WORLD_W;
-      const wd = (pLot.height / 2160) * WORLD_D;
+        const isAmenity = pLot.isAmenity || lotData.status === "common";
+        if (isAmenity || !hasValidPolygon) continue;
 
-      const isSelected = false;
-      const isAmenity = pLot.isAmenity || lotData.status === "common";
-      const isCurrentStage = focusMode === "all" || pLot.stageId === stageId;
+        const isShowcaseVilla =
+          villaMode === "all" || (villaMode === "showcase" && (lotIndex * 7 + 3) % 11 < 5);
+        if (!isShowcaseVilla) continue;
 
-      const isShowcaseVilla =
-        villaMode === "all" ||
-        (villaMode === "showcase" && (isSelected || (lotIndex * 7 + 3) % 11 < 5));
-
-      let fillColor = "#10b981";
-      let dimmed = !isCurrentStage;
-
-      if (isAmenity) {
-        fillColor = "#c27838";
-      } else if (colorMode === "status") {
-        if (lotData.status === "available") fillColor = "#10b981";
-        else if (lotData.status === "blocked" || lotData.status === "reserved")
-          fillColor = "#f59e0b";
-        else fillColor = "#ef4444";
-      } else if (colorMode === "area") {
-        const tier = getAreaTier(lotData.areaNumeric);
-        fillColor = tier.fillHex;
-        if (activeAreaFilter !== "all" && tier.key !== activeAreaFilter) {
-          dimmed = true;
-        }
-      } else if (colorMode === "typology") {
-        const isCorner = (lotData.location || "").toUpperCase().includes("ESQUINERO");
-        fillColor = isCorner ? "#f59e0b" : "#14b8a6";
-      }
-
-      const extrudeHeight = isSelected ? 0.045 : 0.014;
-      const opacity = dimmed
-        ? 0.08
-        : isSelected
-        ? 0.42
-        : isShowcaseVilla
-        ? 0.18
-        : 0.34;
-
-      let geometry: THREE.BufferGeometry;
-      const borderPoints: THREE.Vector3[] = [];
-      const worldVerts: [number, number][] = [];
-
-      if (pLot.vertices.length >= 3) {
-        const shape = new THREE.Shape();
-        pLot.vertices.forEach(([vx, vy], idx) => {
-          const [px, pz] = svgToWorld(vx, vy);
-          worldVerts.push([px, pz]);
-          const localX = px - wx;
-          const localY = -(pz - wz);
-          if (idx === 0) shape.moveTo(localX, localY);
-          else shape.lineTo(localX, localY);
-          borderPoints.push(new THREE.Vector3(px, extrudeHeight + 0.005, pz));
-        });
-        shape.closePath();
-        geometry = new THREE.ExtrudeGeometry(shape, {
-          depth: extrudeHeight,
-          bevelEnabled: false,
-        });
-      } else {
-        geometry = new THREE.BoxGeometry(ww * 0.85, wd * 0.85, extrudeHeight);
-      }
-
-      // Transformar geometría del lote al espacio mundial para fusionarla por material (reduce 318 draw calls a ~5)
-      geometry.rotateX(-Math.PI / 2);
-      geometry.translate(wx, 0.004, wz);
-
-      const matColor = isSelected ? "#f59e0b" : fillColor;
-      const emissiveCol = isSelected ? "#fbbf24" : fillColor;
-      const emissiveInt = isSelected ? 0.75 : isSunset ? 0.35 : 0.22;
-      const matKey = `${matColor}_${emissiveInt}_${opacity}`;
-      let mat = lotMatPool.get(matKey);
-      if (!mat) {
-        mat = new THREE.MeshLambertMaterial({
-          color: matColor,
-          emissive: emissiveCol,
-          emissiveIntensity: emissiveInt,
-          transparent: true,
-          opacity,
-        });
-        lotMatPool.set(matKey, mat);
-      }
-
-      let lotBatch = batchedLotGeos.get(matKey);
-      if (!lotBatch) {
-        lotBatch = { mat, geos: [] };
-        batchedLotGeos.set(matKey, lotBatch);
-      }
-      lotBatch.geos.push(geometry);
-
-      if (borderPoints.length >= 3) {
-        const lCol = isSelected ? "#fde047" : fillColor;
-        const lOp = dimmed ? 0.22 : 0.92;
-        const lKey = `${lCol}_${lOp}`;
-        let bucket = batchedBorderSegments.get(lKey);
-        if (!bucket) {
-          bucket = { col: lCol, op: lOp, coords: [] };
-          batchedBorderSegments.set(lKey, bucket);
-        }
-        for (let i = 0; i < borderPoints.length; i++) {
-          const pA = borderPoints[i];
-          const pB = borderPoints[(i + 1) % borderPoints.length];
-          bucket.coords.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z);
-        }
-      }
-
-      // ======================================================================
-      // CAPA 5: ARQUITECTURA DE VILLA BIOCLIMÁTICA INSTANCIADA A 60 FPS
-      // ======================================================================
-      if (isShowcaseVilla && !isAmenity && worldVerts.length >= 3) {
-        let bestLen = 0;
-        let lotAngle = -0.68;
-        for (let i = 0; i < worldVerts.length; i++) {
-          const [x1, z1] = worldVerts[i];
-          const [x2, z2] = worldVerts[(i + 1) % worldVerts.length];
-          const segLen = Math.hypot(x2 - x1, z2 - z1);
-          if (segLen > bestLen) {
-            bestLen = segLen;
-            lotAngle = Math.atan2(z2 - z1, x2 - x1);
-          }
-        }
-
-        const L = pLot.villaL ? (pLot.villaL / 100) * 0.98 : Math.max(0.52, bestLen * 0.92);
-        const W = pLot.villaW ? (pLot.villaW / 100) * 0.98 : L * 0.47;
-        const H = L * 0.3583;
-        const zHouse = -W * 0.016;
-        const wHouse = W * 0.653;
-
-        const [vwx, vwz] =
-          pLot.villaCx !== undefined && pLot.villaCy !== undefined
-            ? svgToWorld(pLot.villaCx, pLot.villaCy)
-            : [wx, wz];
-        const rotY = pLot.backAngle !== undefined ? -pLot.backAngle : -lotAngle;
-
-        // Matriz base (sin escala) para posicionar hijos (palmera de patio y vehículos estacionados)
         dummyVilla.position.set(vwx, extrudeHeight + 0.005, vwz);
         dummyVilla.rotation.set(0, rotY, 0);
         dummyVilla.scale.set(1, 1, 1);
         dummyVilla.updateMatrix();
         mat4VillaBase.copy(dummyVilla.matrix);
 
-        // Matriz escalada [L, H, W] para los 24 bloques canónicos de la villa
         dummyVilla.scale.set(L, H, W);
         dummyVilla.updateMatrix();
-        instVillaMatrices.push(dummyVilla.matrix.clone());
+        const villaScaledMat = dummyVilla.matrix.clone();
+        instAllVillaMatrices.push(villaScaledMat);
+        if (lotIndex % 2 === 1) {
+          instGardenVillaMatrices.push(villaScaledMat);
+        } else {
+          instLuxuryVillaMatrices.push(villaScaledMat);
+        }
 
-        // Corona de palmera interior del patio bioclimático
         if (villaMats.palmCrownTexMat) {
           const palmX = L * 0.005;
           const palmZ = zHouse + wHouse * 0.12;
@@ -3420,7 +3649,6 @@ export default function Loom3DMaquetaView({
           instPatioPalmMatrices.push(dummyChild.matrix.clone());
         }
 
-        // Vehículos estacionados en el carport de la villa (InstancedMesh por modelo)
         if (carTemplates.length > 0) {
           const carSlots = [zHouse - wHouse * 0.225, zHouse + wHouse * 0.215];
           const hasSecondCar = (lotIndex * 5 + 1) % 7 !== 0;
@@ -3453,34 +3681,54 @@ export default function Loom3DMaquetaView({
           });
         }
       }
-    });
+    }
 
-    // 1. Añadir lotes fusionados por material (4-5 draw calls en lugar de 318)
-    batchedLotGeos.forEach((batch) => {
-      if (batch.geos.length === 0) return;
-      const mergedLotGeo = mergeSimpleBufferGeometries(batch.geos);
-      if (batch.geos.length > 1) {
-        batch.geos.forEach((g) => g.dispose());
-      }
-      const batchMesh = new THREE.Mesh(mergedLotGeo, batch.mat);
-      batchMesh.matrixAutoUpdate = false;
-      lotsGroup.add(batchMesh);
-    });
-
-    // 2. Añadir todas las Villas 3D mediante InstancedMesh (~24 draw calls en lugar de ~11,000)
-    if (instVillaMatrices.length > 0) {
-      const canonicalSpecs = getOrBuildCanonicalVillaMeshes(villaMats);
-      const vCount = instVillaMatrices.length;
-      for (let s = 0; s < canonicalSpecs.length; s++) {
-        const spec = canonicalSpecs[s];
-        const instMesh = new THREE.InstancedMesh(spec.geo, spec.mat, vCount);
+    // 1. Añadir el 95% de geometría compartida en 1 solo grupo de InstancedMesh (ahorra 16 draw calls)
+    if (instAllVillaMatrices.length > 0) {
+      const splitSpecs = getOrBuildSplitInstancedVillaMeshes(villaMats);
+      const allCount = instAllVillaMatrices.length;
+      for (let s = 0; s < splitSpecs.sharedSpecs.length; s++) {
+        const spec = splitSpecs.sharedSpecs[s];
+        const instMesh = new THREE.InstancedMesh(spec.geo, spec.mat, allCount);
         instMesh.castShadow = spec.castShadow;
         instMesh.receiveShadow = true;
-        for (let i = 0; i < vCount; i++) {
-          instMesh.setMatrixAt(i, instVillaMatrices[i]);
+        for (let i = 0; i < allCount; i++) {
+          instMesh.setMatrixAt(i, instAllVillaMatrices[i]);
         }
         instMesh.instanceMatrix.needsUpdate = true;
         villasGroup.add(instMesh);
+      }
+
+      // 2a. Piezas exclusivas de Villa Luxury (planta baja con piscina + agua de piscina 1er piso)
+      if (instLuxuryVillaMatrices.length > 0) {
+        const lCount = instLuxuryVillaMatrices.length;
+        for (let s = 0; s < splitSpecs.luxuryOnlySpecs.length; s++) {
+          const spec = splitSpecs.luxuryOnlySpecs[s];
+          const instMesh = new THREE.InstancedMesh(spec.geo, spec.mat, lCount);
+          instMesh.castShadow = spec.castShadow;
+          instMesh.receiveShadow = true;
+          for (let i = 0; i < lCount; i++) {
+            instMesh.setMatrixAt(i, instLuxuryVillaMatrices[i]);
+          }
+          instMesh.instanceMatrix.needsUpdate = true;
+          villasGroup.add(instMesh);
+        }
+      }
+
+      // 2b. Piezas exclusivas de Villa Garden (planta baja Garden + césped y arbustos del patio 1er piso)
+      if (instGardenVillaMatrices.length > 0) {
+        const gCount = instGardenVillaMatrices.length;
+        for (let s = 0; s < splitSpecs.gardenOnlySpecs.length; s++) {
+          const spec = splitSpecs.gardenOnlySpecs[s];
+          const instMesh = new THREE.InstancedMesh(spec.geo, spec.mat, gCount);
+          instMesh.castShadow = spec.castShadow;
+          instMesh.receiveShadow = true;
+          for (let i = 0; i < gCount; i++) {
+            instMesh.setMatrixAt(i, instGardenVillaMatrices[i]);
+          }
+          instMesh.instanceMatrix.needsUpdate = true;
+          villasGroup.add(instMesh);
+        }
       }
     }
 
@@ -3499,7 +3747,7 @@ export default function Loom3DMaquetaView({
       villasGroup.add(palmInst);
     }
 
-    // 4. Añadir sombras y vehículos estacionados en las villas mediante InstancedMesh (~20 draw calls en lugar de ~1,700)
+    // 4. Añadir sombras y vehículos estacionados en las villas mediante InstancedMesh
     if (instCarShadows.length > 0) {
       const shadowInst = new THREE.InstancedMesh(unitBox, villaMats.darkBronzeMat, instCarShadows.length);
       for (let i = 0; i < instCarShadows.length; i++) {
@@ -3515,6 +3763,7 @@ export default function Loom3DMaquetaView({
       metalness: 0.42,
       envMapIntensity: 1.35,
     });
+    transientDisposables.push(instBodyPaintBaseMat);
 
     instParkedCarsByModel.forEach((instances, modelIdx) => {
       if (instances.length === 0 || !carTemplates[modelIdx]) return;
@@ -3547,37 +3796,36 @@ export default function Loom3DMaquetaView({
       });
     });
 
-    // 5. Renderizar todos los bordes perimetrales de los 318 lotes en 3-4 llamadas agrupadas (LineSegments)
-    batchedBorderSegments.forEach((bucket, lKey) => {
-      if (bucket.coords.length === 0) return;
-      const segGeo = new THREE.BufferGeometry();
-      segGeo.setAttribute("position", new THREE.Float32BufferAttribute(bucket.coords, 3));
-      let lineMat = lineMatPool.get(lKey);
-      if (!lineMat) {
-        lineMat = new THREE.LineBasicMaterial({
-          color: bucket.col,
-          transparent: true,
-          opacity: bucket.op,
-        });
-        lineMatPool.set(lKey, lineMat);
-      }
-      const lineSegs = new THREE.LineSegments(segGeo, lineMat);
-      lineSegs.matrixAutoUpdate = false;
-      villasGroup.add(lineSegs);
-    });
-
     if (sceneRefs.current.renderer) {
       sceneRefs.current.renderer.shadowMap.needsUpdate = true;
     }
-  }, [unifiedLots, lotsMap, stageId, focusMode, colorMode, activeAreaFilter, villaMode, isSunset, carTemplates]);
 
-  // Efecto ultra-rápido (< 1ms) exclusivo para el lote seleccionado: no reconstruye las 140 villas ni los 318 lotes
+    return () => {
+      transientDisposables.forEach((d) => d.dispose());
+    };
+  }, [unifiedLots, lotsMap, villaMode, isSunset, isEn, carTemplates]);
+
+  // Efecto ultra-rápido (< 1ms) exclusivo para el lote seleccionado: no reconstruye las 145 villas ni los 318 lotes
   useEffect(() => {
     const { telemetryGroup } = sceneRefs.current;
     if (!telemetryGroup) return;
+
+    const telemetryDisposables: { dispose: () => void }[] = [];
     while (telemetryGroup.children.length > 0) {
-      telemetryGroup.remove(telemetryGroup.children[0]);
+      const child = telemetryGroup.children[0];
+      if ((child as THREE.Sprite).isSprite) {
+        const sp = child as THREE.Sprite;
+        sp.material.map?.dispose();
+        sp.material.dispose();
+        sp.geometry?.dispose();
+      }
+      telemetryGroup.remove(child);
     }
+    if (telemetryAnimRef.current.windTex) {
+      telemetryAnimRef.current.windTex.dispose();
+      telemetryAnimRef.current.windTex = null;
+    }
+
     if (!selectedLot || unifiedLots.length === 0) return;
 
     const lotIndex = unifiedLots.findIndex((p) => p.id === selectedLot.id);
@@ -3599,6 +3847,7 @@ export default function Loom3DMaquetaView({
       });
       const selLineGeo = new THREE.BufferGeometry().setFromPoints(selBorderPts);
       const selLineMat = new THREE.LineBasicMaterial({ color: "#fde047" });
+      telemetryDisposables.push(selLineGeo, selLineMat);
       telemetryGroup.add(new THREE.LineLoop(selLineGeo, selLineMat));
     }
 
@@ -3653,14 +3902,13 @@ export default function Loom3DMaquetaView({
     }
     const solarCurve = new THREE.CatmullRomCurve3(solarCurvePts);
 
-    // Núcleo dorado brillante del arco solar
     const solarCoreGeo = new THREE.TubeGeometry(solarCurve, 48, 0.0055, 8, false);
     const solarCoreMat = new THREE.MeshBasicMaterial({
       color: isSunset ? "#fed7aa" : "#fef08a",
     });
+    telemetryDisposables.push(solarCoreGeo, solarCoreMat);
     telemetryGroup.add(new THREE.Mesh(solarCoreGeo, solarCoreMat));
 
-    // Halo envolvente aditivo alrededor del arco solar
     const solarHaloGeo = new THREE.TubeGeometry(solarCurve, 48, 0.018, 8, false);
     const solarHaloMat = new THREE.MeshBasicMaterial({
       color: isSunset ? "#f97316" : "#f59e0b",
@@ -3669,9 +3917,9 @@ export default function Loom3DMaquetaView({
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
+    telemetryDisposables.push(solarHaloGeo, solarHaloMat);
     telemetryGroup.add(new THREE.Mesh(solarHaloGeo, solarHaloMat));
 
-    // Anillo compás solar sutil en la base
     const compassPts: THREE.Vector3[] = [];
     for (let i = 0; i <= 64; i++) {
       const a = (i / 64) * Math.PI * 2;
@@ -3683,17 +3931,16 @@ export default function Loom3DMaquetaView({
       transparent: true,
       opacity: 0.35,
     });
+    telemetryDisposables.push(compassGeo, compassMat);
     telemetryGroup.add(new THREE.Line(compassGeo, compassMat));
 
-    // Posición del Sol según modo Día (Cenit 11:30am) o Atardecer (Oeste cálido 5:15pm)
     const sunT = isSunset ? 0.78 : 0.42;
     const sunPos = solarCurve.getPointAt(sunT);
 
-    // Esfera incandescente central del Sol + Sprite de Corona con rayos ópticos
-    const sunOrb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.036, 20, 20),
-      new THREE.MeshBasicMaterial({ color: "#ffffff" })
-    );
+    const sunOrbGeo = new THREE.SphereGeometry(0.036, 20, 20);
+    const sunOrbMat = new THREE.MeshBasicMaterial({ color: "#ffffff" });
+    telemetryDisposables.push(sunOrbGeo, sunOrbMat);
+    const sunOrb = new THREE.Mesh(sunOrbGeo, sunOrbMat);
     sunOrb.position.copy(sunPos);
     telemetryGroup.add(sunOrb);
 
@@ -3701,7 +3948,6 @@ export default function Loom3DMaquetaView({
     sunCorona.position.copy(sunPos);
     telemetryGroup.add(sunCorona);
 
-    // Rayo de luz solar proyectado suavemente hacia la terraza de la villa
     const sunBeamGeo = new THREE.CylinderGeometry(0.012, 0.16, sunPos.y - 0.06, 16, 1, true);
     const sunBeamMat = new THREE.MeshBasicMaterial({
       color: isSunset ? "#fb923c" : "#fde047",
@@ -3711,6 +3957,7 @@ export default function Loom3DMaquetaView({
       side: THREE.DoubleSide,
       depthWrite: false,
     });
+    telemetryDisposables.push(sunBeamGeo, sunBeamMat);
     const sunBeam = new THREE.Mesh(sunBeamGeo, sunBeamMat);
     sunBeam.position.set(
       (sunPos.x + wx) * 0.5,
@@ -3732,8 +3979,8 @@ export default function Loom3DMaquetaView({
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
+    telemetryDisposables.push(windStreamMat);
 
-    // 3 líneas de corriente sinuosas entrando desde el Mar Caribe (+X, -Z) a través de la villa
     const streamOffsets = [
       { dLat: -0.14, yStart: 0.42, yMid: 0.34, yEnd: 0.26, rad: 0.0095 },
       { dLat: 0.0, yStart: 0.48, yMid: 0.39, yEnd: 0.31, rad: 0.0125 },
@@ -3749,9 +3996,9 @@ export default function Loom3DMaquetaView({
         new THREE.Vector3(wx - radius * 0.72 + st.dLat * 0.4, st.yEnd, wz + radius * 0.58 + st.dLat),
       ]);
       const streamGeo = new THREE.TubeGeometry(curve, 44, st.rad, 8, false);
+      telemetryDisposables.push(streamGeo);
       telemetryGroup.add(new THREE.Mesh(streamGeo, windStreamMat));
 
-      // Punta de flecha aerodinámica luminosa en la estela central
       if (idx === 1) {
         const endPt = curve.getPointAt(0.96);
         const tangent = curve.getTangentAt(0.96).normalize();
@@ -3764,6 +4011,7 @@ export default function Loom3DMaquetaView({
           blending: THREE.AdditiveBlending,
           depthWrite: false,
         });
+        telemetryDisposables.push(coneGeo, coneMat);
         const arrowMesh = new THREE.Mesh(coneGeo, coneMat);
         arrowMesh.position.copy(endPt);
         arrowMesh.lookAt(endPt.clone().add(tangent));
@@ -3809,9 +4057,9 @@ export default function Loom3DMaquetaView({
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       });
+      telemetryDisposables.push(walkTubeGeo, walkTubeMat);
       telemetryGroup.add(new THREE.Mesh(walkTubeGeo, walkTubeMat));
 
-      // Posicionar la etiqueta a ~30% del recorrido hacia la playa para que jamás pise el código del lote
       const labelPos = walkArc.getPointAt(0.26);
       const walkPill = createFloatingPillSprite(
         isEn ? `~${distMeters}m to Alma Beach` : `A ~${distMeters}m de Playa Alma`,
@@ -3822,6 +4070,10 @@ export default function Loom3DMaquetaView({
       walkPill.position.set(labelPos.x, Math.max(0.68, labelPos.y + 0.16), labelPos.z);
       telemetryGroup.add(walkPill);
     }
+
+    return () => {
+      telemetryDisposables.forEach((d) => d.dispose());
+    };
   }, [selectedLot, unifiedLots, lotsMap, villaMode, isSunset, isEn, carTemplates]);
 
   useEffect(() => {
@@ -4946,8 +5198,10 @@ export default function Loom3DMaquetaView({
         </div>
       )}
 
-      {/* MINI-MAPA RADAR EQUILIBRADO Y SINCRONIZADO EN TIEMPO REAL (60 FPS) */}
-      <div className="hidden md:flex absolute bottom-16 left-4 z-20 flex-col bg-[#0b1210]/45 backdrop-blur-2xl border border-white/20 rounded-2xl p-2 shadow-[0_12px_36px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.22)] w-52 pointer-events-auto">
+      {/* COLUMNA INFERIOR IZQUIERDA: RADAR MASTERPLAN 3D */}
+      <div className="absolute bottom-16 left-4 z-30 flex flex-col gap-2 w-52 pointer-events-none">
+        {/* MINI-MAPA RADAR EQUILIBRADO Y SINCRONIZADO EN TIEMPO REAL (60 FPS) */}
+        <div className="hidden md:flex flex-col bg-[#0b1210]/45 backdrop-blur-2xl border border-white/20 rounded-2xl p-2 shadow-[0_12px_36px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.22)] w-full pointer-events-auto">
         <div className="flex items-center justify-between mb-1 px-1">
           <div className="flex items-center gap-1.5">
             <Compass className="w-3.5 h-3.5 text-[#EBD9AB]" />
@@ -4974,7 +5228,7 @@ export default function Loom3DMaquetaView({
           className="relative w-full aspect-[16/9] rounded-xl overflow-hidden border border-white/15 bg-[#051415] cursor-crosshair"
         >
           <img
-            src="/loom/loom_masterplan_bg.webp?v=5"
+            src="/loom/loom_masterplan_bg.webp?v=7"
             alt="Masterplan Radar"
             className="w-full h-full object-fill opacity-85"
           />
@@ -5010,6 +5264,7 @@ export default function Loom3DMaquetaView({
         <div className="mt-1 flex items-center justify-between text-[8.5px] text-white/65 px-1">
           <span>{isEn ? "Left click: Orbit" : "Clic izq: Orbitar 360°"}</span>
           <span>{isEn ? "Scroll: Zoom" : "Scroll: Zoom"}</span>
+        </div>
         </div>
       </div>
 

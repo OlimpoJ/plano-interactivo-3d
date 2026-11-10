@@ -8,9 +8,12 @@ import LoomLotPanel from "@/components/LoomLotPanel";
 import LoomShowroomView from "@/components/LoomShowroomView";
 import type { MaquetaLot } from "@/components/Loom3DMaquetaView";
 
-const Loom3DMaquetaView = dynamic(() => import("@/components/Loom3DMaquetaView"), {
-  ssr: false,
-});
+const Loom3DMaquetaView = dynamic(
+  () => import(/* webpackChunkName: "loom-maqueta-3d-live" */ "@/components/Loom3DMaquetaView"),
+  {
+    ssr: false,
+  }
+);
 import LoomOrientationWrapper from "@/components/LoomOrientationWrapper";
 import LoomSideMenu from "@/components/LoomSideMenu";
 import LoomLocationModal from "@/components/LoomLocationModal";
