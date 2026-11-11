@@ -1,13 +1,13 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowRight, ShieldCheck, MessageCircle } from "lucide-react";
+import { X, ArrowRight, ShieldCheck } from "lucide-react";
 import { useLoomLang } from "@/lib/loomI18n";
 import {
   ADVISORS_REGISTRY,
-  buildGeneralProjectWhatsAppUrl,
-  buildLotWhatsAppUrl,
-  LotWhatsAppContext,
+  openLoomConversionDestination,
+  type LoomFinancingContext,
+  type LotWhatsAppContext,
 } from "@/lib/referralTracking";
 
 interface LoomReferralModalProps {
@@ -15,6 +15,7 @@ interface LoomReferralModalProps {
   onClose: () => void;
   lotRawId?: string;
   lotContext?: LotWhatsAppContext;
+  lotFinancing?: LoomFinancingContext | null;
 }
 
 export default function LoomReferralModal({
@@ -22,6 +23,7 @@ export default function LoomReferralModal({
   onClose,
   lotRawId,
   lotContext,
+  lotFinancing,
 }: LoomReferralModalProps) {
   const { isEn } = useLoomLang();
   if (!isOpen) return null;
@@ -29,17 +31,21 @@ export default function LoomReferralModal({
   const effectiveLot: LotWhatsAppContext | null = lotContext
     ? lotContext
     : lotRawId
-    ? { id: lotRawId, rawId: lotRawId }
-    : null;
+      ? { id: lotRawId, rawId: lotRawId }
+      : null;
 
   const selectAgency = (agency: "patrimofy" | "chichaus") => {
     if (typeof window !== "undefined") {
-      sessionStorage.setItem("loom_ref", agency);
+      try {
+        sessionStorage.setItem("loom_ref", agency);
+      } catch {}
       const targetChannel = ADVISORS_REGISTRY[agency];
-      const waUrl = effectiveLot
-        ? buildLotWhatsAppUrl(effectiveLot, "LOOM Luxury Residence", targetChannel)
-        : buildGeneralProjectWhatsAppUrl("LOOM Luxury Residence", targetChannel);
-      window.open(waUrl, "_blank");
+      openLoomConversionDestination({
+        advisor: targetChannel,
+        lot: effectiveLot,
+        financing: lotFinancing || null,
+        isEn,
+      });
     }
     onClose();
   };
@@ -99,24 +105,22 @@ export default function LoomReferralModal({
           </div>
 
           <div className="grid grid-cols-1 gap-3 pt-1">
-            {/* Patrimofy — Línea Oficial WhatsApp CRM (+57 333 239 3784) con Lote Prellenado */}
+            {/* Patrimofy — Ruta Principal 1 (loomluxuryresidence.com/#contacto) */}
             <button
               onClick={() => selectAgency("patrimofy")}
-              className="w-full py-3.5 bg-[#25D366] hover:bg-[#1fb858] text-[#0A0D0B] font-extrabold rounded-xl uppercase tracking-wider text-xs transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/25 cursor-pointer hover:scale-[1.02]"
+              className="w-full py-3.5 bg-[#B35F27] hover:bg-[#964d1d] text-[#EDE7E0] font-extrabold rounded-xl uppercase tracking-wider text-xs transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#B35F27]/25 cursor-pointer hover:scale-[1.02]"
             >
-              <MessageCircle className="h-4 w-4 shrink-0" />
-              <span>{isEn ? "WhatsApp Patrimofy Official" : "WhatsApp Asesoría Patrimofy"}</span>
-              <ArrowRight className="h-4 w-4" />
+              <span>{isEn ? "Continue with Patrimofy" : "Continuar con Patrimofy"}</span>
+              <ArrowRight className="h-4 w-4 shrink-0" />
             </button>
 
-            {/* Chic Haus */}
+            {/* Chic Haus — Ruta Principal 2 (loomalmabeach.com/#agendar) */}
             <button
               onClick={() => selectAgency("chichaus")}
               className="w-full py-3.5 bg-white hover:bg-white/80 border border-[#0A0D0B]/15 text-[#0A0D0B] font-bold rounded-xl uppercase tracking-wider text-xs transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:scale-[1.01]"
             >
-              <MessageCircle className="h-4 w-4 text-[#25D366] shrink-0" />
-              <span>{isEn ? "WhatsApp Chic Haus" : "WhatsApp Chic Haus"}</span>
-              <ArrowRight className="h-4 w-4 text-[#B35F27]" />
+              <span>{isEn ? "Continue with Chic Haus" : "Continuar con Chic Haus"}</span>
+              <ArrowRight className="h-4 w-4 text-[#B35F27] shrink-0" />
             </button>
           </div>
 

@@ -30,9 +30,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import LoomReferralModal from "./LoomReferralModal";
 import { 
   ADVISORS_REGISTRY,
-  getActiveAdvisor, 
-  buildLotWhatsAppUrl, 
-  shouldDelegateSeparateToParentFrame,
+  openLoomConversionDestination,
   isInstitutionalAdvisor,
   getAdvisorDisplayLabel,
   getAdvisorPanelPrefix,
@@ -214,6 +212,18 @@ export default function LoomLotPanel({
     const url = new URL(window.location.href);
     url.searchParams.set("stage", stageKey);
     url.searchParams.set("lot", lot.id);
+    if (
+      assignedAdvisor &&
+      !url.searchParams.has("asesor") &&
+      !url.searchParams.has("inmobiliaria") &&
+      !url.searchParams.has("canal")
+    ) {
+      if (isInstitutionalAdvisor(assignedAdvisor)) {
+        url.searchParams.set("inmobiliaria", assignedAdvisor.slug);
+      } else {
+        url.searchParams.set("asesor", assignedAdvisor.slug);
+      }
+    }
     if (isEn) {
       url.searchParams.set("lang", "en");
     }
@@ -223,74 +233,26 @@ export default function LoomLotPanel({
     });
   };
 
-  // Lógica del botón de separar lote (atribución y WhatsApp de asesor o inmobiliaria)
+  // Lógica del botón de separar lote (4 rutas de inmobiliaria -> landing #ancla; asesores -> WhatsApp)
   const handleSeparateClick = () => {
-    const currentAdvisor = assignedAdvisor || getActiveAdvisor();
-
-    if (typeof window !== "undefined" && window.parent !== window) {
-      window.parent.postMessage({
-        type: 'LOT_SEPARATE_CLICKED',
-        payload: {
-          lotId: lot.rawId || lot.id,
-          price: lot.totalPrice,
-          advisor: currentAdvisor?.slug || null,
-        }
-      }, '*');
-
-      // En el iframe actual de patrimofy.com (?ref=patrimofy&embed=true) delega al formulario padre;
-      // en iframes externos (Chic Haus, Patrimofy (RV) o ?wa=direct) abre WhatsApp directo
-      if (shouldDelegateSeparateToParentFrame(currentAdvisor)) {
-        return;
-      }
-    }
-
-    // 1. Si hay un asesor o canal de inmobiliaria asignado por link / cookie, abrir directo su WhatsApp
-    if (currentAdvisor) {
-      const waUrl = buildLotWhatsAppUrl(
-        {
-          id: lot.id,
-          rawId: lot.rawId,
-          price: lot.totalPrice,
-          area: lot.area,
-        },
-        "LOOM Luxury Residence",
-        currentAdvisor
-      );
-      window.open(waUrl, "_blank");
-      return;
-    }
-
-    // 2. Si viene de una inmobiliaria general o dominio Patrimofy
-    const currentRef = typeof window !== "undefined" 
-      ? sessionStorage.getItem("loom_ref") || (window.location.hostname.includes("patrimofy.com") ? "patrimofy" : referrer) 
-      : referrer;
-
-    if (currentRef === "patrimofy" || (typeof window !== "undefined" && window.location.hostname.includes("patrimofy.com") && currentRef !== "chichaus")) {
-      const waUrl = buildLotWhatsAppUrl(
-        {
-          id: lot.id,
-          rawId: lot.rawId,
-          price: lot.totalPrice,
-          area: lot.area,
-        },
-        "LOOM Luxury Residence"
-      );
-      window.open(waUrl, "_blank");
-    } else if (currentRef === "chichaus") {
-      const waUrl = buildLotWhatsAppUrl(
-        {
-          id: lot.id,
-          rawId: lot.rawId,
-          price: lot.totalPrice,
-          area: lot.area,
-        },
-        "LOOM Luxury Residence",
-        ADVISORS_REGISTRY["chichaus"]
-      );
-      window.open(waUrl, "_blank");
-    } else {
-      setShowReferralModal(true);
-    }
+    openLoomConversionDestination({
+      advisor: assignedAdvisor,
+      fallbackRef: referrer,
+      lot: {
+        id: lot.id,
+        rawId: lot.rawId,
+        price: lot.totalPrice,
+        area: lot.area,
+      },
+      financing: {
+        totalPriceNum: parsedPriceNum || undefined,
+        monthlyAmount: calculatedFinancing?.monthlyAmount,
+        months: financingMonths,
+        downPaymentPct,
+      },
+      isEn,
+      onRequireModal: () => setShowReferralModal(true),
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -944,7 +906,9 @@ export default function LoomLotPanel({
           ) : referrer ? (
             <div className="bg-[#B35F27]/10 border border-[#B35F27]/30 rounded-xl p-2.5 text-[0.5625rem] sm:text-[0.625rem] text-[#0A0D0B]/80 leading-relaxed uppercase tracking-wider text-center font-medium">
               {isEn ? "Agency: " : "Inmobiliaria: "}
-              <strong className="text-[#0A0D0B] font-bold">{referrer === "patrimofy" ? "Patrimofy" : "Chic Haus"}</strong>
+              <strong className="text-[#0A0D0B] font-bold">
+                {ADVISORS_REGISTRY[referrer]?.name || (referrer === "patrimofy" ? "Patrimofy" : "Chic Haus")}
+              </strong>
             </div>
           ) : null}
         </div>
@@ -990,9 +954,13 @@ export default function LoomLotPanel({
                 onClick={handleSeparateClick}
                 className="w-full py-3 max-lg:landscape:py-2.5 px-2 bg-white hover:bg-white/80 border border-[#0A0D0B]/15 text-[#0A0D0B] font-bold rounded-xl uppercase tracking-[0.12em] text-xs max-lg:landscape:text-[0.625rem] transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
               >
-                {assignedAdvisor ? <MessageCircle className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 text-[#25D366] shrink-0" /> : <Phone className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 text-[#B35F27] shrink-0" />}
+                {assignedAdvisor && !isInstitutionalAdvisor(assignedAdvisor) ? (
+                  <MessageCircle className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 text-[#25D366] shrink-0" />
+                ) : (
+                  <ArrowUpRight className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 text-[#B35F27] shrink-0" />
+                )}
                 <span className="truncate">
-                  {assignedAdvisor
+                  {assignedAdvisor && !isInstitutionalAdvisor(assignedAdvisor)
                     ? `WhatsApp (${getAdvisorDisplayLabel(assignedAdvisor)})`
                     : isEn
                     ? "Reserve Lot"
@@ -1199,6 +1167,12 @@ export default function LoomLotPanel({
           rawId: lot.rawId,
           price: lot.totalPrice,
           area: lot.area,
+        }}
+        lotFinancing={{
+          totalPriceNum: parsedPriceNum || undefined,
+          monthlyAmount: calculatedFinancing?.monthlyAmount,
+          months: financingMonths,
+          downPaymentPct,
         }}
       />
     </>

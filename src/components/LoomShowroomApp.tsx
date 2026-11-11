@@ -21,11 +21,9 @@ import LoomLocationModal from "@/components/LoomLocationModal";
 import LoomReferralModal from "@/components/LoomReferralModal";
 import { AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Menu, Maximize2, Minimize2, ArrowLeft, MessageCircle, Globe, Eye, EyeOff } from "lucide-react";
+import { Menu, Maximize2, Minimize2, ArrowLeft, ArrowUpRight, MessageCircle, Globe, Eye, EyeOff } from "lucide-react";
 import { 
-  ADVISORS_REGISTRY,
-  getActiveAdvisor, 
-  buildGeneralProjectWhatsAppUrl, 
+  openLoomConversionDestination,
   isInstitutionalAdvisor,
   getAdvisorDisplayLabel,
   getAdvisorRolePrefix,
@@ -264,28 +262,20 @@ function LoomShowroomInner({
   }, []);
 
   const handleOpenContact = () => {
-    const currentAdvisor = assignedAdvisor || getActiveAdvisor();
-
-    // 1. Si hay un asesor asignado por link / cookie, abrir directo su WhatsApp
-    if (currentAdvisor) {
-      const waUrl = buildGeneralProjectWhatsAppUrl("LOOM Luxury Residence", currentAdvisor);
-      window.open(waUrl, "_blank");
-      return;
-    }
-
-    const currentRef = typeof window !== "undefined"
-      ? sessionStorage.getItem("loom_ref") || (window.location.hostname.includes("patrimofy.com") ? "patrimofy" : referrer)
-      : referrer;
-
-    if (currentRef === "patrimofy" || (typeof window !== "undefined" && window.location.hostname.includes("patrimofy.com") && currentRef !== "chichaus")) {
-      const waUrl = buildGeneralProjectWhatsAppUrl("LOOM Luxury Residence");
-      window.open(waUrl, "_blank");
-    } else if (currentRef === "chichaus") {
-      const waUrl = buildGeneralProjectWhatsAppUrl("LOOM Luxury Residence", ADVISORS_REGISTRY["chichaus"]);
-      window.open(waUrl, "_blank");
-    } else {
-      setIsReferralModalOpen(true);
-    }
+    openLoomConversionDestination({
+      advisor: assignedAdvisor,
+      fallbackRef: referrer,
+      lot: selectedLot
+        ? {
+            id: selectedLot.id,
+            rawId: selectedLot.rawId,
+            price: selectedLot.totalPrice,
+            area: selectedLot.area,
+          }
+        : null,
+      isEn,
+      onRequireModal: () => setIsReferralModalOpen(true),
+    });
   };
 
   const handleCloseLotPanel = () => {
@@ -443,8 +433,8 @@ function LoomShowroomInner({
               title={
                 isInstitutionalAdvisor(assignedAdvisor)
                   ? isEn
-                    ? `Contact ${assignedAdvisor.name} via WhatsApp`
-                    : `Contactar a Inmobiliaria ${assignedAdvisor.name} por WhatsApp`
+                    ? `Go to ${assignedAdvisor.name} registration form`
+                    : `Ir al formulario de ${assignedAdvisor.name}`
                   : isEn
                   ? `Contact your advisor ${assignedAdvisor.name} via WhatsApp`
                   : `Contactar a tu asesor ${assignedAdvisor.name} por WhatsApp`
@@ -455,7 +445,11 @@ function LoomShowroomInner({
                 <span className="hidden md:inline">{getAdvisorRolePrefix(assignedAdvisor, isEn)} </span>
                 <strong className="text-[#B35F27]">{getAdvisorDisplayLabel(assignedAdvisor)}</strong>
               </span>
-              <MessageCircle className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
+              {isInstitutionalAdvisor(assignedAdvisor) ? (
+                <ArrowUpRight className="w-3.5 h-3.5 text-[#B35F27] shrink-0" />
+              ) : (
+                <MessageCircle className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
+              )}
             </button>
           )}
           <button

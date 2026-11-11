@@ -22,6 +22,7 @@ import {
   Trees,
   Download,
   MessageCircle,
+  ArrowUpRight,
 } from "lucide-react";
 import {
   useLoomLang,
@@ -2783,8 +2784,8 @@ export default function Loom3DMaquetaView({
             title={
               isInstitutionalAdvisor(assignedAdvisor)
                 ? isEn
-                  ? `Contact ${assignedAdvisor.name} via WhatsApp`
-                  : `Contactar a Inmobiliaria ${assignedAdvisor.name} por WhatsApp`
+                  ? `Go to ${assignedAdvisor.name} registration form`
+                  : `Ir al formulario de ${assignedAdvisor.name}`
                 : isEn
                 ? `Contact your advisor ${assignedAdvisor.name} via WhatsApp`
                 : `Contactar a tu asesor ${assignedAdvisor.name} por WhatsApp`
@@ -2798,7 +2799,11 @@ export default function Loom3DMaquetaView({
                 <strong className="text-[#B35F27]">{getAdvisorDisplayLabel(assignedAdvisor)}</strong>
               </span>
             </div>
-            <MessageCircle className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
+            {isInstitutionalAdvisor(assignedAdvisor) ? (
+              <ArrowUpRight className="w-3.5 h-3.5 text-[#B35F27] shrink-0" />
+            ) : (
+              <MessageCircle className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
+            )}
           </button>
         )}
 

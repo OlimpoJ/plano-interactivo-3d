@@ -23,7 +23,13 @@ const COOKIE_DAYS = 180; // 180 días (6 meses de persistencia)
 const STORAGE_KEY = "patrimofy_advisor_ref";
 
 function isInstitutionalChannel(slug: string): boolean {
-  return slug === "patrimofy" || slug === "patrimofy-rv" || slug === "chichaus";
+  return Boolean(
+    ADVISORS_REGISTRY[slug]?.isAgencyChannel ||
+      slug === "patrimofy" ||
+      slug === "patrimofy-rv" ||
+      slug === "chichaus" ||
+      slug === "chichaus-ja"
+  );
 }
 
 function readStoredAdvisor(): Advisor | null {
@@ -247,6 +253,13 @@ function buildAgencyGreetingAndTag(
     };
   }
 
+  if (targetAdvisor.slug === "chichaus-ja") {
+    return {
+      greeting: "Hola equipo Chic Haus!",
+      refTag: `[Ref: Plano 3D ${shortProj} - Inmobiliaria Chic Haus (J&A)]`,
+    };
+  }
+
   const firstName = targetAdvisor.name.split(" ")[0] || targetAdvisor.name;
   return {
     greeting: `Hola ${firstName}!`,
@@ -297,4 +310,270 @@ export function buildGeneralProjectWhatsAppUrl(
   const message = `${greeting} 👋 Estuve explorando el plano interactivo 3D de *${projectName}* y me gustaría recibir asesoría personalizada sobre los lotes disponibles y planes de financiación.\n\n${refTag}`;
 
   return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+}
+
+export interface LoomFinancingContext {
+  totalPriceNum?: number;
+  monthlyAmount?: number;
+  months?: number;
+  downPaymentPct?: number;
+}
+
+function parseCopNumber(val?: string | number | null): number {
+  if (typeof val === "number") return Number.isFinite(val) ? Math.round(val) : 0;
+  if (!val) return 0;
+  const digits = String(val).replace(/[^\d]/g, "");
+  return digits ? Number(digits) : 0;
+}
+
+function inferLoomStageNumber(lotCode: string): number {
+  const clean = (lotCode || "").trim().toUpperCase().replace(/^LOTE\s+/i, "");
+  const letter = clean.charAt(0);
+  if (letter === "A" || letter === "B" || letter === "C") return 1;
+  if (letter === "D" || letter === "E") return 2;
+  if (letter === "F" || letter === "G") return 3;
+  if (letter === "H" || letter === "I") return 4;
+  if (letter === "J" || letter === "K" || letter === "L") return 5;
+  return 1;
+}
+
+const LOOM_ALMABEACH_SUBPAGE_ANCHORS: Record<string, string> = {
+  "/lista-cero/": "formulario",
+  "/lista-cero": "formulario",
+  "/lista-cero-form/": "formulario",
+  "/lista-cero-form": "formulario",
+  "/separa-tu-lote/": "formulario",
+  "/separa-tu-lote": "formulario",
+  "/separa-tu-lote-form/": "formulario",
+  "/separa-tu-lote-form": "formulario",
+  "/lanzamiento/": "registro",
+  "/lanzamiento": "registro",
+};
+
+/**
+ * Resuelve la URL exacta de la landing oficial (con #ancla) para cualquiera de las 4 rutas
+ * institucionales de LOOM: Patrimofy, Chic Haus (+ subpáginas RegiaVia), Patrimofy (RV) y Chic Haus (J&A).
+ */
+export function getLoomAgencyLandingUrl(
+  channelOrSlug: Advisor | string,
+  isEn = false
+): string {
+  const channel =
+    typeof channelOrSlug === "string"
+      ? findAdvisorBySlug(channelOrSlug) || ADVISORS_REGISTRY["patrimofy"]
+      : channelOrSlug;
+
+  const base =
+    isEn && channel.landingUrlEn
+      ? channel.landingUrlEn
+      : channel.landingUrl || "https://loomluxuryresidence.com/#contacto";
+
+  try {
+    const target = new URL(base);
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const rawSubpage = params.get("pagina") || params.get("subpagina");
+      const rawAnchor = params.get("ancla") || params.get("anchor");
+
+      // Soporte seguro de subpágina dentro del mismo dominio oficial (ej. /lista-cero-form/, /lanzamiento/)
+      if (rawSubpage && /^\/[a-zA-Z0-9/_-]*$/.test(rawSubpage) && !rawSubpage.startsWith("//")) {
+        target.pathname = rawSubpage;
+        const knownSubAnchor = LOOM_ALMABEACH_SUBPAGE_ANCHORS[rawSubpage];
+        if (knownSubAnchor && !rawAnchor) {
+          target.hash = `#${knownSubAnchor}`;
+        }
+      }
+
+      if (rawAnchor) {
+        if (rawAnchor === "none") {
+          target.hash = "";
+        } else if (/^[a-zA-Z0-9_-]+$/.test(rawAnchor)) {
+          target.hash = `#${rawAnchor}`;
+        }
+      }
+
+      // Si el navegador reporta el referrer completo del mismo dominio, preservar subpágina y UTMs (?utm_source, fbclid, gclid)
+      if (document.referrer) {
+        try {
+          const refUrl = new URL(document.referrer);
+          if (refUrl.hostname === target.hostname) {
+            if (!rawSubpage && refUrl.pathname && refUrl.pathname !== "/") {
+              const autoAnchor = LOOM_ALMABEACH_SUBPAGE_ANCHORS[refUrl.pathname];
+              if (autoAnchor) {
+                target.pathname = refUrl.pathname;
+                if (!rawAnchor) target.hash = `#${autoAnchor}`;
+              }
+            }
+            if (refUrl.search && (refUrl.pathname === target.pathname || !rawSubpage)) {
+              target.search = refUrl.search;
+            }
+          }
+        } catch {}
+      }
+    }
+
+    return target.toString();
+  } catch {
+    return base;
+  }
+}
+
+/**
+ * Ejecuta la acción de conversión unificada de LOOM ("Separar Lote", píldora de atribución o "Contacto"):
+ * - Asesores individuales (?asesor=...): abren su WhatsApp personal directo con el lote prellenado.
+ * - Las 4 rutas de inmobiliaria (patrimofy, chichaus, patrimofy-rv, chichaus-ja):
+ *   • Dentro de <iframe>: emiten postMessage (LOT_SEPARATE_CLICKED + masterplan-separar) y bajan al formulario en la misma pestaña (window.top) sin duplicar pestañas.
+ *   • En pestaña suelta (masterplanalmabeach.com): abren la landing en pestaña nueva (_blank) directo en su #ancla.
+ */
+export function openLoomConversionDestination(options: {
+  advisor?: Advisor | null;
+  fallbackRef?: string | null;
+  lot?: LotWhatsAppContext | null;
+  financing?: LoomFinancingContext | null;
+  isEn?: boolean;
+  onRequireModal?: () => void;
+}): void {
+  if (typeof window === "undefined") return;
+
+  let active: Advisor | null = options.advisor || getActiveAdvisor();
+
+  if (!active) {
+    const storedRef =
+      sessionStorage.getItem("loom_ref") ||
+      (window.location.hostname.includes("patrimofy.com") ? "patrimofy" : options.fallbackRef || null);
+
+    if (storedRef) {
+      const matched = findAdvisorBySlug(storedRef);
+      if (matched) {
+        active = matched;
+      } else if (window.location.hostname.includes("patrimofy.com")) {
+        active = ADVISORS_REGISTRY["patrimofy"];
+      }
+    }
+  }
+
+  if (!active) {
+    options.onRequireModal?.();
+    return;
+  }
+
+  // 1. Asesor humano individual -> abre siempre su WhatsApp directo
+  if (!isInstitutionalAdvisor(active)) {
+    if (window.parent !== window && options.lot) {
+      window.parent.postMessage(
+        {
+          type: "LOT_SEPARATE_CLICKED",
+          payload: {
+            lotId: options.lot.rawId || options.lot.id,
+            price: options.lot.price,
+            advisor: active.slug,
+          },
+        },
+        "*"
+      );
+    }
+
+    const waUrl = options.lot
+      ? buildLotWhatsAppUrl(options.lot, "LOOM Luxury Residence", active)
+      : buildGeneralProjectWhatsAppUrl("LOOM Luxury Residence", active);
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  // 2. Ruta institucional (Patrimofy, Chic Haus, Patrimofy RV, Chic Haus J&A) -> al formulario de su landing
+  const targetUrl = getLoomAgencyLandingUrl(active, Boolean(options.isEn));
+  let targetAnchor = "";
+  try {
+    targetAnchor = new URL(targetUrl).hash.replace(/^#/, "");
+  } catch {}
+
+  const isInsideIframe = window.parent !== window;
+
+  // Fuera de iframe -> abrir en pestaña nueva directo al #ancla
+  if (!isInsideIframe) {
+    window.open(targetUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  // Dentro de iframe -> emitir postMessage + navegación en la misma pestaña (window.top)
+  let parentHandled = false;
+  const onAck = (ev: MessageEvent) => {
+    if (ev.data?.type === "LOOM_PARENT_HANDLED") {
+      parentHandled = true;
+    }
+  };
+  window.addEventListener("message", onAck);
+
+  window.parent.postMessage(
+    {
+      type: "LOT_SEPARATE_CLICKED",
+      payload: {
+        lotId: options.lot ? options.lot.rawId || options.lot.id : null,
+        price: options.lot?.price || null,
+        area: options.lot?.area || null,
+        advisor: active.slug,
+        targetAnchor: targetAnchor || null,
+      },
+    },
+    "*"
+  );
+
+  if (options.lot) {
+    const rawCode = options.lot.rawId || options.lot.id;
+    const totalVal = options.financing?.totalPriceNum || parseCopNumber(options.lot.price);
+    const downPct = options.financing?.downPaymentPct ?? 20;
+    const months = options.financing?.months ?? 48;
+    const monthlyVal =
+      options.financing?.monthlyAmount ||
+      (totalVal > 0 ? Math.round(((totalVal * Math.max(0, 90 - downPct)) / 100) / months) : 0);
+
+    window.parent.postMessage(
+      {
+        type: "masterplan-separar",
+        lote: rawCode,
+        etapa: inferLoomStageNumber(rawCode),
+        valor: totalVal,
+        cuotaMensual: monthlyVal,
+        plazo: months,
+        cuotaInicialPct: downPct,
+      },
+      "*"
+    );
+  }
+
+  let refHost = "";
+  try {
+    if (document.referrer) {
+      refHost = new URL(document.referrer).hostname.toLowerCase();
+    }
+  } catch {}
+
+  const isPatrimofyMainParent =
+    active.slug === "patrimofy" &&
+    (refHost.includes("loomluxuryresidence.com") ||
+      (refHost.includes("patrimofy.com") && !refHost.includes("lotes.patrimofy.com")) ||
+      shouldDelegateSeparateToParentFrame(active));
+
+  const isRegiaViaPatrimofyLotHandled =
+    refHost.includes("lotes.patrimofy.com") && Boolean(options.lot);
+
+  if (isPatrimofyMainParent || isRegiaViaPatrimofyLotHandled) {
+    window.removeEventListener("message", onAck);
+    return;
+  }
+
+  setTimeout(() => {
+    window.removeEventListener("message", onAck);
+    if (parentHandled) return;
+    try {
+      if (window.top) {
+        window.top.location.href = targetUrl;
+      } else {
+        window.open(targetUrl, "_top");
+      }
+    } catch {
+      window.open(targetUrl, "_top");
+    }
+  }, 90);
 }

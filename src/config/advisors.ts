@@ -6,6 +6,8 @@ export interface Advisor {
   aliases?: string[];  // Formas cortas o alternativas del link (ej. ["ana", "anabernate"])
   role?: string;       // Cargo o especialidad (opcional)
   isAgencyChannel?: boolean; // true cuando representa el canal institucional de una inmobiliaria
+  landingUrl?: string;       // Destino de la landing oficial (con #ancla al formulario) en español
+  landingUrlEn?: string;     // Destino de la landing oficial (con #ancla al formulario) en inglés
   active: boolean;     // Estado activo
 }
 
@@ -24,6 +26,8 @@ export const ADVISORS_REGISTRY: Record<string, Advisor> = {
     aliases: ["oficina", "general", "patrimofy-real-estate"],
     role: "Línea Comercial Directa",
     isAgencyChannel: true,
+    landingUrl: "https://loomluxuryresidence.com/#contacto",
+    landingUrlEn: "https://loomluxuryresidence.com/en#contacto",
     active: true,
   },
   "patrimofy-rv": {
@@ -34,6 +38,8 @@ export const ADVISORS_REGISTRY: Record<string, Advisor> = {
     aliases: ["patrimofyrv", "patrimofy_rv", "rv"],
     role: "Canal Oficial Inmobiliaria",
     isAgencyChannel: true,
+    landingUrl: "https://lotes.patrimofy.com/#agendar",
+    landingUrlEn: "https://lotes.patrimofy.com/#agendar",
     active: true,
   },
   chichaus: {
@@ -44,6 +50,20 @@ export const ADVISORS_REGISTRY: Record<string, Advisor> = {
     aliases: ["chic-haus", "chichaus-inmobiliaria", "oficina-chichaus"],
     role: "Firma Comercializadora Autorizada",
     isAgencyChannel: true,
+    landingUrl: "https://www.loomalmabeach.com/#agendar",
+    landingUrlEn: "https://www.loomalmabeach.com/#agendar",
+    active: true,
+  },
+  "chichaus-ja": {
+    slug: "chichaus-ja",
+    name: "Chic Haus (J&A)",
+    agency: "Chic Haus",
+    whatsapp: "573003817034",
+    aliases: ["chichausja", "chichaus_ja", "chic-haus-ja", "ja", "jya", "loomcartagena"],
+    role: "Firma Comercializadora Autorizada",
+    isAgencyChannel: true,
+    landingUrl: "https://loomcartagena.com/",
+    landingUrlEn: "https://loomcartagena.com/",
     active: true,
   },
 
@@ -386,7 +406,7 @@ export function findAdvisorBySlug(slugOrName: string | null | undefined): Adviso
 
 /**
  * Indica si un registro corresponde a un canal institucional de inmobiliaria
- * (Patrimofy, Patrimofy (RV) o Chic Haus) en lugar de un asesor individual.
+ * (Patrimofy, Patrimofy (RV), Chic Haus o Chic Haus (J&A)) en lugar de un asesor individual.
  */
 export function isInstitutionalAdvisor(adv?: Advisor | null): boolean {
   if (!adv) return false;
@@ -394,7 +414,8 @@ export function isInstitutionalAdvisor(adv?: Advisor | null): boolean {
     adv.isAgencyChannel ||
       adv.slug === "patrimofy" ||
       adv.slug === "patrimofy-rv" ||
-      adv.slug === "chichaus"
+      adv.slug === "chichaus" ||
+      adv.slug === "chichaus-ja"
   );
 }
 

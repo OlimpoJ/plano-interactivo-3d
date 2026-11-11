@@ -18,14 +18,12 @@ import {
   Sparkles,
   Ruler,
   ZoomIn,
-  MessageCircle
+  MessageCircle,
+  ArrowUpRight,
 } from "lucide-react";
 import LoomReferralModal from "./LoomReferralModal";
 import { 
-  ADVISORS_REGISTRY,
-  getActiveAdvisor, 
-  buildLotWhatsAppUrl, 
-  shouldDelegateSeparateToParentFrame,
+  openLoomConversionDestination,
   isInstitutionalAdvisor,
   getAdvisorDisplayLabel,
   getAdvisorPanelPrefix,
@@ -166,72 +164,20 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handlePrevMedia, handleNextMedia]);
 
-  // Manejo de la acción "Separar Lote" (atribución y WhatsApp de asesor o inmobiliaria)
+  // Manejo de la acción "Separar Lote" (4 rutas de inmobiliaria -> landing #ancla; asesores -> WhatsApp)
   const handleSeparateClick = () => {
-    const currentAdvisor = assignedAdvisor || getActiveAdvisor();
-
-    if (typeof window !== "undefined" && window.parent !== window) {
-      window.parent.postMessage({
-        type: 'LOT_SEPARATE_CLICKED',
-        payload: {
-          lotId: selectedLot.rawId || selectedLot.id,
-          price: selectedLot.totalPrice,
-          advisor: currentAdvisor?.slug || null,
-        }
-      }, '*');
-
-      if (shouldDelegateSeparateToParentFrame(currentAdvisor)) {
-        return;
-      }
-    }
-
-    // 1. Si hay un asesor o canal de inmobiliaria asignado por link / cookie, abrir directo su WhatsApp
-    if (currentAdvisor) {
-      const waUrl = buildLotWhatsAppUrl(
-        {
-          id: selectedLot.id,
-          rawId: selectedLot.rawId,
-          price: selectedLot.totalPrice,
-          area: selectedLot.area,
-        },
-        "LOOM Luxury Residence",
-        currentAdvisor
-      );
-      window.open(waUrl, "_blank");
-      return;
-    }
-
-    // 2. Si viene de una inmobiliaria general o dominio Patrimofy
-    const currentRef = typeof window !== "undefined" 
-      ? sessionStorage.getItem("loom_ref") || (window.location.hostname.includes("patrimofy.com") ? "patrimofy" : referrer) 
-      : referrer;
-
-    if (currentRef === "patrimofy" || (typeof window !== "undefined" && window.location.hostname.includes("patrimofy.com") && currentRef !== "chichaus")) {
-      const waUrl = buildLotWhatsAppUrl(
-        {
-          id: selectedLot.id,
-          rawId: selectedLot.rawId,
-          price: selectedLot.totalPrice,
-          area: selectedLot.area,
-        },
-        "LOOM Luxury Residence"
-      );
-      window.open(waUrl, "_blank");
-    } else if (currentRef === "chichaus") {
-      const waUrl = buildLotWhatsAppUrl(
-        {
-          id: selectedLot.id,
-          rawId: selectedLot.rawId,
-          price: selectedLot.totalPrice,
-          area: selectedLot.area,
-        },
-        "LOOM Luxury Residence",
-        ADVISORS_REGISTRY["chichaus"]
-      );
-      window.open(waUrl, "_blank");
-    } else {
-      setShowReferralModal(true);
-    }
+    openLoomConversionDestination({
+      advisor: assignedAdvisor,
+      fallbackRef: referrer,
+      lot: {
+        id: selectedLot.id,
+        rawId: selectedLot.rawId,
+        price: selectedLot.totalPrice,
+        area: selectedLot.area,
+      },
+      isEn,
+      onRequireModal: () => setShowReferralModal(true),
+    });
   };
 
   const currentMediaItem = activeTab !== "tour360" ? activeMediaList[activeIndex] : null;
@@ -771,13 +717,13 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
             onClick={handleSeparateClick}
             className="w-full py-2.5 lg:py-3 max-lg:landscape:py-2.5 bg-[#B35F27] hover:bg-[#964d1d] active:scale-95 text-[#EDE7E0] font-semibold rounded-xl uppercase tracking-wider text-[0.6875rem] lg:text-xs transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#B35F27]/25 cursor-pointer truncate px-3"
           >
-            {assignedAdvisor ? (
+            {assignedAdvisor && !isInstitutionalAdvisor(assignedAdvisor) ? (
               <MessageCircle className="w-4 h-4 text-[#25D366] shrink-0" />
             ) : (
-              <Phone className="w-4 h-4 shrink-0" />
+              <ArrowUpRight className="w-4 h-4 shrink-0" />
             )}
             <span className="truncate">
-              {assignedAdvisor
+              {assignedAdvisor && !isInstitutionalAdvisor(assignedAdvisor)
                 ? isEn
                   ? `Reserve via WhatsApp (${getAdvisorDisplayLabel(assignedAdvisor)})`
                   : `Separar por WhatsApp (${getAdvisorDisplayLabel(assignedAdvisor)})`
