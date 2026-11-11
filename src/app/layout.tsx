@@ -17,6 +17,14 @@ export const metadata: Metadata = {
   title: "Showroom Master Plan Alma Beach | Real Estate Colombia",
   description:
     "Explora nuestros proyectos inmobiliarios de lujo en Cartagena. Visualiza los lotes y villas en nuestro Showroom interactivo 3D.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico?v=2", sizes: "any" },
+      { url: "/icon-512.png?v=2", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: ["/favicon.ico?v=2"],
+    apple: [{ url: "/apple-icon.png?v=2", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     title: "Showroom Master Plan Alma Beach | Real Estate Colombia",
     description:

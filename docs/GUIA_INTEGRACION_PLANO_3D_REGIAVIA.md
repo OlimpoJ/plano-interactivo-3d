@@ -164,3 +164,4 @@ window.addEventListener("message", function (e) {
 - **Masterplan Completo (2D + 3D):** `https://www.masterplanalmabeach.com/loom?inmobiliaria=chichaus`
 - **Acceso Directo Maqueta 3D:** `https://www.masterplanalmabeach.com/loom-maqueta?inmobiliaria=chichaus`  
 *(Redirigen directamente a `https://www.loomalmabeach.com/#agendar`).*
+

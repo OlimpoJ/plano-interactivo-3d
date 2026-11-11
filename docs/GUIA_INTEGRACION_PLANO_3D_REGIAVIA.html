@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guía de Integración Plano 3D LOOM — RegiaVia</title>
+  <link rel="icon" href="data:image/png;base64,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" />
+  
+  <style>
+    :root {
+      --bg: #F6F2EC;
+      --paper: #FFFFFF;
+      --dark: #0A0D0B;
+      --dark-card: #121714;
+      --copper: #B35F27;
+      --copper-soft: rgba(179, 95, 39, 0.11);
+      --gold: #EBD9AB;
+      --border: rgba(10, 13, 11, 0.12);
+      --muted: #555B57;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--dark);
+      line-height: 1.58;
+      padding: 32px 18px 56px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--paper);
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 50px rgba(10, 13, 11, 0.08);
+      overflow: hidden;
+    }
+    .hero {
+      background: linear-gradient(135deg, #0A0D0B 0%, #17201C 100%);
+      color: #EDE7E0;
+      padding: 34px 40px;
+      border-bottom: 3px solid var(--copper);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .hero-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .hero-logo {
+      width: 58px;
+      height: 58px;
+      border-radius: 14px;
+      flex-shrink: 0;
+    }
+    .eyebrow {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    .hero h1 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 25px;
+      font-weight: 600;
+      color: #FFFFFF;
+      line-height: 1.22;
+    }
+    .hero-sub {
+      font-size: 13px;
+      color: rgba(237, 231, 224, 0.78);
+      margin-top: 4px;
+    }
+    .print-btn {
+      background: var(--copper);
+      color: #FFFFFF;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .print-btn:hover { background: #964D1D; }
+    .content { padding: 34px 40px 42px; }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .meta-box {
+      background: #FAF7F3;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 15px;
+    }
+    .meta-box small {
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--copper);
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .meta-box strong {
+      font-size: 13.5px;
+      color: var(--dark);
+    }
+    h2 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 20px;
+      color: var(--dark);
+      margin: 30px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    h2:first-of-type { margin-top: 6px; }
+    h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 20px 0 6px;
+    }
+    p, li {
+      font-size: 13.8px;
+      color: #2B302D;
+    }
+    ul, ol {
+      padding-left: 20px;
+      margin: 10px 0 16px;
+    }
+    li { margin-bottom: 6px; }
+    .callout {
+      background: var(--copper-soft);
+      border-left: 4px solid var(--copper);
+      border-radius: 10px;
+      padding: 13px 16px;
+      margin: 14px 0 18px;
+      font-size: 13.2px;
+    }
+    .callout strong { color: #7C3D12; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 20px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th {
+      background: #141A17;
+      color: var(--gold);
+      text-align: left;
+      padding: 10px 13px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    td {
+      padding: 9px 13px;
+      border-top: 1px solid var(--border);
+      background: #FFFFFF;
+    }
+    tr:nth-child(even) td { background: #FCFBF9; }
+    code.inline {
+      background: #EFEAE2;
+      color: #7C3D12;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-family: Consolas, Monaco, 'Courier New', monospace;
+      font-size: 12.2px;
+      font-weight: 600;
+    }
+    .code-card {
+      background: var(--dark-card);
+      border-radius: 13px;
+      border: 1px solid rgba(235, 217, 171, 0.22);
+      margin: 10px 0 18px;
+      overflow: hidden;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .code-header {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    }
+    .code-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #EDE7E0;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .code-badge {
+      background: rgba(179, 95, 39, 0.32);
+      color: var(--gold);
+      border: 1px solid rgba(235, 217, 171, 0.3);
+      padding: 1px 7px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-family: Consolas, monospace;
+      font-weight: 700;
+    }
+    .copy-btn {
+      background: var(--copper);
+      color: #FFFFFF;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    .copy-btn:hover { background: #964D1D; }
+    .copy-btn.copied { background: #16803C; }
+    pre {
+      padding: 14px 16px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #F3EFEA;
+      font-family: Consolas, Monaco, 'Courier New', monospace;
+      font-size: 11.8px;
+      line-height: 1.5;
+    }
+    .link-box {
+      background: #FAF7F3;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 12px 15px;
+      margin: 10px 0;
+      break-inside: avoid;
+    }
+    .link-box a {
+      color: var(--copper);
+      font-weight: 700;
+      text-decoration: none;
+      word-break: break-all;
+      font-family: Consolas, monospace;
+      font-size: 12.5px;
+    }
+    .footer {
+      text-align: center;
+      padding: 18px 30px;
+      background: #FAF7F3;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    @media print {
+      body { background: #FFFFFF; padding: 0; }
+      .container { box-shadow: none; border: none; border-radius: 0; max-width: 100%; }
+      .hero { padding: 24px 28px; }
+      .content { padding: 22px 28px; }
+      .no-print { display: none !important; }
+      h2, h3 { break-after: avoid; page-break-after: avoid; }
+    }
+  </style>
+  <script>
+    function copyCode(btn) {
+      var pre = btn.closest('.code-card').querySelector('pre code');
+      var txt = pre ? pre.innerText : '';
+      navigator.clipboard.writeText(txt).then(function () {
+        var prev = btn.textContent;
+        btn.textContent = '✓ ¡Copiado!';
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.textContent = prev;
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+  </script>
+
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <div class="hero-left">
+        <img src="data:image/png;base64,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" alt="Alma Beach Masterplan" class="hero-logo" />
+        <div>
+          <div class="eyebrow">LOOM Luxury Residence &bull; Playa Alma</div>
+          <h1>Guía de Integración — Plano Interactivo 2D / 3D</h1>
+          <div class="hero-sub">Códigos <code style="color:#EBD9AB;">&lt;iframe&gt;</code> y enlaces oficiales para el equipo técnico de <strong>RegiaVia</strong></div>
+        </div>
+      </div>
+      <button class="print-btn no-print" onclick="window.print()">Imprimir / PDF</button>
+    </header>
+
+    <main class="content">
+      <div class="meta-grid">
+        <div class="meta-box">
+          <small>Destinatario</small>
+          <strong>Equipo Técnico RegiaVia</strong>
+        </div>
+        <div class="meta-box">
+          <small>Dominio Oficial del Visor</small>
+          <strong>masterplanalmabeach.com</strong>
+        </div>
+        <div class="meta-box">
+          <small>Comportamiento en Conversión</small>
+          <strong>Salto directo al formulario (#ancla)</strong>
+        </div>
+      </div>
+
+      <h2>Resumen de Funcionamiento</h2>
+      <ul>
+        <li><strong>Sin duplicar pestañas ni desvíos a WhatsApp:</strong> Cuando el visitante interactúa con el plano incrustado y pulsa <em>"Separar Lote"</em> o el botón superior de contacto, el visor lleva al usuario directamente al formulario de registro en la <strong>misma pestaña</strong>.</li>
+        <li><strong>Respeto estricto por subpágina (versiones sin WhatsApp):</strong> Los códigos para <code class="inline">/lista-cero-form/</code> y <code class="inline">/separa-tu-lote-form/</code> mantienen al visitante dentro de esa misma URL sin enviarlo al Home.</li>
+        <li><strong>Vista inicial 2D vs. Maqueta 3D directa:</strong> Todos los códigos arrancan en el Selector de Etapas 2D + Showroom + Maqueta 3D (<code class="inline">/loom?...</code>). Si en alguna sección prefieren que cargue directamente en el vuelo de la Maqueta 3D WebGL, basta cambiar <code class="inline">/loom?</code> por <code class="inline">/loom-maqueta?</code> conservando los mismos parámetros.</li>
+      </ul>
+
+      <h2>1. Canal Patrimofy (<code class="inline">https://lotes.patrimofy.com/</code>)</h2>
+      <div class="callout">
+        <strong>Integración nativa activa:</strong> Este <code class="inline">&lt;iframe&gt;</code> ya dispara automáticamente el evento <code class="inline">postMessage</code> con <code class="inline">type: "masterplan-separar"</code> (<code class="inline">lote</code>, <code class="inline">etapa</code>, <code class="inline">valor</code>, <code class="inline">cuotaMensual</code>, <code class="inline">plazo</code>, <code class="inline">cuotaInicialPct</code>) que <code class="inline">lotes.patrimofy.com</code> escucha de forma nativa: autocompleta el lote escogido sobre el formulario y baja directo a <code class="inline">#agendar</code> sin recargar ni perder UTMs.
+      </div>
+
+      
+    <div class="code-card">
+      <div class="code-header">
+        <div class="code-title">
+          <span class="code-badge">HTML</span>
+          <span>Código &lt;iframe&gt; para https://lotes.patrimofy.com/</span>
+        </div>
+        <button class="copy-btn no-print" onclick="copyCode(this)">Copiar código</button>
+      </div>
+      <pre><code>&lt;iframe
+  src=&quot;https://www.masterplanalmabeach.com/loom?inmobiliaria=patrimofy-rv&amp;embed=true&quot;
+  title=&quot;Masterplan Interactivo 3D — LOOM Luxury Residence&quot;
+  width=&quot;100%&quot;
+  height=&quot;720&quot;
+  style=&quot;border:0; border-radius:16px; width:100%; min-height:680px;&quot;
+  allow=&quot;fullscreen&quot;
+  loading=&quot;lazy&quot;
+&gt;&lt;/iframe&gt;</code></pre>
+    </div>
+    
+
+      <div class="link-box">
+        <strong>Enlaces directos fuera de iframe (pauta, anuncios o correos hacia lotes.patrimofy.com/#agendar):</strong><br/>
+        &bull; Masterplan 2D + 3D: <a href="https://www.masterplanalmabeach.com/loom?inmobiliaria=patrimofy-rv" target="_blank">https://www.masterplanalmabeach.com/loom?inmobiliaria=patrimofy-rv</a><br/>
+        &bull; Maqueta 3D Directa: <a href="https://www.masterplanalmabeach.com/loom-maqueta?inmobiliaria=patrimofy-rv" target="_blank">https://www.masterplanalmabeach.com/loom-maqueta?inmobiliaria=patrimofy-rv</a>
+      </div>
+
+      <h2>2. Canal Chic Haus (<code class="inline">https://www.loomalmabeach.com/</code> y subpáginas)</h2>
+      <p>Cada página cuenta con un <code class="inline">id</code> de formulario distinto en su DOM, por lo que debe pegarse el bloque correspondiente a cada URL:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Landing Page</th>
+            <th>URL</th>
+            <th>Ancla Destino</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>2.1 Home Principal</strong></td><td><code>https://www.loomalmabeach.com/</code></td><td><code>#agendar</code></td></tr>
+          <tr><td><strong>2.2 Lista Cero</strong></td><td><code>https://www.loomalmabeach.com/lista-cero/</code></td><td><code>#formulario</code></td></tr>
+          <tr><td><strong>2.3 Lista Cero (Solo Formulario)</strong></td><td><code>https://www.loomalmabeach.com/lista-cero-form/</code></td><td><code>#formulario</code> <em>(permanece en /lista-cero-form/)</em></td></tr>
+          <tr><td><strong>2.4 Separa tu Lote</strong></td><td><code>https://www.loomalmabeach.com/separa-tu-lote/</code></td><td><code>#formulario</code></td></tr>
+          <tr><td><strong>2.5 Separa tu Lote (Solo Formulario)</strong></td><td><code>https://www.loomalmabeach.com/separa-tu-lote-form/</code></td><td><code>#formulario</code> <em>(permanece en /separa-tu-lote-form/)</em></td></tr>
+          <tr><td><strong>2.6 Lanzamiento</strong></td><td><code>https://www.loomalmabeach.com/lanzamiento/</code></td><td><code>#registro</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>2.1 Home Principal (<code class="inline">https://www.loomalmabeach.com/</code>)</h3>
+      
+    <div class="code-card">
+      <div class="code-header">
+        <div class="code-title">
+          <span class="code-badge">HTML</span>
+          <span>Home Principal — salta a #agendar</span>
+        </div>
+        <button class="copy-btn no-print" onclick="copyCode(this)">Copiar código</button>
+      </div>
+      <pre><code>&lt;iframe
+  src=&quot;https://www.masterplanalmabeach.com/loom?inmobiliaria=chichaus&amp;embed=true&quot;
+  title=&quot;Masterplan Interactivo 3D — LOOM Alma Beach&quot;
+  width=&quot;100%&quot;
+  height=&quot;720&quot;
+  style=&quot;border:0; border-radius:16px; width:100%; min-height:680px;&quot;
+  allow=&quot;fullscreen&quot;
+  loading=&quot;lazy&quot;
+&gt;&lt;/iframe&gt;</code></pre>
+    </div>
+    
+
+      <h3>2.2 Lista Cero (<code class="inline">https://www.loomalmabeach.com/lista-cero/</code>)</h3>
+      
+    <div class="code-card">
+      <div class="code-header">
+        <div class="code-title">
+          <span class="code-badge">HTML</span>
+          <span>Lista Cero — salta a #formulario</span>
+        </div>
+        <button class="copy-btn no-print" onclick="copyCode(this)">Copiar código</button>
+      </div>
+      <pre><code>&lt;iframe
+  src=&quot;https://www.masterplanalmabeach.com/loom?inmobiliaria=chichaus&amp;pagina=/lista-cero/&amp;ancla=formulario&amp;embed=true&quot;
+  title=&quot;Masterplan Interactivo 3D — LOOM Alma Beach&quot;
+  width=&quot;100%&quot;
+  height=&quot;720&quot;
+  style=&quot;border:0; border-radius:16px; width:100%; min-height:680px;&quot;
+  allow=&quot;fullscreen&quot;
+  loading=&quot;lazy&quot;
+&gt;&lt;/iframe&gt;</code></pre>
+    </div>
+    
+
+      <h3>2.3 Lista Cero — Solo Formulario sin WhatsApp (<code class="inline">https://www.loomalmabeach.com/lista-cero-form/</code>)</h3>
+      
+    <div class="code-card">
+      <div class="code-header">
+        <div class="code-title">
+          <span class="code-badge">HTML</span>
+          <span>Lista Cero Solo Formulario — permanece en /lista-cero-form/#formulario</span>
+        </div>
+        <button class="copy-btn no-print" onclick="copyCode(this)">Copiar código</button>
+      </div>
+      <pre><code>&lt;iframe
+  src=&quot;https://www.masterplanalmabeach.com/loom?inmobiliaria=chichaus&amp;pagina=/lista-cero-form/&amp;ancla=formulario&amp;embed=true&quot;
+  title=&quot;Masterplan Interactivo 3D — LOOM Alma Beach&quot;
+  width=&quot;100%&quot;
+  height=&quot;720&quot;
+  style=&quot;border:0; border-radius:16px; width:100%; min-height:680px;&quot;
+  allow=&quot;fullscreen&quot;
+  loading=&quot;lazy&quot;
+&gt;&lt;/iframe&gt;</code></pre>
+    </div>
+    
+
+      <h3>2.4 Separa tu Lote (<code class="inline">https://www.loomalmabeach.com/separa-tu-lote/</code>)</h3>
+      
+    <div class="code-card">
+      <div class="code-header">
+        <div class="code-title">
+          <span class="code-badge">HTML</span>
+          <span>Separa tu Lote — salta a #formulario</span>
+        </div>
+        <button class="copy-btn no-print" onclick="copyCode(this)">Copiar código</button>
+      </div>
+      <pre><code>&lt;iframe
+  src=&quot;https://www.masterplanalmabeach.com/loom?inmobiliaria=chichaus&amp;pagina=/separa-tu-lote/&amp;ancla=formulario&amp;embed=true&quot;
+  title=&quot;Masterplan Interactivo 3D — LOOM Alma Beach&quot;
+  width=&quot;100%&quot;
+  height=&quot;720&quot;
+  style=&quot;border:0; border-radius:16px; width:100%; min-height:680px;&quot;
+  allow=&quot;fullscreen&quot;
+  loading=&quot;lazy&quot;
+&gt;&lt;/iframe&gt;</code></pre>
+    </div>
+    
+
+      <h3>2.5 Separa tu Lote — Solo Formulario sin WhatsApp (<code class="inline">https://www.loomalmabeach.com/separa-tu-lote-form/</code>)</h3>
+      
+    <div class="code-card">
+      <div class="code-header">
+        <div class="code-title">
+          <span class="code-badge">HTML</span>
+          <span>Separa tu Lote Solo Formulario — permanece en /separa-tu-lote-form/#formulario</span>
+        </div>
+        <button class="copy-btn no-print" onclick="copyCode(this)">Copiar código</button>
+      </div>
+      <pre><code>&lt;iframe
+  src=&quot;https://www.masterplanalmabeach.com/loom?inmobiliaria=chichaus&amp;pagina=/separa-tu-lote-form/&amp;ancla=formulario&amp;embed=true&quot;
+  title=&quot;Masterplan Interactivo 3D — LOOM Alma Beach&quot;
+  width=&quot;100%&quot;
+  height=&quot;720&quot;
+  style=&quot;border:0; border-radius:16px; width:100%; min-height:680px;&quot;
+  allow=&quot;fullscreen&quot;
+  loading=&quot;lazy&quot;
+&gt;&lt;/iframe&gt;</code></pre>
+    </div>
+    
+
+      <h3>2.6 Lanzamiento (<code class="inline">https://www.loomalmabeach.com/lanzamiento/</code>)</h3>
+      
+    <div class="code-card">
+      <div class="code-header">
+        <div class="code-title">
+          <span class="code-badge">HTML</span>
+          <span>Lanzamiento — salta a #registro</span>
+        </div>
+        <button class="copy-btn no-print" onclick="copyCode(this)">Copiar código</button>
+      </div>
+      <pre><code>&lt;iframe
+  src=&quot;https://www.masterplanalmabeach.com/loom?inmobiliaria=chichaus&amp;pagina=/lanzamiento/&amp;ancla=registro&amp;embed=true&quot;
+  title=&quot;Masterplan Interactivo 3D — LOOM Lanzamiento&quot;
+  width=&quot;100%&quot;
+  height=&quot;720&quot;
+  style=&quot;border:0; border-radius:16px; width:100%; min-height:680px;&quot;
+  allow=&quot;fullscreen&quot;
+  loading=&quot;lazy&quot;
+&gt;&lt;/iframe&gt;</code></pre>
+    </div>
+    
+
+      <div class="callout">
+        <strong>Nota opcional en subpáginas 2.2 a 2.5:</strong> Si en alguna de ellas prefieren que desplace al formulario del cierre inferior (<code class="inline">&lt;section id="contacto"&gt;</code>) en vez del superior (<code class="inline">&lt;section id="formulario"&gt;</code>), basta reemplazar <code class="inline">ancla=formulario</code> por <code class="inline">ancla=contacto</code>.
+      </div>
+
+      <h2>3. Script Recomendado de Scroll Suave + Preservación de UTMs (<code class="inline">loomalmabeach.com</code>)</h2>
+      <p>Recomendamos incluir este micro-script justo debajo del <code class="inline">&lt;iframe&gt;</code> en las landings de <code class="inline">loomalmabeach.com</code> para que el salto al formulario ocurra con <strong>scroll suave sin recargar la página</strong> y conserve al 100% los parámetros de pauta (<code class="inline">utm_source</code>, <code class="inline">fbclid</code>, <code class="inline">gclid</code>):</p>
+
+      
+    <div class="code-card">
+      <div class="code-header">
+        <div class="code-title">
+          <span class="code-badge">JS</span>
+          <span>Listener de Scroll Suave sin recarga (pegar debajo del &lt;iframe&gt;)</span>
+        </div>
+        <button class="copy-btn no-print" onclick="copyCode(this)">Copiar código</button>
+      </div>
+      <pre><code>&lt;script&gt;
+window.addEventListener(&quot;message&quot;, function (e) {
+  if (!e.data || e.data.type !== &quot;LOT_SEPARATE_CLICKED&quot;) return;
+  var anchor = (e.data.payload &amp;&amp; e.data.payload.targetAnchor) || &quot;&quot;;
+  var el =
+    (anchor &amp;&amp; document.getElementById(anchor)) ||
+    document.querySelector(&quot;#agendar, #formulario, #registro, #contacto&quot;);
+  if (el) {
+    if (e.source) e.source.postMessage({ type: &quot;LOOM_PARENT_HANDLED&quot; }, &quot;*&quot;);
+    el.scrollIntoView({ behavior: &quot;smooth&quot;, block: &quot;start&quot; });
+  }
+});
+&lt;/script&gt;</code></pre>
+    </div>
+    
+
+      <div class="link-box">
+        <strong>Enlaces directos de Chic Haus fuera de iframe (redirigen a https://www.loomalmabeach.com/#agendar):</strong><br/>
+        &bull; Masterplan 2D + 3D: <a href="https://www.masterplanalmabeach.com/loom?inmobiliaria=chichaus" target="_blank">https://www.masterplanalmabeach.com/loom?inmobiliaria=chichaus</a><br/>
+        &bull; Maqueta 3D Directa: <a href="https://www.masterplanalmabeach.com/loom-maqueta?inmobiliaria=chichaus" target="_blank">https://www.masterplanalmabeach.com/loom-maqueta?inmobiliaria=chichaus</a>
+      </div>
+    </main>
+
+    <footer class="footer">
+      LOOM Luxury Residence by Alma Beach &bull; Documentación Técnica de Integración &bull; RegiaVia
+    </footer>
+  </div>
+</body>
+</html>

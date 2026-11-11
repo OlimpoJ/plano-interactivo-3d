@@ -121,3 +121,4 @@ Cada vez que un usuario pulsa **"Separar Lote"**, el `<iframe>` emite en `e.data
   }
 }
 ```
+
