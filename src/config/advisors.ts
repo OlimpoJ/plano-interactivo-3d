@@ -1,36 +1,49 @@
 export interface Advisor {
-  slug: string;        // Identificador principal en la URL (?asesor=slug o ?ref=slug)
-  name: string;        // Nombre comercial del asesor
-  agency: string;      // Inmobiliaria (Patrimofy, Chichaus, etc.)
+  slug: string;        // Identificador principal en la URL (?asesor=slug, ?inmobiliaria=slug o ?ref=slug)
+  name: string;        // Nombre comercial del asesor o inmobiliaria
+  agency: string;      // Inmobiliaria (Patrimofy, Chic Haus, etc.)
   whatsapp: string;    // Número con código internacional sin símbolos (ej. 573332394160)
   aliases?: string[];  // Formas cortas o alternativas del link (ej. ["ana", "anabernate"])
   role?: string;       // Cargo o especialidad (opcional)
+  isAgencyChannel?: boolean; // true cuando representa el canal institucional de una inmobiliaria
   active: boolean;     // Estado activo
 }
 
 /**
- * Directorio Oficial de Asesores e Inmobiliarias (Patrimofy Real Estate & Chichaus)
+ * Directorio Oficial de Asesores e Inmobiliarias (Patrimofy Real Estate & Chic Haus)
  */
 export const ADVISORS_REGISTRY: Record<string, Advisor> = {
   // ==========================================
-  // CANALES INSTITUCIONALES GENERALES
+  // CANALES INSTITUCIONALES DE INMOBILIARIAS
   // ==========================================
   patrimofy: {
     slug: "patrimofy",
-    name: "Patrimofy Real Estate",
+    name: "Patrimofy",
     agency: "Patrimofy",
     whatsapp: "573332393784",
     aliases: ["oficina", "general", "patrimofy-real-estate"],
     role: "Línea Comercial Directa",
+    isAgencyChannel: true,
+    active: true,
+  },
+  "patrimofy-rv": {
+    slug: "patrimofy-rv",
+    name: "Patrimofy (RV)",
+    agency: "Patrimofy",
+    whatsapp: "573054547187",
+    aliases: ["patrimofyrv", "patrimofy_rv", "rv"],
+    role: "Canal Oficial Inmobiliaria",
+    isAgencyChannel: true,
     active: true,
   },
   chichaus: {
     slug: "chichaus",
-    name: "Chichaus Inmobiliaria",
-    agency: "Chichaus",
-    whatsapp: "573013474836",
-    aliases: ["chichaus-inmobiliaria", "oficina-chichaus"],
-    role: "Firma Comercializadora Aliada",
+    name: "Chic Haus",
+    agency: "Chic Haus",
+    whatsapp: "573003817034",
+    aliases: ["chic-haus", "chichaus-inmobiliaria", "oficina-chichaus"],
+    role: "Firma Comercializadora Autorizada",
+    isAgencyChannel: true,
     active: true,
   },
 
@@ -352,7 +365,7 @@ export function findAdvisorBySlug(slugOrName: string | null | undefined): Adviso
       return true;
     }
 
-    // Coincidencia por nombre normalizado
+    // Coincidencia por nombre normalizado (exacta o token completo de >= 5 letras para evitar falsos positivos con ?ref=ig / ?ref=meta)
     const advNameNorm = adv.name
       .toLowerCase()
       .trim()
@@ -360,8 +373,59 @@ export function findAdvisorBySlug(slugOrName: string | null | undefined): Adviso
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/\s+/g, "-");
 
-    return advNameNorm === normalized || advNameNorm.includes(normalized);
+    if (advNameNorm === normalized) return true;
+    if (normalized.length >= 5) {
+      const nameTokens = advNameNorm.split("-");
+      return nameTokens.includes(normalized);
+    }
+    return false;
   });
 
   return found || null;
+}
+
+/**
+ * Indica si un registro corresponde a un canal institucional de inmobiliaria
+ * (Patrimofy, Patrimofy (RV) o Chic Haus) en lugar de un asesor individual.
+ */
+export function isInstitutionalAdvisor(adv?: Advisor | null): boolean {
+  if (!adv) return false;
+  return Boolean(
+    adv.isAgencyChannel ||
+      adv.slug === "patrimofy" ||
+      adv.slug === "patrimofy-rv" ||
+      adv.slug === "chichaus"
+  );
+}
+
+/**
+ * Etiqueta corta para botones y píldoras:
+ * - Inmobiliarias: conserva el nombre completo ("Chic Haus", "Patrimofy (RV)", "Patrimofy")
+ * - Asesores: primer nombre ("Ana", "Karen", etc.)
+ */
+export function getAdvisorDisplayLabel(adv: Advisor): string {
+  if (isInstitutionalAdvisor(adv)) {
+    return adv.name;
+  }
+  return adv.name.split(" ")[0] || adv.name;
+}
+
+/**
+ * Prefijo de rol para píldoras compactas ("Inmobiliaria:" vs "Asesor:")
+ */
+export function getAdvisorRolePrefix(adv: Advisor, isEn = false): string {
+  if (isInstitutionalAdvisor(adv)) {
+    return isEn ? "Agency:" : "Inmobiliaria:";
+  }
+  return isEn ? "Advisor:" : "Asesor:";
+}
+
+/**
+ * Prefijo de rol para paneles laterales ("Inmobiliaria:" vs "Tu Asesor:")
+ */
+export function getAdvisorPanelPrefix(adv: Advisor, isEn = false): string {
+  if (isInstitutionalAdvisor(adv)) {
+    return isEn ? "Agency:" : "Inmobiliaria:";
+  }
+  return isEn ? "Your Advisor:" : "Tu Asesor:";
 }

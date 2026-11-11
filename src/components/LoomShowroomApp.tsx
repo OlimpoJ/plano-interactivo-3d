@@ -6,12 +6,13 @@ import LoomMasterplanSelector from "@/components/LoomMasterplanSelector";
 import LoomStageViewer from "@/components/LoomStageViewer";
 import LoomLotPanel from "@/components/LoomLotPanel";
 import LoomShowroomView from "@/components/LoomShowroomView";
-import type { MaquetaLot } from "@/components/Loom3DMaquetaView";
+import LoomMaquetaLoader from "@/components/loom3d/LoomMaquetaLoader";
 
 const Loom3DMaquetaView = dynamic(
   () => import(/* webpackChunkName: "loom-maqueta-3d-live" */ "@/components/Loom3DMaquetaView"),
   {
     ssr: false,
+    loading: () => <LoomMaquetaLoader progress={14} />,
   }
 );
 import LoomOrientationWrapper from "@/components/LoomOrientationWrapper";
@@ -22,25 +23,16 @@ import { AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { Menu, Maximize2, Minimize2, ArrowLeft, MessageCircle, Globe, Eye, EyeOff } from "lucide-react";
 import { 
-  initReferralTracking, 
+  ADVISORS_REGISTRY,
   getActiveAdvisor, 
   buildGeneralProjectWhatsAppUrl, 
-  Advisor 
+  isInstitutionalAdvisor,
+  getAdvisorDisplayLabel,
+  getAdvisorRolePrefix,
 } from "@/lib/referralTracking";
+import { useAdvisorAttribution } from "@/hooks/useAdvisorAttribution";
+import type { Lot, MaquetaLot } from "@/types/lots";
 import { LoomLanguageProvider, useLoomLang, LoomLang, parseSquareMeters, inferStageFromLotId } from "@/lib/loomI18n";
-
-interface Lot {
-  id: string;
-  rawId: string;
-  area: string;
-  location: string;
-  status: string;
-  statusRaw: string;
-  totalPrice: string;
-  downPayment: string;
-  financing: string;
-  finalPayment: string;
-}
 
 function AnimatedCounter({ endValue, duration = 2000 }: { endValue: number; duration?: number }) {
   const [count, setCount] = useState(0);
@@ -100,31 +92,74 @@ function LoomShowroomInner({
   const [hideHeroOverlayForVideoLogo, setHideHeroOverlayForVideoLogo] = useState(false);
   const [isCleanVideoView, setIsCleanVideoView] = useState(false);
 
-  // Monitoreo a 60fps del currentTime del video en la Hero para ocultar logo y contadores entre 4,750 ms y 9,970 ms
+  // Sincronización por eventos (0% carga de bucle 60fps en CPU) para ocultar logo y contadores entre 4,750 ms y 9,970 ms
   useEffect(() => {
     if (view !== "hero") return;
-    let rafId: number;
+    const video = heroVideoRef.current;
+    if (!video) return;
 
-    const checkVideoTime = () => {
-      const video = heroVideoRef.current;
-      if (video && !video.paused) {
-        const currentMs = video.currentTime * 1000;
-        const shouldHide = currentMs >= VIDEO_LOGO_FADE_OUT_MS && currentMs < VIDEO_LOGO_END_MS;
-        setHideHeroOverlayForVideoLogo((prev) => (prev !== shouldHide ? shouldHide : prev));
-      }
-      rafId = requestAnimationFrame(checkVideoTime);
+    let fadeOutTimer: ReturnType<typeof setTimeout> | null = null;
+    let fadeInTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearTimers = () => {
+      if (fadeOutTimer) clearTimeout(fadeOutTimer);
+      if (fadeInTimer) clearTimeout(fadeInTimer);
+      fadeOutTimer = null;
+      fadeInTimer = null;
     };
 
-    rafId = requestAnimationFrame(checkVideoTime);
-    return () => cancelAnimationFrame(rafId);
+    const syncVideoWindow = () => {
+      clearTimers();
+      const rate = video.playbackRate || 1;
+      const currentMs = video.currentTime * 1000;
+      const shouldHide = currentMs >= VIDEO_LOGO_FADE_OUT_MS && currentMs < VIDEO_LOGO_END_MS;
+      setHideHeroOverlayForVideoLogo((prev) => (prev !== shouldHide ? shouldHide : prev));
+
+      if (!video.paused) {
+        if (currentMs < VIDEO_LOGO_FADE_OUT_MS) {
+          fadeOutTimer = setTimeout(
+            () => setHideHeroOverlayForVideoLogo(true),
+            (VIDEO_LOGO_FADE_OUT_MS - currentMs) / rate
+          );
+          fadeInTimer = setTimeout(
+            () => setHideHeroOverlayForVideoLogo(false),
+            (VIDEO_LOGO_END_MS - currentMs) / rate
+          );
+        } else if (currentMs < VIDEO_LOGO_END_MS) {
+          fadeInTimer = setTimeout(
+            () => setHideHeroOverlayForVideoLogo(false),
+            (VIDEO_LOGO_END_MS - currentMs) / rate
+          );
+        }
+      }
+    };
+
+    syncVideoWindow();
+    video.addEventListener("play", syncVideoWindow);
+    video.addEventListener("playing", syncVideoWindow);
+    video.addEventListener("seeked", syncVideoWindow);
+    video.addEventListener("timeupdate", syncVideoWindow);
+
+    return () => {
+      clearTimers();
+      video.removeEventListener("play", syncVideoWindow);
+      video.removeEventListener("playing", syncVideoWindow);
+      video.removeEventListener("seeked", syncVideoWindow);
+      video.removeEventListener("timeupdate", syncVideoWindow);
+    };
   }, [view]);
 
   // Check embed & deep linking parameters from URL
+  const [isEmbedded, setIsEmbedded] = useState(false);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const stageParam = params.get("stage");
       const lotParam = params.get("lot");
+      const viewParam = params.get("view")?.toLowerCase();
+      const embedFlag = params.get("embed") === "true" || window.parent !== window;
+      setIsEmbedded(embedFlag);
       
       if (stageParam) {
         let normalizedStage = stageParam.toLowerCase();
@@ -147,13 +182,22 @@ function LoomShowroomInner({
           setSelectedStage(inferredStage);
           setView("stage");
         });
-      } else if (params.get("embed") === "true" || params.get("view") === "map") {
+      } else if (viewParam === "3d" || viewParam === "maqueta3d" || viewParam === "maqueta") {
+        queueMicrotask(() => {
+          setSelectedStage((prev) => prev || "etapa_1");
+          setView("maqueta3d");
+        });
+      } else if (viewParam === "map" || viewParam === "2d") {
+        queueMicrotask(() => {
+          setView("map");
+        });
+      } else if (params.get("embed") === "true" && initialView === "hero") {
         queueMicrotask(() => {
           setView("map");
         });
       }
     }
-  }, []);
+  }, [initialView]);
 
   // Global Overlay UI States
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -191,32 +235,7 @@ function LoomShowroomInner({
   }, []);
 
   // Asesor asignado para contacto directo y atribución
-  const [assignedAdvisor, setAssignedAdvisor] = useState<Advisor | null>(null);
-  const [referrer, setReferrer] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const adv = initReferralTracking();
-      if (adv) {
-        setAssignedAdvisor(adv);
-        setReferrer(adv.agency.toLowerCase());
-      } else {
-        const active = getActiveAdvisor();
-        if (active) {
-          setAssignedAdvisor(active);
-          setReferrer(active.agency.toLowerCase());
-        } else {
-          const stored = sessionStorage.getItem("loom_ref");
-          if (stored) {
-            setReferrer(stored);
-          } else if (window.location.hostname.includes("patrimofy.com")) {
-            sessionStorage.setItem("loom_ref", "patrimofy");
-            setReferrer("patrimofy");
-          }
-        }
-      }
-    }
-  }, []);
+  const { assignedAdvisor, referrer } = useAdvisorAttribution("loom_ref");
 
   // Cargar lotes y estadísticas
   useEffect(() => {
@@ -262,7 +281,8 @@ function LoomShowroomInner({
       const waUrl = buildGeneralProjectWhatsAppUrl("LOOM Luxury Residence");
       window.open(waUrl, "_blank");
     } else if (currentRef === "chichaus") {
-      window.open("https://www.loomalmabeach.com/#contacto", "_blank");
+      const waUrl = buildGeneralProjectWhatsAppUrl("LOOM Luxury Residence", ADVISORS_REGISTRY["chichaus"]);
+      window.open(waUrl, "_blank");
     } else {
       setIsReferralModalOpen(true);
     }
@@ -421,15 +441,19 @@ function LoomShowroomInner({
               onClick={handleOpenContact}
               className="hidden sm:flex items-center gap-1.5 lg:gap-2 px-2.5 py-1.5 lg:px-3.5 lg:py-2 rounded-full bg-[#EDE7E0]/95 text-[#0A0D0B] border border-[#B35F27]/35 shadow-xl backdrop-blur-md text-[0.59375rem] lg:text-[0.6875rem] font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105 cursor-pointer"
               title={
-                isEn
+                isInstitutionalAdvisor(assignedAdvisor)
+                  ? isEn
+                    ? `Contact ${assignedAdvisor.name} via WhatsApp`
+                    : `Contactar a Inmobiliaria ${assignedAdvisor.name} por WhatsApp`
+                  : isEn
                   ? `Contact your advisor ${assignedAdvisor.name} via WhatsApp`
                   : `Contactar a tu asesor ${assignedAdvisor.name} por WhatsApp`
               }
             >
               <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span>
-                <span className="hidden xl:inline">{isEn ? "Advisor:" : "Asesor:"} </span>
-                <strong className="text-[#B35F27]">{assignedAdvisor.name.split(" ")[0]}</strong>
+                <span className="hidden md:inline">{getAdvisorRolePrefix(assignedAdvisor, isEn)} </span>
+                <strong className="text-[#B35F27]">{getAdvisorDisplayLabel(assignedAdvisor)}</strong>
               </span>
               <MessageCircle className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
             </button>
@@ -456,12 +480,13 @@ function LoomShowroomInner({
       <LoomSideMenu
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
-        onNavigateToIntro={() => setView("hero")}
+        onNavigateToIntro={() => setView(isEmbedded ? "map" : "hero")}
         onNavigateToMasterplan={() => setView("map")}
         onNavigateToShowroom={handleNavigateToShowroom}
         onNavigateTo3DMaqueta={enable3DMaqueta ? handleEnter3DMaqueta : undefined}
         onOpenLocation={() => setIsLocationOpen(true)}
         onOpenContact={handleOpenContact}
+        isEmbedded={isEmbedded}
       />
 
       {/* Modal de Ubicación (Google Earth & Cartagena) */}
@@ -533,6 +558,8 @@ function LoomShowroomInner({
               setView("stage");
             }}
             onOpenLocation={() => setIsLocationOpen(true)}
+            assignedAdvisor={assignedAdvisor}
+            onOpenContact={handleOpenContact}
           />
 
           <AnimatePresence>

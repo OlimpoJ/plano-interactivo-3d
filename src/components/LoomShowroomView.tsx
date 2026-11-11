@@ -22,62 +22,33 @@ import {
 } from "lucide-react";
 import LoomReferralModal from "./LoomReferralModal";
 import { 
-  initReferralTracking, 
+  ADVISORS_REGISTRY,
   getActiveAdvisor, 
   buildLotWhatsAppUrl, 
-  Advisor 
+  shouldDelegateSeparateToParentFrame,
+  isInstitutionalAdvisor,
+  getAdvisorDisplayLabel,
+  getAdvisorPanelPrefix,
 } from "@/lib/referralTracking";
+import { useAdvisorAttribution } from "@/hooks/useAdvisorAttribution";
+import type { Lot } from "@/types/lots";
+import {
+  translateMediaTitle,
+  LOOM_SHARED_GALLERY,
+  LOOM_SHARED_AXONOMETRICS,
+  LOOM_LUXURY_PLANS,
+  LOOM_GARDEN_PLANS,
+  LOOM_SHARED_ELEVATIONS,
+  getLoomTour360List,
+} from "@/data/loomGalleries";
 import {
   useLoomLang,
   translateLocationType,
   translateStatusRaw,
   translateAreaText,
   formatCopOrUsd,
-  SQM_TO_SQFT,
   getStageDisplayName,
 } from "@/lib/loomI18n";
-
-function translateMediaTitle(title: string, isEn: boolean): string {
-  if (!isEn) return title;
-  return title
-    .replace(/GALERÍA/g, "GALLERY")
-    .replace(/FACHADA VISTA POSTERIOR/g, "REAR FACADE VIEW")
-    .replace(/FACHADA VISTA/g, "FACADE VIEW")
-    .replace(/HABITACIÓN VISTA/g, "BEDROOM VIEW")
-    .replace(/BAÑO VISTA/g, "BATHROOM VIEW")
-    .replace(/COCINA VISTA/g, "KITCHEN VIEW")
-    .replace(/PASILLO EXTERIOR VISTA/g, "EXTERIOR CORRIDOR VIEW")
-    .replace(/SALA EXTERIOR VISTA/g, "OUTDOOR LOUNGE VIEW")
-    .replace(/SALA INTERIOR VISTA/g, "INDOOR LIVING VIEW")
-    .replace(/ALTILLO VISTA/g, "ROOFTOP LOFT VIEW")
-    .replace(/Axonometría 3D - Isometría Nivel 1 & 2/g, "3D Axonometric - Level 1 & 2 Isometric")
-    .replace(/Axonometría 3D - Isometría Rooftop & Altillo/g, "3D Axonometric - Rooftop & Loft Isometric")
-    .replace(/Planta Arquitectónica - Nivel/g, "Architectural Floor Plan - Level")
-    .replace(/Jardín Biofílico/g, "Biophilic Garden")
-    .replace(/Altillo/g, "Loft")
-    .replace(/Planta de Cubierta/g, "Roof Plan")
-    .replace(/Alzado 01 - Fachada Principal \(Vista Calle\)/g, "Elevation 01 - Main Facade (Street View)")
-    .replace(/Alzado 02 - Fachada Posterior \(Vista Piscina\)/g, "Elevation 02 - Rear Facade (Pool View)")
-    .replace(/Alzado 03 - Corte Longitudinal L1/g, "Section 03 - Longitudinal Section L1")
-    .replace(/Alzado 04 - Corte Transversal L2/g, "Section 04 - Cross Section L2")
-    .replace(/(\d+(?:\.\d+)?)\s*m²/gi, (_, numStr) => {
-      const sqft = Math.round(parseFloat(numStr) * SQM_TO_SQFT);
-      return `${sqft.toLocaleString("en-US")} sq ft`;
-    });
-}
-
-interface Lot {
-  id: string;
-  rawId: string;
-  area: string;
-  location: string;
-  status: string;
-  statusRaw: string;
-  totalPrice: string;
-  downPayment: string;
-  financing: string;
-  finalPayment: string;
-}
 
 interface LoomShowroomViewProps {
   selectedLot: Lot;
@@ -106,401 +77,15 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
   // Modal de selección de inmobiliaria / asesoría comercial
   const [showReferralModal, setShowReferralModal] = useState<boolean>(false);
 
-  // Asesor asignado para contacto directo y atribución
-  const [assignedAdvisor, setAssignedAdvisor] = useState<Advisor | null>(null);
+  // Asesor asignado y referidor para contacto directo y atribución
+  const { assignedAdvisor, referrer } = useAdvisorAttribution("loom_ref");
 
-  // Referidor para atribución
-  const [referrer, setReferrer] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const adv = initReferralTracking();
-      if (adv) {
-        setAssignedAdvisor(adv);
-        setReferrer(adv.agency.toLowerCase());
-      } else {
-        const active = getActiveAdvisor();
-        if (active) {
-          setAssignedAdvisor(active);
-          setReferrer(active.agency.toLowerCase());
-        } else {
-          const stored = sessionStorage.getItem("loom_ref");
-          if (stored) {
-            setReferrer(stored);
-          } else if (window.location.hostname.includes("patrimofy.com")) {
-            sessionStorage.setItem("loom_ref", "patrimofy");
-            setReferrer("patrimofy");
-          }
-        }
-      }
-    }
-  }, []);
-
-  // Galería de Fotos Compartida (33 Renders HD Oficiales)
-  const sharedGallery = [
-    {
-      num: "01",
-      title: "GALERÍA 01 - FACHADA VISTA 1",
-      category: "Exterior Fachada",
-      src: "/loom/renders/luxury/galeria_01_fachada_vista_1.webp",
-      description: "Vista frontal directa de dos residencias. Destaca el diseño modular con celosías de apariencia de madera en el nivel superior, que crean un sombreamiento natural; muros de acabado pétreo en la planta baja; vegetación abundante; y zonas de parqueo al frente.",
-    },
-    {
-      num: "02",
-      title: "GALERÍA 02 - FACHADA VISTA 2",
-      category: "Exterior Fachada",
-      src: "/loom/renders/luxury/galeria_02_fachada_vista_2.webp",
-      description: "Perspectiva frontal simétrica de tres módulos residenciales alineados. Se aprecian las cajas de celosía superior con elementos efecto madera para filtrar la luz natural, una cubierta vegetal que cae por los bordes, vegetación integrada y vehículos estacionados a nivel de calle.",
-    },
-    {
-      num: "03",
-      title: "GALERÍA 03 - FACHADA VISTA 3",
-      category: "Exterior Fachada",
-      src: "/loom/renders/luxury/galeria_03_fachada_vista_3.webp",
-      description: "Toma angular a nivel de peatón del conjunto residencial. Enfatiza la volumetría en voladizo, la textura de las celosías símil madera, que genera un sombreamiento natural, y la integración de la vegetación a lo largo del sendero vehicular.",
-    },
-    {
-      num: "04",
-      title: "GALERÍA 04 - FACHADA VISTA 4",
-      category: "Exterior Fachada",
-      src: "/loom/renders/luxury/galeria_04_fachada_vista_4.webp",
-      description: "Vista dinámica en perspectiva que muestra la continuidad de la fachada a lo largo de la calle. Resalta el juego de luces y sombras creado por los paneles con acabado tipo madera perforada bajo luz natural y el marco de vegetación circundante.",
-    },
-    {
-      num: "05",
-      title: "GALERÍA 05 - FACHADA VISTA 5",
-      category: "Exterior Fachada",
-      src: "/loom/renders/luxury/galeria_05_fachada_vista_5.webp",
-      description: "Enfoque desde un ángulo bajo que resalta la escala de las estructuras. Muestra en detalle la entrada peatonal con portones en estilo madera calada, los acabados pétreos y muros con cubierta vegetal integrados con la vegetación del entorno.",
-    },
-    {
-      num: "06",
-      title: "GALERÍA 06 - FACHADA VISTA 6",
-      category: "Exterior Fachada",
-      src: "/loom/renders/luxury/galeria_06_fachada_vista_6.webp",
-      description: "Detalle en primer plano de los paneles de celosía con textura tipo madera. Muestra el diseño calado geométrico que genera un elegante sombreamiento natural al filtrar la luz, complementado con una cubierta de vegetación colgante en la parte superior.",
-    },
-    {
-      num: "07",
-      title: "GALERÍA 07 - FACHADA VISTA 7",
-      category: "Exterior Fachada",
-      src: "/loom/renders/luxury/galeria_07_fachada_vista_7.webp",
-      description: "Vista frontal de dos módulos residenciales con cajas superiores de celosía perforada de apariencia madera y vegetación colgante en los bordes. En planta baja, muros de acabado pétreo con enredaderas, portones de acceso en celosía, numeración de vivienda, vehículo estacionado y peatones sobre la vía adoquinada.",
-    },
-    {
-      num: "08",
-      title: "GALERÍA 08 - FACHADA VISTA 8",
-      category: "Exterior Fachada",
-      src: "/loom/renders/luxury/galeria_08_fachada_vista_8.webp",
-      description: "Perspectiva frontal a nivel de calle de los dos módulos con celosías tipo madera y cubierta vegetal colgante en la parte superior. Se aprecia el acceso peatonal con portón calado, muros de acabado cálido con vegetación, palmas al fondo, un vehículo estacionado y personas caminando, con figuras desenfocadas en primer plano.",
-    },
-    {
-      num: "09",
-      title: "GALERÍA 09 - FACHADA VISTA POSTERIOR",
-      category: "Exterior Posterior",
-      src: "/loom/renders/luxury/galeria_09_fachada_vista_posterior.webp",
-      description: "Vista trasera de tres niveles hacia la piscina privada y con proyección a la vista al mar Caribe. Muestra la amplia terraza cubierta del primer nivel, un balcón superior con barandilla de cristal adornado con cubierta de vegetación colgante y ventanales corredizos que maximizan la entrada de luz natural.",
-    },
-    {
-      num: "10",
-      title: "GALERÍA 10 - HABITACIÓN VISTA 1",
-      category: "Dormitorio Principal",
-      src: "/loom/renders/luxury/galeria_10_habitacion_vista_1.webp",
-      description: "Vista frontal simétrica del dormitorio principal. Resalta la cama con diseño aparente madera, mesas de noche a juego, luminarias tejidas suspendidas y el gran ventanal corredizo que aprovecha la luz natural e integra un patio privado con vegetación.",
-    },
-    {
-      num: "11",
-      title: "GALERÍA 11 - HABITACIÓN VISTA 2",
-      category: "Dormitorio Principal",
-      src: "/loom/renders/luxury/galeria_11_habitacion_vista_2.webp",
-      description: "Dormitorio principal de estilo biofílico e introspectivo. Cuenta con una cama de plataforma con acabado tipo madera, lámparas colgantes de fibra tejida, paredes de estuco cálido bajo iluminación natural y un gran ventanal de piso a techo con vista a un patio interior enriquecido con vegetación.",
-    },
-    {
-      num: "12",
-      title: "GALERÍA 12 - HABITACIÓN VISTA 3",
-      category: "Dormitorio Principal",
-      src: "/loom/renders/luxury/galeria_12_habitacion_vista_3.webp",
-      description: "Dormitorio principal de ambiente cálido y sereno. Cama de plataforma con acabado madera, mesas de noche a juego, luminarias colgantes de fibra tejida, muros de estuco y cortinas de lino translúcidas que filtran la luz natural; el ventanal corredizo abre hacia un patio con vegetación colgante y sillas de fibra tejida.",
-    },
-    {
-      num: "13",
-      title: "GALERÍA 13 - HABITACIÓN VISTA 4",
-      category: "Dormitorio Principal",
-      src: "/loom/renders/luxury/galeria_13_habitacion_vista_4.webp",
-      description: "Detalle en primer plano de las cortinas de lino del dormitorio, abiertas para dar paso a la luz natural. Al fondo, el patio privado con muros cubiertos de vegetación, silla de fibra tejida y mesa de centro en madera.",
-    },
-    {
-      num: "14",
-      title: "GALERÍA 14 - BAÑO VISTA 1",
-      category: "Interior Baño",
-      src: "/loom/renders/luxury/galeria_14_bano_vista_1.webp",
-      description: "Baño de diseño minimalista con muros y pisos de acabado pétreo. Incluye lavabo sobre encimera flotante símil madera, ducha con mampara de cristal transparente y grifería negra moderna junto a una ventana que aporta luz natural directa y vistas a la vegetación.",
-    },
-    {
-      num: "15",
-      title: "GALERÍA 15 - BAÑO VISTA 2",
-      category: "Interior Baño",
-      src: "/loom/renders/luxury/galeria_15_bano_vista_2.webp",
-      description: "Perspectiva alternativa del baño que resalta la amplitud del espacio. Destaca la combinación de acabados pétreos y detalles en tonos y textura tipo madera, la entrada de luz natural a la zona de ducha y detalles de integración de vegetación exterior.",
-    },
-    {
-      num: "16",
-      title: "GALERÍA 16 - BAÑO VISTA 3",
-      category: "Interior Baño",
-      src: "/loom/renders/luxury/galeria_16_bano_vista_3.webp",
-      description: "Baño en tonos tierra con muros de acabado pétreo. Lavamanos sobre encimera flotante en acabado madera con repisa inferior y canastas de fibra, espejo de marco negro, ducha con mampara de vidrio y grifería negra, inodoro suspendido y ventana de marco negro con vista a palmas.",
-    },
-    {
-      num: "17",
-      title: "GALERÍA 17 - COCINA VISTA 1",
-      category: "Interior Cocina",
-      src: "/loom/renders/luxury/galeria_17_cocina_vista_1.webp",
-      description: "Vista integral de la zona social de planta abierta. Integra una cocina con muebles de acabado tipo madera, iluminación artesanal, sala de estar aprovechando la luz natural, escalera flotante con vegetación en su base y amplias mamparas correderas hacia la terraza.",
-    },
-    {
-      num: "18",
-      title: "GALERÍA 18 - COCINA VISTA 2",
-      category: "Interior Cocina",
-      src: "/loom/renders/luxury/galeria_18_cocina_vista_2.webp",
-      description: "Cocina con muebles altos y bajos en acabado madera oscura, encimera y salpicadero de acabado pétreo, lavaplatos con grifería negra y ventanal corrido con vista a la vegetación. Los muebles altos, con las puertas abiertas, dejan ver la vajilla, bajo un remate de celosía de apariencia madera.",
-    },
-    {
-      num: "19",
-      title: "GALERÍA 19 - COCINA VISTA 3",
-      category: "Interior Cocina",
-      src: "/loom/renders/luxury/galeria_19_cocina_vista_3.webp",
-      description: "Cocina con muebles altos y bajos en acabado madera, mesón y salpicadero en piedra de tono arena, lavaplatos con grifería negra y ventanal corrido con vista a las palmas del patio interior. En primer plano, un cajón abierto y objetos decorativos en cerámica.",
-    },
-    {
-      num: "20",
-      title: "GALERÍA 20 - COCINA VISTA 4",
-      category: "Interior Cocina",
-      src: "/loom/renders/luxury/galeria_20_cocina_vista_4.webp",
-      description: "Detalle del mesón de la cocina en piedra de acabado pétreo tono arena, con borde en escalón que se prolonga como barra con banquetas de fibra tejida. Al fondo, el lavaplatos con grifería negra, el ventanal y la estufa empotrada.",
-    },
-    {
-      num: "21",
-      title: "GALERÍA 21 - PASILLO EXTERIOR VISTA 1",
-      category: "Pasillo Exterior",
-      src: "/loom/renders/luxury/galeria_21_pasillo_exterior_vista_1.webp",
-      description: "Pasillo exterior cubierto con cielorraso en acabado madera y luminarias empotradas, celosía de apariencia madera, sillas de fibra tejida sobre deck y sendero de losas pétreas con canal de agua. Al fondo, la piscina privada enmarcada por vegetación y muros con enredaderas.",
-    },
-    {
-      num: "22",
-      title: "GALERÍA 22 - PASILLO EXTERIOR VISTA 2",
-      category: "Pasillo Exterior",
-      src: "/loom/renders/luxury/galeria_22_pasillo_exterior_vista_2.webp",
-      description: "Vista alterna del pasillo exterior cubierto: deck de madera con sillas de fibra tejida, sendero de losas pétreas con canal de agua, muro con enredaderas y, al fondo, la piscina privada rodeada de vegetación y palmas.",
-    },
-    {
-      num: "23",
-      title: "GALERÍA 23 - SALA EXTERIOR VISTA 1",
-      category: "Área Social Exterior",
-      src: "/loom/renders/luxury/galeria_23_sala_exterior_vista_1.webp",
-      description: "Área social abierta que conecta el interior con la piscina. Incluye un espacio bajo techo que brinda un fresco sombreamiento natural, sala lounge, barra de bar, escalera flotante con peldaños de efecto madera, tumbonas sobre un deck al aire libre y abundante vegetación.",
-    },
-    {
-      num: "24",
-      title: "GALERÍA 24 - SALA EXTERIOR VISTA 2",
-      category: "Área Social Exterior",
-      src: "/loom/renders/luxury/galeria_24_sala_exterior_vista_2.webp",
-      description: "Zona social abierta que conecta la sala con el deck y la piscina. Incluye barra con banquetas de fibra, sofá y butaca sobre alfombra tejida, escalera flotante frente a un muro de listones verticales con platos decorativos, ventilador de techo, cubierta en madera y celosía corrediza; sobre el deck, un segundo estar frente a la piscina.",
-    },
-    {
-      num: "25",
-      title: "GALERÍA 25 - SALA EXTERIOR VISTA 3",
-      category: "Área Social Exterior",
-      src: "/loom/renders/luxury/galeria_25_sala_exterior_vista_3.webp",
-      description: "Zona de estar exterior sobre deck de madera, con sillas de fibra tejida y mesa de centro redonda en madera. Celosías de apariencia madera filtran la luz natural; al fondo, cerramiento con vegetación y el borde de la piscina.",
-    },
-    {
-      num: "26",
-      title: "GALERÍA 26 - SALA INTERIOR VISTA 1",
-      category: "Interior Social",
-      src: "/loom/renders/luxury/galeria_26_sala_interior_vista_1.webp",
-      description: "Espacio de sala interior orientado hacia el área social y la piscina. Cuenta con mobiliario en tonos neutros, alfombra tejida, puertas correderas de celosía con apariencia madera para proporcionar un agradable sombreamiento natural, luz natural y vistas a la vegetación.",
-    },
-    {
-      num: "27",
-      title: "GALERÍA 27 - SALA INTERIOR VISTA 2",
-      category: "Interior Social",
-      src: "/loom/renders/luxury/galeria_27_sala_interior_vista_2.webp",
-      description: "Sala interior con sofá y mesa de centro sobre alfombra tejida. Al fondo, muro de listones verticales con platos decorativos de fibra, escalera flotante con vegetación, barra con banquetas y celosía corrediza de apariencia madera hacia la terraza.",
-    },
-    {
-      num: "28",
-      title: "GALERÍA 28 - SALA INTERIOR VISTA 3",
-      category: "Interior Social",
-      src: "/loom/renders/luxury/galeria_28_sala_interior_vista_3.webp",
-      description: "Sala interior abierta hacia la piscina, con sofá y butaca en tonos neutros, escalera flotante con vegetación en su base, ventilador de techo, cielorraso en madera y paneles corredizos de celosía que enmarcan la vista al deck y a la vegetación.",
-    },
-    {
-      num: "29",
-      title: "GALERÍA 29 - SALA INTERIOR VISTA 4",
-      category: "Interior Social",
-      src: "/loom/renders/luxury/galeria_29_sala_interior_vista_4.webp",
-      description: "Vista amplia de la sala y la barra integradas a la terraza cubierta. Muestra ventilador de techo, cubierta en listones de madera con voladizo, celosías corredizas, deck junto a la piscina y vegetación colgante en el borde.",
-    },
-    {
-      num: "30",
-      title: "GALERÍA 30 - ALTILLO VISTA 1",
-      category: "Rooftop & Altillo",
-      src: "/loom/renders/luxury/galeria_30_altillo_vista_1.webp",
-      description: "Exclusiva terraza en el altillo con pérgola de apariencia madera ofreciendo sombreamiento natural. Cuenta con un área lounge, bancas integradas en acabado pétreo, bases efecto madera, jacuzzi elevable, vegetación integrada y una espectacular vista panorámica al mar Caribe.",
-    },
-    {
-      num: "31",
-      title: "GALERÍA 31 - ALTILLO VISTA 2",
-      category: "Rooftop & Altillo",
-      src: "/loom/renders/luxury/galeria_31_altillo_vista_2.webp",
-      description: "Terraza del altillo bajo pérgola de madera, con jacuzzi integrado al pretil, sofá en L con cojines y mesa de centro, barra con banquetas de fibra tejida y jardineras con vegetación. Vista abierta al mar Caribe y a la playa al atardecer.",
-    },
-    {
-      num: "32",
-      title: "GALERÍA 32 - ALTILLO VISTA 3",
-      category: "Rooftop & Altillo",
-      src: "/loom/renders/luxury/galeria_32_altillo_vista_3.webp",
-      description: "Vista alterna de la terraza del altillo con jacuzzi, zona de estar y barra, con la puesta de sol sobre el mar y los quioscos de playa al fondo.",
-    },
-    {
-      num: "33",
-      title: "GALERÍA 33 - FACHADA VISTA 9",
-      category: "Exterior Fachada",
-      src: "/loom/renders/luxury/galeria_33_fachada_vista_9.webp",
-      description: "Detalle en primer plano de paneles de celosía de apariencia madera con perforaciones cuadradas de tamaño variable, que generan sombreamiento natural y juegos de luz, con vegetación colgante en la parte superior.",
-    },
-  ];
-
-  // Axonometrías 3D Compartidas
-  const sharedAxonometrics = [
-    {
-      num: "01",
-      title: "Axonometría 3D - Isometría Nivel 1 & 2",
-      category: "Axonometría 3D",
-      src: "/loom/renders/axonometrics/axonometria_01.webp",
-      description: "Vista isométrica 3D en perspectiva general que destaca la volumetría de la residencia, la integración del espejo de agua, áreas sociales en primer nivel y la celosía biofílica en niveles superiores.",
-    },
-    {
-      num: "02",
-      title: "Axonometría 3D - Isometría Rooftop & Altillo",
-      category: "Axonometría 3D",
-      src: "/loom/renders/axonometrics/axonometria_02.webp",
-      description: "Desglose isométrico 3D de la cubierta y la zona del altillo lounge. Muestra la distribución de la pérgola en acabado madera, jacuzzi elevable y terraza panorámica.",
-    },
-  ];
-
-  // Plantas Arquitectónicas Luxury
-  const luxuryPlans = [
-    {
-      num: "01",
-      title: "Planta Arquitectónica - Nivel 1 (198.00 m²)",
-      category: "Planta Arquitectónica",
-      src: "/loom/renders/plans/luxury_planta_01.webp",
-      specs: "Acceso, Parqueadero, Espejo de Agua, Alcoba, Baño, Cocina, Sala, Deck, Piscina",
-      description: "Distribución completa del primer nivel. Incluye zona de estacionamiento frontal, vestíbulo de entrada con espejo de agua, amplia zona social integrada (sala y comedor), cocina tipo americana, deck exterior y piscina privada.",
-    },
-    {
-      num: "02",
-      title: "Planta Arquitectónica - Nivel 2 (76.04 m²)",
-      category: "Planta Arquitectónica",
-      src: "/loom/renders/plans/luxury_planta_02.webp",
-      specs: "Escalera Interna, Alcobas Secundarias, Baños Privados, Balcones",
-      description: "Distribución del segundo nivel. Alberga dormitorios secundarios con baños en suite y vestidores privados, aprovechando los ventanales hacia las fachadas principal y posterior.",
-    },
-    {
-      num: "03",
-      title: "Planta Arquitectónica - Nivel 3 - Altillo (79.13 m²)",
-      category: "Planta Arquitectónica",
-      src: "/loom/renders/plans/luxury_planta_03.webp",
-      specs: "Habitación Master, Jacuzzi, Terraza Sunbed, Bar Exclusivo",
-      description: "Planta del tercer nivel o altillo master suite. Espacio privado con habitación principal, jacuzzi hidromasaje exterior y terraza privada con vista al mar.",
-    },
-    {
-      num: "04",
-      title: "Planta de Cubierta",
-      category: "Planta Arquitectónica",
-      src: "/loom/renders/plans/luxury_planta_04_cubierta.webp",
-      specs: "Pérgola, Cubiertas Vegetales, Colectores y Remates",
-      description: "Planta superior de cubierta que muestra la disposición de pérgolas de sombreado biofílico, vegetación integrada en bordes y acabados arquitectónicos.",
-    },
-  ];
-
-  // Plantas Arquitectónicas Garden
-  const gardenPlans = [
-    {
-      num: "01",
-      title: "Planta Arquitectónica - Nivel 1 - Jardín Biofílico (150.00 m²)",
-      category: "Planta Arquitectónica",
-      src: "/loom/renders/plans/garden_nivel_01.webp",
-      specs: "Acceso Peatonal, Parqueadero, Jardín Privado Extendido, Sala, Cocina, Ducha Externa",
-      description: "Planta del primer nivel de la versión Garden Edition. Destaca la expansión de jardines interiores y patio privado envolvente con vegetación nativa.",
-    },
-    {
-      num: "02",
-      title: "Planta Arquitectónica - Nivel 2 (65.00 m²)",
-      category: "Planta Arquitectónica",
-      src: "/loom/renders/plans/garden_nivel_02.webp",
-      specs: "Dormitorio de Huéspedes, Estudio/Estar, Baño Privado, Balcón Verde",
-      description: "Distribución del segundo nivel optimizada para privacidad y frescura biofílica con vistas al jardín central.",
-    },
-    {
-      num: "03",
-      title: "Planta Arquitectónica - Nivel 3 (59.04 m²)",
-      category: "Planta Arquitectónica",
-      src: "/loom/renders/plans/garden_nivel_03.webp",
-      specs: "Suite Principal, Vestidor, Baño Master, Terraza Biofílica",
-      description: "Planta de la suite principal en el tercer nivel con balcón rodeado de paneles de madera perforada y jardineras integradas.",
-    },
-    {
-      num: "04",
-      title: "Planta de Cubierta",
-      category: "Planta Arquitectónica",
-      src: "/loom/renders/plans/garden_nivel_04_cubierta.webp",
-      specs: "Pérgola de Sombra Natural, Cubierta Vegetal",
-      description: "Planta de techos y cubiertas verdes para Garden Edition con aislamiento térmico natural.",
-    },
-  ];
-
-  // Alzados y Elevaciones
-  const sharedElevations = [
-    {
-      num: "01",
-      title: "Alzado 01 - Fachada Principal (Vista Calle)",
-      category: "Alzado / Elevación",
-      src: "/loom/renders/elevations/alzado_01.webp",
-      description: "Elevación arquitectónica de la fachada frontal. Detalla la altura total de los tres niveles, los paneles de celosía superior de apariencia madera, acabados de estuco y vegetación colgante.",
-    },
-    {
-      num: "02",
-      title: "Alzado 02 - Fachada Posterior (Vista Piscina)",
-      category: "Alzado / Elevación",
-      src: "/loom/renders/elevations/alzado_02.webp",
-      description: "Elevación arquitectónica posterior orientada hacia la zona social y piscina privada. Muestra los ventanales correderos de piso a techo y balcones superiores.",
-    },
-    {
-      num: "03",
-      title: "Alzado 03 - Corte Longitudinal L1",
-      category: "Corte Arquitectónico",
-      src: "/loom/renders/elevations/alzado_03.webp",
-      description: "Corte arquitectónico longitudinal que revela la circulación vertical (escalera flotante), alturas libres de entrepiso y la conexión fluida entre sala interior y deck de piscina.",
-    },
-    {
-      num: "04",
-      title: "Alzado 04 - Corte Transversal L2",
-      category: "Corte Arquitectónico",
-      src: "/loom/renders/elevations/alzado_04.webp",
-      description: "Corte arquitectónico transversal mostrando el perfil estructural, el altillo master en nivel 3 y la integración con el patio exterior.",
-    },
-  ];
-
-  // Escenarios 360° VR
-  const tour360List = [
-    { id: "fachada", label: isEn ? "Main Facade" : "Fachada Principal", category: "Exterior", url: "https://kuula.co/share/collection/7TMZx?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
-    { id: "sala", label: isEn ? "Living & Dining" : "Sala & Comedor", category: isEn ? "Indoor Social" : "Interior Social", url: "https://kuula.co/share/collection/7TKQ2?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
-    { id: "habitacion", label: isEn ? "Master Suite" : "Suite Principal", category: isEn ? "Master Bedroom" : "Dormitorio Master", url: "https://kuula.co/share/collection/7TKzy?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
-    { id: "bano", label: isEn ? "Master Bathroom" : "Baño Suite Master", category: isEn ? "Indoor Bathroom" : "Interior Baño", url: "https://kuula.co/share/collection/7TndH?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
-    { id: "altillo", label: isEn ? "Loft & Rooftop" : "Altillo & Rooftop", category: "Rooftop Lounge", url: "https://kuula.co/share/collection/7T6Y1?logo=0&info=0&fs=1&vr=0&sd=1&thumbs=1" },
-  ];
+  const sharedGallery = LOOM_SHARED_GALLERY;
+  const sharedAxonometrics = LOOM_SHARED_AXONOMETRICS;
+  const luxuryPlans = LOOM_LUXURY_PLANS;
+  const gardenPlans = LOOM_GARDEN_PLANS;
+  const sharedElevations = LOOM_SHARED_ELEVATIONS;
+  const tour360List = getLoomTour360List(isEn);
 
   const formattedStage = stageId
     ? getStageDisplayName(stageId, isEn)
@@ -581,23 +166,26 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handlePrevMedia, handleNextMedia]);
 
-  // Manejo de la acción "Separar Lote" (atribución y WhatsApp de asesor)
+  // Manejo de la acción "Separar Lote" (atribución y WhatsApp de asesor o inmobiliaria)
   const handleSeparateClick = () => {
+    const currentAdvisor = assignedAdvisor || getActiveAdvisor();
+
     if (typeof window !== "undefined" && window.parent !== window) {
       window.parent.postMessage({
         type: 'LOT_SEPARATE_CLICKED',
         payload: {
           lotId: selectedLot.rawId || selectedLot.id,
           price: selectedLot.totalPrice,
-          advisor: assignedAdvisor?.slug || null,
+          advisor: currentAdvisor?.slug || null,
         }
       }, '*');
-      return;
+
+      if (shouldDelegateSeparateToParentFrame(currentAdvisor)) {
+        return;
+      }
     }
 
-    const currentAdvisor = assignedAdvisor || getActiveAdvisor();
-
-    // 1. Si hay un asesor asignado por link / cookie, abrir directo su WhatsApp
+    // 1. Si hay un asesor o canal de inmobiliaria asignado por link / cookie, abrir directo su WhatsApp
     if (currentAdvisor) {
       const waUrl = buildLotWhatsAppUrl(
         {
@@ -630,7 +218,17 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
       );
       window.open(waUrl, "_blank");
     } else if (currentRef === "chichaus") {
-      window.open("https://www.loomalmabeach.com/#contacto", "_blank");
+      const waUrl = buildLotWhatsAppUrl(
+        {
+          id: selectedLot.id,
+          rawId: selectedLot.rawId,
+          price: selectedLot.totalPrice,
+          area: selectedLot.area,
+        },
+        "LOOM Luxury Residence",
+        ADVISORS_REGISTRY["chichaus"]
+      );
+      window.open(waUrl, "_blank");
     } else {
       setShowReferralModal(true);
     }
@@ -1161,7 +759,11 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
             <div className="max-lg:landscape:hidden bg-[#B35F27]/15 border border-[#B35F27]/35 rounded-xl p-2 text-[0.59375rem] lg:text-[0.625rem] text-[#0A0D0B] uppercase tracking-wider text-center font-semibold flex items-center justify-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
               <span className="truncate">
-                {isEn ? "Your Advisor:" : "Tu Asesor:"} <strong>{assignedAdvisor.name}</strong> &bull; {assignedAdvisor.agency}
+                {getAdvisorPanelPrefix(assignedAdvisor, isEn)}{" "}
+                <strong>{assignedAdvisor.name}</strong>
+                {!isInstitutionalAdvisor(assignedAdvisor) && (
+                  <> &bull; {assignedAdvisor.agency}</>
+                )}
               </span>
             </div>
           )}
@@ -1177,8 +779,8 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
             <span className="truncate">
               {assignedAdvisor
                 ? isEn
-                  ? `Reserve via WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
-                  : `Separar por WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
+                  ? `Reserve via WhatsApp (${getAdvisorDisplayLabel(assignedAdvisor)})`
+                  : `Separar por WhatsApp (${getAdvisorDisplayLabel(assignedAdvisor)})`
                 : isEn
                 ? `Reserve Lot ${selectedLot.rawId}`
                 : `Separar Lote ${selectedLot.rawId}`}
@@ -1241,6 +843,12 @@ export default function LoomShowroomView({ selectedLot, stageId, onBack }: LoomS
         isOpen={showReferralModal}
         onClose={() => setShowReferralModal(false)}
         lotRawId={selectedLot.rawId}
+        lotContext={{
+          id: selectedLot.id,
+          rawId: selectedLot.rawId,
+          price: selectedLot.totalPrice,
+          area: selectedLot.area,
+        }}
       />
 
     </div>

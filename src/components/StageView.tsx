@@ -5,26 +5,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Search, CheckCircle, AlertCircle, Phone, Calculator, X, MessageCircle } from "lucide-react";
 import LuwanaReferralModal from "./LuwanaReferralModal";
 import { 
-  initReferralTracking, 
+  ADVISORS_REGISTRY,
   getActiveAdvisor, 
   buildLotWhatsAppUrl, 
-  Advisor 
+  shouldDelegateSeparateToParentFrame,
+  isInstitutionalAdvisor,
+  getAdvisorDisplayLabel,
+  getAdvisorPanelPrefix,
 } from "@/lib/referralTracking";
-
-export interface StageLotData {
-  id: string;
-  rawId: string;
-  area: string;
-  location?: string;
-  status: "available" | "reserved" | "sold" | "blocked" | "common";
-  statusRaw?: string;
-  pricePerM2?: string;
-  totalPrice?: string;
-  separation?: string;
-  downPayment?: string;
-  financing?: string;
-  finalPayment?: string;
-}
+import { useAdvisorAttribution } from "@/hooks/useAdvisorAttribution";
+import type { StageLotData } from "@/types/lots";
+export type { StageLotData };
 
 interface SvgMapProps {
   svgContent: string;
@@ -249,35 +240,8 @@ export default function StageView({ stageId, onBack, onNext, onChangeStage }: St
   const [filterStatus, setFilterStatus] = useState<"all" | "available" | "reserved" | "sold">("all");
   const [showReferralModal, setShowReferralModal] = useState<boolean>(false);
   
-  // Asesor asignado para contacto directo por WhatsApp y atribución
-  const [assignedAdvisor, setAssignedAdvisor] = useState<Advisor | null>(null);
-
-  // Referidor para atribución comercial en Luwana
-  const [referrer, setReferrer] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const adv = initReferralTracking();
-      if (adv) {
-        setAssignedAdvisor(adv);
-        setReferrer(adv.agency.toLowerCase());
-      } else {
-        const active = getActiveAdvisor();
-        if (active) {
-          setAssignedAdvisor(active);
-          setReferrer(active.agency.toLowerCase());
-        } else {
-          const stored = sessionStorage.getItem("luwana_ref");
-          if (stored) {
-            setReferrer(stored);
-          } else if (window.location.hostname.includes("patrimofy.com")) {
-            sessionStorage.setItem("luwana_ref", "patrimofy");
-            setReferrer("patrimofy");
-          }
-        }
-      }
-    }
-  }, []);
+  // Asesor asignado y referidor comercial para Luwana
+  const { assignedAdvisor, referrer } = useAdvisorAttribution("luwana_ref");
 
   // Simulador de Pagos (12, 24 y 36 meses según requerimiento)
   const [downPaymentPct, setDownPaymentPct] = useState<number>(20);
@@ -344,9 +308,11 @@ export default function StageView({ stageId, onBack, onNext, onChangeStage }: St
     }
   }, []);
 
-  // Lógica de separación de lote con soporte de atribución, WhatsApp de asesor y modal
+  // Lógica de separación de lote con soporte de atribución, WhatsApp de asesor o inmobiliaria y modal
   const handleSeparateClick = () => {
     if (!selectedLotData) return;
+
+    const currentAdvisor = assignedAdvisor || getActiveAdvisor();
 
     if (typeof window !== "undefined" && window.parent !== window) {
       window.parent.postMessage({
@@ -354,15 +320,16 @@ export default function StageView({ stageId, onBack, onNext, onChangeStage }: St
         payload: {
           lotId: selectedLotData.rawId,
           price: selectedLotData.totalPrice,
-          advisor: assignedAdvisor?.slug || null,
+          advisor: currentAdvisor?.slug || null,
         }
       }, '*');
-      return;
+
+      if (shouldDelegateSeparateToParentFrame(currentAdvisor)) {
+        return;
+      }
     }
 
-    const currentAdvisor = assignedAdvisor || getActiveAdvisor();
-
-    // 1. Si hay un asesor asignado por link / cookie, abrir directo su WhatsApp
+    // 1. Si hay un asesor o canal de inmobiliaria asignado por link / cookie, abrir directo su WhatsApp
     if (currentAdvisor) {
       const waUrl = buildLotWhatsAppUrl(
         {
@@ -395,7 +362,17 @@ export default function StageView({ stageId, onBack, onNext, onChangeStage }: St
       );
       window.open(waUrl, "_blank");
     } else if (currentRef === "chichaus") {
-      window.open("https://chichaus.com/", "_blank");
+      const waUrl = buildLotWhatsAppUrl(
+        {
+          id: selectedLotData.id,
+          rawId: selectedLotData.rawId,
+          price: selectedLotData.totalPrice,
+          area: selectedLotData.area,
+        },
+        "Luwana Beach Residence",
+        ADVISORS_REGISTRY["chichaus"]
+      );
+      window.open(waUrl, "_blank");
     } else {
       setShowReferralModal(true);
     }
@@ -700,11 +677,17 @@ export default function StageView({ stageId, onBack, onNext, onChangeStage }: St
               {assignedAdvisor ? (
                 <div className="mt-4 bg-[#A58E74]/20 border border-[#A58E74]/40 rounded-xl p-2.5 text-[10px] text-[#152A2D] leading-relaxed uppercase tracking-wider text-center font-semibold flex items-center justify-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
-                  <span>Tu Asesor: <strong>{assignedAdvisor.name}</strong> &bull; {assignedAdvisor.agency}</span>
+                  <span>
+                    {getAdvisorPanelPrefix(assignedAdvisor, false)}{" "}
+                    <strong>{assignedAdvisor.name}</strong>
+                    {!isInstitutionalAdvisor(assignedAdvisor) && (
+                      <> &bull; {assignedAdvisor.agency}</>
+                    )}
+                  </span>
                 </div>
               ) : referrer ? (
                 <div className="mt-4 bg-[#A58E74]/15 border border-[#A58E74]/40 rounded-xl p-2.5 text-[9px] sm:text-[10px] text-[#152A2D]/80 leading-relaxed uppercase tracking-wider text-center font-medium">
-                  Asesoría comercializada por <strong className="text-[#152A2D] font-bold">{referrer === "patrimofy" ? "Patrimofy" : "Chichaus"}</strong>
+                  Inmobiliaria: <strong className="text-[#152A2D] font-bold">{referrer === "patrimofy" ? "Patrimofy" : "Chic Haus"}</strong>
                 </div>
               ) : null}
             </div>
@@ -717,7 +700,7 @@ export default function StageView({ stageId, onBack, onNext, onChangeStage }: St
                   className="w-full py-3.5 px-4 rounded-xl bg-[#A58E74] hover:bg-[#8e785f] text-[#EFE9E1] font-bold uppercase tracking-wider text-xs transition-all shadow-lg shadow-[#A58E74]/25 flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01]"
                 >
                   {assignedAdvisor ? <MessageCircle size={15} className="text-[#25D366]" /> : <Phone size={14} />}
-                  <span>{assignedAdvisor ? `Separar por WhatsApp (${assignedAdvisor.name.split(" ")[0]})` : `Separar Lote ${selectedLotData.rawId}`}</span>
+                  <span>{assignedAdvisor ? `Separar por WhatsApp (${getAdvisorDisplayLabel(assignedAdvisor)})` : `Separar Lote ${selectedLotData.rawId}`}</span>
                 </button>
               )}
               <button 
@@ -736,6 +719,16 @@ export default function StageView({ stageId, onBack, onNext, onChangeStage }: St
         isOpen={showReferralModal}
         onClose={() => setShowReferralModal(false)}
         lotRawId={selectedLotData?.rawId}
+        lotContext={
+          selectedLotData
+            ? {
+                id: selectedLotData.id,
+                rawId: selectedLotData.rawId,
+                price: selectedLotData.totalPrice,
+                area: selectedLotData.area,
+              }
+            : undefined
+        }
       />
     </div>
   );

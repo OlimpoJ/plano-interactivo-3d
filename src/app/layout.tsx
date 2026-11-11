@@ -32,10 +32,6 @@ export const metadata: Metadata = {
   },
 };
 
-import LegalFooter from "@/components/LegalFooter";
-import CookieBanner from "@/components/CookieBanner";
-import ClientScripts from "@/components/ClientScripts";
-
 export default function RootLayout({
   children,
 }: {
@@ -44,10 +40,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${playfair.variable} ${montserrat.variable}`} suppressHydrationWarning>
       <body suppressHydrationWarning className="antialiased">
-        <ClientScripts />
         {children}
-        <LegalFooter />
-        <CookieBanner />
       </body>
     </html>
   );

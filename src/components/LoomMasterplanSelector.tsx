@@ -4,19 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Compass, Box } from "lucide-react";
 import { useLoomLang } from "@/lib/loomI18n";
-
-interface Lot {
-  id: string;
-  rawId: string;
-  area: string;
-  location: string;
-  status: string;
-  statusRaw: string;
-  totalPrice: string;
-  downPayment: string;
-  financing: string;
-  finalPayment: string;
-}
+import type { Lot } from "@/types/lots";
 
 const stagesData = [
   {
@@ -179,7 +167,7 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack, on
       {/* Fondo difuminado esmerilado */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <img
-          src="/loom/loom_masterplan_bg.webp"
+          src="/loom/loom_masterplan_bg.webp?v=8"
           alt="Blur background"
           className="w-full h-full object-cover opacity-25 blur-3xl scale-110 pointer-events-none"
         />
@@ -253,7 +241,7 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack, on
 
               {/* Imagen de Fondo del Masterplan Base */}
               <image
-                href="/loom/loom_masterplan_bg.webp"
+                href="/loom/loom_masterplan_bg.webp?v=8"
                 x="0"
                 y="0"
                 width="3840"
@@ -264,30 +252,26 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack, on
 
               {stagesData.map((stage) => {
                 const isHovered = hoveredStage?.id === stage.id;
+                if (!isHovered) return null;
                 const isActive = stage.active;
                 return (
-                  <g 
+                  <g
                     key={stage.id}
-                    clipPath={`url(#clip-${stage.id.toLowerCase().replace('_', '-')})`}
-                    style={{
-                      opacity: isHovered ? 1 : 0,
-                      transition: "opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
-                    }}
+                    clipPath={`url(#clip-${stage.id.toLowerCase().replace("_", "-")})`}
                   >
-                    {/* Imagen de Fondo Duplicada con Zoom y Filtros */}
+                    {/* Imagen de Fondo con Zoom y Filtros (montada únicamente en la etapa bajo hover para ahorrar 5 capas 4K en memoria) */}
                     <image
-                      href="/loom/loom_masterplan_bg.webp"
+                      href="/loom/loom_masterplan_bg.webp?v=8"
                       x="0"
                       y="0"
                       width="3840"
                       height="2160"
                       style={{
-                        transform: isHovered ? "scale(1.045)" : "scale(1)",
+                        transform: "scale(1.045)",
                         transformOrigin: `${stage.cx}px ${stage.cy}px`,
-                        transition: "transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
-                        filter: isHovered 
-                          ? (isActive ? "blur(1.5px) brightness(1.15) saturate(1.2)" : "blur(1.5px) brightness(0.8) saturate(0.85)") 
-                          : "none",
+                        filter: isActive
+                          ? "blur(1.5px) brightness(1.15) saturate(1.2)"
+                          : "blur(1.5px) brightness(0.8) saturate(0.85)",
                       }}
                     />
 
@@ -298,9 +282,6 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack, on
                       fillOpacity={isActive ? 0.14 : 0.06}
                       stroke={isActive ? "#dbaa67" : "rgba(255,255,255,0.2)"}
                       strokeWidth={isActive ? 14 : 6}
-                      style={{
-                        transition: "all 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
-                      }}
                     />
                   </g>
                 );
@@ -549,10 +530,12 @@ export default function LoomMasterplanSelector({ lots, onSelectStage, onBack, on
               )}
             </AnimatePresence>
 
-        {/* Leyenda de Brújula (Flotante a la Derecha) */}
+        {/* Leyenda de Brújula (Flotante a la Derecha — Calibrada con Plano A001) */}
         <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/80 text-[0.5625rem] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
-          <Compass className="h-3.5 w-3.5 text-[#B35F27] rotate-[45deg]" />
-          {isEn ? "North oriented towards the sea (Right / Beach)" : "Norte orientado hacia el mar (Derecha / Playa)"}
+          <Compass className="h-3.5 w-3.5 text-[#B35F27] rotate-[73deg]" />
+          {isEn
+            ? "Plan A001 Compass • Sun: East (Inland) → West (Caribbean Sea)"
+            : "Brújula Plano A001 • Sol: Este (Carretera) → Oeste (Mar Caribe)"}
         </div>
       </div>
 

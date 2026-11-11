@@ -3,19 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLoomLang, translateStatusRaw, translateAreaText } from "@/lib/loomI18n";
-
-interface Lot {
-  id: string;
-  rawId: string;
-  area: string;
-  location: string;
-  status: string;
-  statusRaw: string;
-  totalPrice: string;
-  downPayment: string;
-  financing: string;
-  finalPayment: string;
-}
+import type { Lot } from "@/types/lots";
 
 interface LoomLotZoomCanvasProps {
   stageId: string;

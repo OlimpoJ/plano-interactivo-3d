@@ -1,28 +1,48 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowRight, ShieldCheck } from "lucide-react";
+import { X, ArrowRight, ShieldCheck, MessageCircle } from "lucide-react";
+import {
+  ADVISORS_REGISTRY,
+  buildGeneralProjectWhatsAppUrl,
+  buildLotWhatsAppUrl,
+  LotWhatsAppContext,
+} from "@/lib/referralTracking";
 
 interface LuwanaReferralModalProps {
   isOpen: boolean;
   onClose: () => void;
   lotRawId?: string;
+  lotContext?: LotWhatsAppContext;
 }
 
-export default function LuwanaReferralModal({ isOpen, onClose, lotRawId }: LuwanaReferralModalProps) {
+export default function LuwanaReferralModal({
+  isOpen,
+  onClose,
+  lotRawId,
+  lotContext,
+}: LuwanaReferralModalProps) {
   if (!isOpen) return null;
+
+  const effectiveLot: LotWhatsAppContext | null = lotContext
+    ? lotContext
+    : lotRawId
+    ? { id: lotRawId, rawId: lotRawId }
+    : null;
 
   const selectAgency = (agency: "patrimofy" | "chichaus") => {
     if (typeof window !== "undefined") {
       sessionStorage.setItem("luwana_ref", agency);
-      if (agency === "patrimofy") {
-        window.open("https://patrimofy.com/es/luwana#contacto", "_blank");
-      } else {
-        window.open("https://chichaus.com/", "_blank");
-      }
+      const targetChannel = ADVISORS_REGISTRY[agency];
+      const waUrl = effectiveLot
+        ? buildLotWhatsAppUrl(effectiveLot, "Luwana Beach Residence", targetChannel)
+        : buildGeneralProjectWhatsAppUrl("Luwana Beach Residence", targetChannel);
+      window.open(waUrl, "_blank");
     }
     onClose();
   };
+
+  const displayLotLabel = lotContext?.rawId || lotRawId;
 
   return (
     <AnimatePresence>
@@ -50,34 +70,38 @@ export default function LuwanaReferralModal({ isOpen, onClose, lotRawId }: Luwan
               Selecciona tu Firma Asesora
             </h3>
             <p className="text-xs text-[#152A2D]/75 leading-relaxed font-sans">
-              {lotRawId ? (
+              {displayLotLabel ? (
                 <>
-                  Para brindarte asesoría personalizada y directa en la separación del <strong>Lote {lotRawId}</strong>, por favor elige una de nuestras 2 únicas firmas comercializadoras autorizadas:
+                  Para brindarte asesoría personalizada y directa en la separación del{" "}
+                  <strong>{displayLotLabel.toLowerCase().startsWith("lote") ? displayLotLabel : `Lote ${displayLotLabel}`}</strong>, por favor elige una de nuestras 2 únicas firmas comercializadoras autorizadas:
                 </>
               ) : (
                 <>
-                  Para brindarte atención inmediata sobre el proyecto <strong>Luwana Beach Residence Cartagena</strong>, elige tu firma de preferencia entre nuestras 2 únicas firmas comercializadoras autorizadas:
+                  Para brindarte atención inmediata sobre el proyecto{" "}
+                  <strong>Luwana Beach Residence Cartagena</strong>, elige tu firma de preferencia entre nuestras 2 únicas firmas comercializadoras autorizadas:
                 </>
               )}
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 pt-1">
-            {/* Patrimofy */}
+            {/* Patrimofy — Línea Oficial WhatsApp CRM (+57 333 239 3784) con Lote Prellenado */}
             <button
               onClick={() => selectAgency("patrimofy")}
-              className="w-full py-3.5 bg-[#A58E74] hover:bg-[#8e785f] text-[#EFE9E1] font-bold rounded-xl uppercase tracking-wider text-xs transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#A58E74]/25 cursor-pointer hover:scale-[1.02]"
+              className="w-full py-3.5 bg-[#25D366] hover:bg-[#1fb858] text-[#152A2D] font-extrabold rounded-xl uppercase tracking-wider text-xs transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/25 cursor-pointer hover:scale-[1.02]"
             >
-              <span>Contactar con Patrimofy</span>
+              <MessageCircle className="h-4 w-4 shrink-0" />
+              <span>WhatsApp Asesoría Patrimofy</span>
               <ArrowRight className="h-4 w-4" />
             </button>
 
-            {/* Chichaus */}
+            {/* Chic Haus */}
             <button
               onClick={() => selectAgency("chichaus")}
               className="w-full py-3.5 bg-white hover:bg-white/80 border border-[#152A2D]/15 text-[#152A2D] font-bold rounded-xl uppercase tracking-wider text-xs transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:scale-[1.01]"
             >
-              <span>Contactar con Chichaus</span>
+              <MessageCircle className="h-4 w-4 text-[#25D366] shrink-0" />
+              <span>WhatsApp Chic Haus</span>
               <ArrowRight className="h-4 w-4 text-[#A58E74]" />
             </button>
           </div>

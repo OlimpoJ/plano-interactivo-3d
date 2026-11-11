@@ -9,23 +9,21 @@ export const metadata = {
 export default function LoomDirect3DMaquetaPage() {
   return (
     <>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            if (typeof window !== 'undefined') {
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(regs) {
-                  for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
-                });
-              }
-              if ('caches' in window) {
-                caches.keys().then(function(keys) {
-                  for (var j = 0; j < keys.length; j++) { caches.delete(keys[j]); }
-                });
-              }
-            }
-          `,
-        }}
+      {/* Precarga temprana en paralelo de la cartografía 4K y geometría base de lotes */}
+      <link rel="preload" as="image" href="/loom/hero_poster.webp" />
+      <link rel="preload" as="image" href="/loom/loom_masterplan_bg.webp?v=8" />
+      <link rel="preload" as="image" href="/loom/loom_terrain_masks.png?v=2" />
+      <link
+        rel="preload"
+        as="fetch"
+        href="/loom/loom_unified_3d_lots.json?v=4"
+        crossOrigin="anonymous"
+      />
+      <link
+        rel="preload"
+        as="fetch"
+        href="/loom/loom_landscape_3d.json"
+        crossOrigin="anonymous"
       />
       <LoomShowroomApp defaultLang="es" initialView="maqueta3d" enable3DMaqueta={true} />
     </>

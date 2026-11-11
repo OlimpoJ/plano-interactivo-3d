@@ -124,17 +124,17 @@ export function computeLotTelemetry(
   const frontMeters = Math.round(Math.sqrt(sqm * aspect) * 10) / 10;
   const depthMeters = Math.round((sqm / frontMeters) * 10) / 10;
 
-  // Orientación solar y brisa según manzana y paridad
+  // Orientación solar real según brújula oficial Plano A001 (Este Carretera -> Oeste Mar Caribe)
   const isEven = number % 2 === 0;
   const solarOrientationEs = isEven
-    ? "Noreste – Suroeste • Sol de Mañana en Terraza"
-    : "Noroccidente – Suroriente • Sombra Bioclimática de Tarde";
+    ? "Este – Oeste (Plano A001) • Sol de Mañana en Terraza"
+    : "Este – Oeste (Plano A001) • Luz Cálida de Atardecer hacia el Mar";
   const solarOrientationEn = isEven
-    ? "NE – SW • Morning Sun on Pool Terrace"
-    : "NW – SE • Afternoon Bioclimatic Shade";
+    ? "East – West (Plan A001) • Morning Sun on Pool Terrace"
+    : "East – West (Plan A001) • Golden Sunset Light towards the Sea";
 
-  const breezeVectorEs = "Alisios del Caribe (NNE) • Ventilación Cruzada Natural";
-  const breezeVectorEn = "Caribbean Trade Winds (NNE) • Natural Cross-Ventilation";
+  const breezeVectorEs = "Brisa Marina & Alisios (NNO / Norte) • Ventilación Cruzada Natural";
+  const breezeVectorEn = "Sea Breeze & Trade Winds (NNW / North) • Natural Cross-Ventilation";
 
   // Vecinos / Colindancias
   const neighbors: LotNeighbor[] = [];

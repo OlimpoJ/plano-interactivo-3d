@@ -153,6 +153,7 @@ export default function LuwanaPage() {
           loop
           muted
           playsInline
+          poster="/luwana_hero_cover.webp"
           className={styles.backgroundVideo}
         >
           <source src={getMediaUrl('/showroom loop.mp4')} type="video/mp4" />

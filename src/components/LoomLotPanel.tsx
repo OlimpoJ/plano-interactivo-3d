@@ -29,11 +29,17 @@ import {
 import { useState, useEffect, useMemo, useCallback } from "react";
 import LoomReferralModal from "./LoomReferralModal";
 import { 
-  initReferralTracking, 
+  ADVISORS_REGISTRY,
   getActiveAdvisor, 
   buildLotWhatsAppUrl, 
-  Advisor 
+  shouldDelegateSeparateToParentFrame,
+  isInstitutionalAdvisor,
+  getAdvisorDisplayLabel,
+  getAdvisorPanelPrefix,
 } from "@/lib/referralTracking";
+import { useAdvisorAttribution } from "@/hooks/useAdvisorAttribution";
+import { AMENITY_GALLERIES, type AmenityGalleryConfig } from "@/data/loomGalleries";
+import type { Lot } from "@/types/lots";
 import {
   useLoomLang,
   translateLocationType,
@@ -44,488 +50,6 @@ import {
   parseSquareMeters,
 } from "@/lib/loomI18n";
 import { computeLotTelemetry } from "@/lib/loomLotTelemetry";
-
-interface AmenityMediaItem {
-  num: string;
-  src: string;
-  titleEs: string;
-  titleEn: string;
-  categoryEs: string;
-  categoryEn: string;
-  descEs: string;
-  descEn: string;
-}
-
-interface AmenityGalleryConfig {
-  key: "BEACH_CLUB" | "CLUB_HOUSE" | "PORTERIA" | "PARQUES";
-  badgeEs: string;
-  badgeEn: string;
-  summaryEs: string;
-  summaryEn: string;
-  highlightsEs: string[];
-  highlightsEn: string[];
-  items: AmenityMediaItem[];
-}
-
-const AMENITY_GALLERIES: Record<AmenityGalleryConfig["key"], AmenityGalleryConfig> = {
-  BEACH_CLUB: {
-    key: "BEACH_CLUB",
-    badgeEs: "Alma Beach Club • Salida Directa al Mar",
-    badgeEn: "Alma Beach Club • Direct Sea Access",
-    summaryEs:
-      "Club de playa privado y circuito de zonas comunes de Loom Luxury Residence con salida directa al Mar Caribe en Playa Alma (Zona Norte, Cartagena de Indias). Integra piscinas, Sun Beds, Ocean Lounge, Ocean Dining, Sunset Spa, Sunset Dining, Loom Oasis, Lago Loom, cancha de voleibol y senderos Nature Walk.",
-    summaryEn:
-      "Private beach club and common area circuit of Loom Luxury Residence with direct access to the Caribbean Sea at Alma Beach (North Zone, Cartagena de Indias). Integrates pools, Sun Beds, Ocean Lounge, Ocean Dining, Sunset Spa, Sunset Dining, Loom Oasis, Loom Lake, beach volleyball court, and Nature Walk trails.",
-    highlightsEs: [
-      "Salida Directa al Mar",
-      "Ocean Lounge & Dining",
-      "Sunset Spa & Sun Beds",
-      "Loom Oasis & Lago Loom",
-    ],
-    highlightsEn: [
-      "Direct Sea Access",
-      "Ocean Lounge & Dining",
-      "Sunset Spa & Sun Beds",
-      "Loom Oasis & Loom Lake",
-    ],
-    items: [
-      {
-        num: "01",
-        src: "/loom/renders/amenities/club-de-playa/galeria_03_club_de_playa_vista_2.webp",
-        titleEs: "Club de Playa • Vista General 1",
-        titleEn: "Beach Club • General View 1",
-        categoryEs: "Alma Beach Club",
-        categoryEn: "Alma Beach Club",
-        descEs: "Vista panorámica del Club de Playa de Loom Luxury Residence con piscinas, terrazas y salida directa al Mar Caribe.",
-        descEn: "Panoramic view of the Loom Luxury Residence Beach Club featuring pools, terraces, and direct access to the Caribbean Sea.",
-      },
-      {
-        num: "02",
-        src: "/loom/renders/amenities/club-de-playa/galeria_04_club_de_playa_vista_3.webp",
-        titleEs: "Club de Playa • Vista General 2",
-        titleEn: "Beach Club • General View 2",
-        categoryEs: "Alma Beach Club",
-        categoryEn: "Alma Beach Club",
-        descEs: "Vista general del Club de Playa integrando espejos de agua, arquitectura bioclimática en madera natural y frente costero.",
-        descEn: "General view of the Beach Club integrating water mirrors, natural wood bioclimatic architecture, and beachfront.",
-      },
-      {
-        num: "03",
-        src: "/loom/renders/amenities/club-de-playa/galeria_05_club_de_playa_vista_4.webp",
-        titleEs: "Club de Playa • Perspectiva Costera",
-        titleEn: "Beach Club • Coastal Perspective",
-        categoryEs: "Alma Beach Club",
-        categoryEn: "Alma Beach Club",
-        descEs: "Cuarta toma del complejo costero con decks de descanso, pérgolas orgánicas y vegetación tropical frente a la playa.",
-        descEn: "Fourth perspective of the coastal complex with lounge decks, organic pergolas, and tropical beachfront landscaping.",
-      },
-      {
-        num: "04",
-        src: "/loom/renders/amenities/club-de-playa/galeria_06_club_de_playa_vista_5.webp",
-        titleEs: "Club de Playa • Terrazas & Piscina",
-        titleEn: "Beach Club • Terraces & Pool",
-        categoryEs: "Alma Beach Club",
-        categoryEn: "Alma Beach Club",
-        descEs: "Quinta toma del Club de Playa destacando la amplitud de las terrazas sociales y la conexión directa con la arena.",
-        descEn: "Fifth view of the Beach Club highlighting the spacious social terraces and direct connection to the sand.",
-      },
-      {
-        num: "05",
-        src: "/loom/renders/amenities/club-de-playa/galeria_07_sun_bed_vista_1.webp",
-        titleEs: "Zona de Sun Beds • Vista 1",
-        titleEn: "Sun Beds Zone • View 1",
-        categoryEs: "Sun Beds",
-        categoryEn: "Sun Beds",
-        descEs: "Vista de la zona de camas de sol (Sun Beds) dispuestas frente al agua para el descanso y contemplación del Caribe.",
-        descEn: "View of the Sun Beds lounge zone arranged by the water for relaxation and Caribbean contemplation.",
-      },
-      {
-        num: "06",
-        src: "/loom/renders/amenities/club-de-playa/galeria_08_sun_bed_vista_2.webp",
-        titleEs: "Zona de Sun Beds • Vista 2",
-        titleEn: "Sun Beds Zone • View 2",
-        categoryEs: "Sun Beds",
-        categoryEn: "Sun Beds",
-        descEs: "Segunda toma de la zona de camas de sol (Sun Beds) con sombrillas, mobiliario de exterior de lujo y palmeras.",
-        descEn: "Second view of the Sun Beds lounge zone with umbrellas, luxury outdoor furniture, and palm trees.",
-      },
-      {
-        num: "07",
-        src: "/loom/renders/amenities/club-de-playa/galeria_09_ocean_lounge_vista_1.webp",
-        titleEs: "Ocean Lounge • Vista 1",
-        titleEn: "Ocean Lounge • View 1",
-        categoryEs: "Ocean Lounge",
-        categoryEn: "Ocean Lounge",
-        descEs: "Vista del Ocean Lounge: espacio social abierto con diseño biofílico y brisa marina frente a la costa.",
-        descEn: "View of the Ocean Lounge: open-air social space with biophilic design and sea breeze right by the coast.",
-      },
-      {
-        num: "08",
-        src: "/loom/renders/amenities/club-de-playa/galeria_10_ocean_lounge_vista_2.webp",
-        titleEs: "Ocean Lounge • Vista 2",
-        titleEn: "Ocean Lounge • View 2",
-        categoryEs: "Ocean Lounge",
-        categoryEn: "Ocean Lounge",
-        descEs: "Segunda toma del Ocean Lounge integrando salas de estar exteriores, barra y cubierta artesanal en fibras naturales.",
-        descEn: "Second view of the Ocean Lounge integrating outdoor living areas, bar, and handcrafted natural fiber canopy.",
-      },
-      {
-        num: "09",
-        src: "/loom/renders/amenities/club-de-playa/galeria_11_ocean_dining_vista_1.webp",
-        titleEs: "Ocean Dining • Restaurante Vista 1",
-        titleEn: "Ocean Dining • Restaurant View 1",
-        categoryEs: "Gastronomía Frente al Mar",
-        categoryEn: "Beachfront Dining",
-        descEs: "Vista del Ocean Dining, zona de restaurante de alta gastronomía con pérgolas cálidas y ambiente costero.",
-        descEn: "View of Ocean Dining, fine dining restaurant zone with warm pergolas and coastal ambiance.",
-      },
-      {
-        num: "10",
-        src: "/loom/renders/amenities/club-de-playa/galeria_12_ocean_dining_vista_2.webp",
-        titleEs: "Ocean Dining • Restaurante Vista 2",
-        titleEn: "Ocean Dining • Restaurant View 2",
-        categoryEs: "Gastronomía Frente al Mar",
-        categoryEn: "Beachfront Dining",
-        descEs: "Segunda toma de Ocean Dining mostrando las mesas bajo cubierta bioclimática y vistas abiertas al entorno natural.",
-        descEn: "Second view of Ocean Dining showing tables under the bioclimatic canopy and open views of the natural surroundings.",
-      },
-      {
-        num: "11",
-        src: "/loom/renders/amenities/club-de-playa/galeria_25_sunset_dining_vista_1.webp",
-        titleEs: "Sunset Dining al Atardecer",
-        titleEn: "Sunset Dining at Dusk",
-        categoryEs: "Sunset Dining",
-        categoryEn: "Sunset Dining",
-        descEs: "Terraza de madera bajo pérgola de bambú y palmeras frente a la playa, con mesas y sillas de fibra natural, comensales y mar al fondo con luz cálida del atardecer.",
-        descEn: "Wooden terrace under a bamboo pergola and beachfront palms, featuring natural fiber tables and chairs, diners, and the sea in the background bathed in warm sunset light.",
-      },
-      {
-        num: "12",
-        src: "/loom/renders/amenities/club-de-playa/galeria_22_sunset_spa_vista_1.webp",
-        titleEs: "Sunset Spa • Bienestar Frente al Mar",
-        titleEn: "Sunset Spa • Beachfront Wellness",
-        categoryEs: "Sunset Spa",
-        categoryEn: "Sunset Spa",
-        descEs: "Vista del Sunset Spa: santuario de relajación, masajes e hidroterapia rodeado de vegetación tropical.",
-        descEn: "View of the Sunset Spa: relaxation, massage, and hydrotherapy sanctuary surrounded by tropical greenery.",
-      },
-      {
-        num: "13",
-        src: "/loom/renders/amenities/club-de-playa/galeria_13_loom_oasis_vista_1.webp",
-        titleEs: "LOOM Oasis • Vista 1",
-        titleEn: "LOOM Oasis • View 1",
-        categoryEs: "LOOM Oasis",
-        categoryEn: "LOOM Oasis",
-        descEs: "Primera toma de LOOM Oasis: circuito de espejos de agua, piscinas orgánicas y paisajismo exuberante.",
-        descEn: "First view of LOOM Oasis: circuit of water mirrors, organic pools, and lush landscaping.",
-      },
-      {
-        num: "14",
-        src: "/loom/renders/amenities/club-de-playa/galeria_14_loom_oasis_vista_2.webp",
-        titleEs: "LOOM Oasis • Vista 2",
-        titleEn: "LOOM Oasis • View 2",
-        categoryEs: "LOOM Oasis",
-        categoryEn: "LOOM Oasis",
-        descEs: "Segunda toma de LOOM Oasis con zonas de descanso inmersas entre palmeras y senderos sobre el agua.",
-        descEn: "Second view of LOOM Oasis featuring relaxation zones immersed among palms and overwater pathways.",
-      },
-      {
-        num: "15",
-        src: "/loom/renders/amenities/club-de-playa/galeria_15_loom_oasis_vista_3.webp",
-        titleEs: "LOOM Oasis • Vista 3",
-        titleEn: "LOOM Oasis • View 3",
-        categoryEs: "LOOM Oasis",
-        categoryEn: "LOOM Oasis",
-        descEs: "Tercera toma de LOOM Oasis destacando las terrazas escalonadas y la arquitectura bioclimática.",
-        descEn: "Third view of LOOM Oasis highlighting tiered terraces and bioclimatic architecture.",
-      },
-      {
-        num: "16",
-        src: "/loom/renders/amenities/club-de-playa/galeria_16_loom_oasis_vista_4.webp",
-        titleEs: "LOOM Oasis • Vista 4",
-        titleEn: "LOOM Oasis • View 4",
-        categoryEs: "LOOM Oasis",
-        categoryEn: "LOOM Oasis",
-        descEs: "Cuarta toma de LOOM Oasis con pérgolas de sombra natural y mobiliario de exterior junto a la piscina.",
-        descEn: "Fourth view of LOOM Oasis with natural shade pergolas and poolside outdoor lounge furniture.",
-      },
-      {
-        num: "17",
-        src: "/loom/renders/amenities/club-de-playa/galeria_17_loom_oasis_vista_5.webp",
-        titleEs: "LOOM Oasis • Vista 5",
-        titleEn: "LOOM Oasis • View 5",
-        categoryEs: "LOOM Oasis",
-        categoryEn: "LOOM Oasis",
-        descEs: "Quinta toma de LOOM Oasis mostrando la integración armónica entre agua, piedra natural y vegetación.",
-        descEn: "Fifth view of LOOM Oasis showcasing the harmonious integration of water, natural stone, and greenery.",
-      },
-      {
-        num: "18",
-        src: "/loom/renders/amenities/club-de-playa/galeria_18_loom_oasis_vista_6.webp",
-        titleEs: "LOOM Oasis • Vista 6",
-        titleEn: "LOOM Oasis • View 6",
-        categoryEs: "LOOM Oasis",
-        categoryEn: "LOOM Oasis",
-        descEs: "Sexta toma de LOOM Oasis con asoleadoras, espejos de agua y ambiente tipo resort privado.",
-        descEn: "Sixth view of LOOM Oasis featuring sun loungers, water mirrors, and private resort ambiance.",
-      },
-      {
-        num: "19",
-        src: "/loom/renders/amenities/club-de-playa/galeria_19_loom_oasis_vista_7.webp",
-        titleEs: "LOOM Oasis • Vista 7",
-        titleEn: "LOOM Oasis • View 7",
-        categoryEs: "LOOM Oasis",
-        categoryEn: "LOOM Oasis",
-        descEs: "Séptima toma de LOOM Oasis enmarcada por palmas reales y senderos peatonales.",
-        descEn: "Seventh view of LOOM Oasis framed by royal palms and pedestrian pathways.",
-      },
-      {
-        num: "20",
-        src: "/loom/renders/amenities/club-de-playa/galeria_20_lago_loom_vista_1.webp",
-        titleEs: "Lago LOOM • Espejo de Agua Central",
-        titleEn: "LOOM Lake • Central Water Mirror",
-        categoryEs: "Lago LOOM",
-        categoryEn: "LOOM Lake",
-        descEs: "Vista del lago de LOOM rodeado de paisajismo nativo, senderos contemplativos y brisa natural.",
-        descEn: "View of LOOM Lake surrounded by native landscaping, contemplative trails, and natural breeze.",
-      },
-      {
-        num: "21",
-        src: "/loom/renders/amenities/club-de-playa/galeria_21_voleibol_vista_1.webp",
-        titleEs: "Cancha de Voleibol de Playa",
-        titleEn: "Beach Volleyball Court",
-        categoryEs: "Deportes & Recreación",
-        categoryEn: "Sports & Recreation",
-        descEs: "Vista de la cancha de voleibol sobre arena rodeada de palmeras y zonas de esparcimiento.",
-        descEn: "View of the sand volleyball court surrounded by palm trees and leisure zones.",
-      },
-      {
-        num: "22",
-        src: "/loom/renders/amenities/club-de-playa/galeria_23_nature_walk_vista_1.webp",
-        titleEs: "Sendero Nature Walk • Vista 1",
-        titleEn: "Nature Walk Trail • View 1",
-        categoryEs: "Nature Walk",
-        categoryEn: "Nature Walk",
-        descEs: "Vista del sendero ecológico Nature Walk para caminatas biofílicas bajo sombra de vegetación nativa.",
-        descEn: "View of the Nature Walk ecological trail for biophilic walks under the shade of native vegetation.",
-      },
-      {
-        num: "23",
-        src: "/loom/renders/amenities/club-de-playa/galeria_24_nature_walk_vista_2.webp",
-        titleEs: "Sendero Nature Walk • Vista 2",
-        titleEn: "Nature Walk Trail • View 2",
-        categoryEs: "Nature Walk",
-        categoryEn: "Nature Walk",
-        descEs: "Segunda toma del sendero Nature Walk conectando las zonas residenciales con las amenidades costeras.",
-        descEn: "Second view of the Nature Walk trail connecting residential zones with coastal amenities.",
-      },
-    ],
-  },
-  CLUB_HOUSE: {
-    key: "CLUB_HOUSE",
-    badgeEs: "Club House • Piscinas, Pádel & Bienestar",
-    badgeEn: "Club House • Pools, Padel & Wellness",
-    summaryEs:
-      "Centro social, deportivo y de bienestar de Loom Luxury Residence. Integra piscinas tipo resort, canchas de pádel y tenis, zonas de yoga y picnic, salones sociales, coworking, gimnasio y conexión con LOOM Oasis.",
-    summaryEn:
-      "Social, sports, and wellness hub of Loom Luxury Residence. Integrates resort-style pools, padel and tennis courts, yoga and picnic zones, social lounges, coworking, gym, and connection to LOOM Oasis.",
-    highlightsEs: [
-      "Piscina Club House",
-      "Canchas de Pádel & Tenis",
-      "Coworking & Gimnasio",
-      "Zonas de Yoga & Picnic",
-    ],
-    highlightsEn: [
-      "Club House Pool",
-      "Padel & Tennis Courts",
-      "Coworking & Gym",
-      "Yoga & Picnic Zones",
-    ],
-    items: [
-      {
-        num: "01",
-        src: "/loom/renders/amenities/club-house/galeria_01_club_house_piscina_vista_1.webp",
-        titleEs: "Club House • Piscina Social Principal",
-        titleEn: "Club House • Main Social Pool",
-        categoryEs: "Club House Piscina",
-        categoryEn: "Club House Pool",
-        descEs:
-          "Vista principal de la piscina del Club House de Loom Luxury Residence, rodeada de decks de asoleadoras, arquitectura bioclimática y vegetación tropical.",
-        descEn:
-          "Main view of the Loom Luxury Residence Club House pool, surrounded by sunbed decks, bioclimatic architecture, and tropical greenery.",
-      },
-      {
-        num: "02",
-        src: "/loom/renders/amenities/club-house/galeria_02_club_house_cancha_padel_vista_1.webp",
-        titleEs: "Club House • Cancha de Pádel",
-        titleEn: "Club House • Padel Court",
-        categoryEs: "Zona Deportiva",
-        categoryEn: "Sports Zone",
-        descEs:
-          "Cancha de pádel reglamentaria integrada al entorno paisajístico del Club House, con cerramiento en cristal templado e iluminación deportiva.",
-        descEn:
-          "Regulation padel court integrated into the Club House landscape, featuring tempered glass enclosures and sports lighting.",
-      },
-    ],
-  },
-  PORTERIA: {
-    key: "PORTERIA",
-    badgeEs: "Portería Monumental • Acceso Principal 24/7",
-    badgeEn: "Monumental Gatehouse • 24/7 Main Access",
-    summaryEs:
-      "Pórtico arquitectónico de ingreso a Loom Luxury Residence. Diseñado con cubierta plana de madera en voladizo con vegetación colgante, caseta de control con celosía de madera y vidrio, cerramientos de lamas verticales, muro de piedra natural y óvalo adoquinado.",
-    summaryEn:
-      "Architectural entrance portico to Loom Luxury Residence. Designed with a cantilevered flat wooden canopy with hanging greenery, control booth with wood louver and glass, vertical slat enclosures, natural stone wall, and cobblestone circulation oval.",
-    highlightsEs: [
-      "Cubierta en Voladizo",
-      "Caseta en Celosía & Piedra",
-      "Acceso Vehicular & Peatonal",
-      "Seguridad Privada 24/7",
-    ],
-    highlightsEn: [
-      "Cantilevered Canopy",
-      "Louver & Stone Control Booth",
-      "Vehicular & Pedestrian Access",
-      "24/7 Private Security",
-    ],
-    items: [
-      {
-        num: "01",
-        src: "/loom/renders/amenities/porteria/galeria_01_porteria_vista_1.webp",
-        titleEs: "Portería Principal • Vista Frontal de Acceso",
-        titleEn: "Main Gatehouse • Front Access View",
-        categoryEs: "Portería Vista 1",
-        categoryEn: "Gatehouse View 1",
-        descEs:
-          "Vista frontal de la portería desde la vía de acceso adoquinada. Cubierta plana de madera en voladizo con vegetación colgante, caseta de control con celosía de madera y vidrio, cerramientos de lamas verticales y muro de piedra al fondo al atardecer.",
-        descEn:
-          "Front view of the gatehouse from the cobblestone access road. Cantilevered flat wooden roof with hanging greenery, control booth with wooden louver and glass, vertical slat enclosures, and stone wall in the background at sunset.",
-      },
-      {
-        num: "02",
-        src: "/loom/renders/amenities/porteria/galeria_02_porteria_vista_2.webp",
-        titleEs: "Portería Principal • Acceso Peatonal & Jardines",
-        titleEn: "Main Gatehouse • Pedestrian Access & Gardens",
-        categoryEs: "Portería Vista 2",
-        categoryEn: "Gatehouse View 2",
-        descEs:
-          "Vista peatonal desde el jardín, a la altura de los ojos. Andén curvo en concreto lavado que conduce a la caseta bajo la gran cubierta con enredaderas y columna de piedra, con vegetación tropical e iluminación de acento.",
-        descEn:
-          "Eye-level pedestrian view from the garden. Curved washed-concrete walkway leading to the booth under the grand vine-draped canopy and stone column, with tropical greenery and accent lighting.",
-      },
-      {
-        num: "03",
-        src: "/loom/renders/amenities/porteria/galeria_03_porteria_vista_3.webp",
-        titleEs: "Portería Principal • Detalle Caseta de Control",
-        titleEn: "Main Gatehouse • Control Booth Detail",
-        categoryEs: "Portería Vista 3",
-        categoryEn: "Gatehouse View 3",
-        descEs:
-          "Vista de detalle de la caseta de control: volumen de concreto con textura natural, celosía de madera corrediza, carpintería de vidrio, cubierta en voladizo y muro de piedra con vegetación.",
-        descEn:
-          "Detail view of the control booth: natural-textured concrete volume, sliding wooden louver, glass joinery, cantilevered roof, and stone wall with greenery.",
-      },
-      {
-        num: "04",
-        src: "/loom/renders/amenities/porteria/galeria_04_porteria_vista_4.webp",
-        titleEs: "Portería Principal • Panorámica al Atardecer",
-        titleEn: "Main Gatehouse • Sunset Panoramic View",
-        categoryEs: "Portería Vista 4",
-        categoryEn: "Gatehouse View 4",
-        descEs:
-          "Vista general panorámica de la portería al atardecer: muestra la cubierta de madera con vegetación, la caseta central con celosía, las barreras de lamas de madera, el muro de piedra y el óvalo de circulación adoquinado con jardineras.",
-        descEn:
-          "Panoramic general view of the gatehouse at sunset: showcasing the planted wooden canopy, central louvered booth, wooden slat barriers, stone wall, and cobblestone circulation oval with planters.",
-      },
-    ],
-  },
-  PARQUES: {
-    key: "PARQUES",
-    badgeEs: "Parque Lineal & The Garden Walk • Zonas Verdes",
-    badgeEn: "Linear Park & The Garden Walk • Green Zones",
-    summaryEs:
-      "Corredor ecológico central y parques bioclimáticos de etapa (The Garden Walk & Nature Walk) diseñados para preservar la vegetación nativa, conectar peatonalmente las manzanas residenciales y ofrecer espejos de agua y zonas de contemplación.",
-    summaryEn:
-      "Central ecological corridor and bioclimatic stage parks (The Garden Walk & Nature Walk) designed to preserve native vegetation, connect residential blocks via pedestrian trails, and offer water mirrors and contemplation zones.",
-    highlightsEs: [
-      "The Garden Walk",
-      "Senderos Nature Walk",
-      "Lago LOOM & Paisajismo",
-      "Microclima Bioclimático",
-    ],
-    highlightsEn: [
-      "The Garden Walk",
-      "Nature Walk Trails",
-      "LOOM Lake & Landscaping",
-      "Bioclimatic Microclimate",
-    ],
-    items: [
-      {
-        num: "01",
-        src: "/loom/renders/amenities/parques/galeria_01_parque_lineal_vista_1.webp",
-        titleEs: "Parque Lineal • The Garden Walk",
-        titleEn: "Linear Park • The Garden Walk",
-        categoryEs: "Parque Lineal",
-        categoryEn: "Linear Park",
-        descEs:
-          "Vista principal del Parque Lineal (The Garden Walk): corredor verde peatonal que articula las etapas residenciales de Loom con senderos orgánicos, arborización nativa y zonas de descanso al aire libre.",
-        descEn:
-          "Main view of the Linear Park (The Garden Walk): pedestrian green corridor articulating Loom's residential stages with organic trails, native trees, and outdoor rest zones.",
-      },
-      {
-        num: "02",
-        src: "/loom/renders/amenities/club-de-playa/galeria_23_nature_walk_vista_1.webp",
-        titleEs: "Sendero Ecológico • Nature Walk Vista 1",
-        titleEn: "Ecological Trail • Nature Walk View 1",
-        categoryEs: "Nature Walk",
-        categoryEn: "Nature Walk",
-        descEs:
-          "Sendero peatonal biofílico rodeado de vegetación tropical densa para caminatas, trote suave y conexión con la naturaleza.",
-        descEn:
-          "Biophilic pedestrian trail surrounded by lush tropical greenery for walking, jogging, and connecting with nature.",
-      },
-      {
-        num: "03",
-        src: "/loom/renders/amenities/club-de-playa/galeria_24_nature_walk_vista_2.webp",
-        titleEs: "Sendero Ecológico • Nature Walk Vista 2",
-        titleEn: "Ecological Trail • Nature Walk View 2",
-        categoryEs: "Nature Walk",
-        categoryEn: "Nature Walk",
-        descEs:
-          "Segunda perspectiva del corredor Nature Walk integrando paisajismo costero y mobiliario contemplativo.",
-        descEn:
-          "Second perspective of the Nature Walk corridor integrating coastal landscaping and contemplative seating.",
-      },
-      {
-        num: "04",
-        src: "/loom/renders/amenities/club-de-playa/galeria_20_lago_loom_vista_1.webp",
-        titleEs: "Lago LOOM • Paisajismo Acuático",
-        titleEn: "LOOM Lake • Aquatic Landscaping",
-        categoryEs: "Lago LOOM",
-        categoryEn: "LOOM Lake",
-        descEs:
-          "Espejo de agua naturalizado dentro del circuito de parques y senderos de Loom Luxury Residence.",
-        descEn:
-          "Naturalized water body within the parks and trails circuit of Loom Luxury Residence.",
-      },
-    ],
-  },
-};
-
-interface Lot {
-  id: string;
-  rawId: string;
-  area: string;
-  location: string;
-  status: string;
-  statusRaw: string;
-  totalPrice: string;
-  downPayment: string;
-  financing: string;
-  finalPayment: string;
-  pricePerM2?: string;
-  separation?: string;
-}
 
 interface LoomLotPanelProps {
   lot: Lot | null;
@@ -554,32 +78,7 @@ export default function LoomLotPanel({
   const [imgLoadError, setImgLoadError] = useState<boolean>(false);
   const [amenitySlideIdx, setAmenitySlideIdx] = useState<number>(0);
 
-  const [assignedAdvisor, setAssignedAdvisor] = useState<Advisor | null>(null);
-  const [referrer, setReferrer] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const adv = initReferralTracking();
-      if (adv) {
-        setAssignedAdvisor(adv);
-        setReferrer(adv.agency.toLowerCase());
-      } else {
-        const active = getActiveAdvisor();
-        if (active) {
-          setAssignedAdvisor(active);
-          setReferrer(active.agency.toLowerCase());
-        } else {
-          const stored = sessionStorage.getItem("loom_ref");
-          if (stored) {
-            setReferrer(stored);
-          } else if (window.location.hostname.includes("patrimofy.com")) {
-            sessionStorage.setItem("loom_ref", "patrimofy");
-            setReferrer("patrimofy");
-          }
-        }
-      }
-    }
-  }, []);
+  const { assignedAdvisor, referrer } = useAdvisorAttribution("loom_ref");
 
   // Reset zoom, slide y error cuando cambia el lote o amenidad
   useEffect(() => {
@@ -724,23 +223,28 @@ export default function LoomLotPanel({
     });
   };
 
-  // Lógica del botón de separar lote (atribución y WhatsApp de asesor)
+  // Lógica del botón de separar lote (atribución y WhatsApp de asesor o inmobiliaria)
   const handleSeparateClick = () => {
+    const currentAdvisor = assignedAdvisor || getActiveAdvisor();
+
     if (typeof window !== "undefined" && window.parent !== window) {
       window.parent.postMessage({
         type: 'LOT_SEPARATE_CLICKED',
         payload: {
           lotId: lot.rawId || lot.id,
           price: lot.totalPrice,
-          advisor: assignedAdvisor?.slug || null,
+          advisor: currentAdvisor?.slug || null,
         }
       }, '*');
-      return;
+
+      // En el iframe actual de patrimofy.com (?ref=patrimofy&embed=true) delega al formulario padre;
+      // en iframes externos (Chic Haus, Patrimofy (RV) o ?wa=direct) abre WhatsApp directo
+      if (shouldDelegateSeparateToParentFrame(currentAdvisor)) {
+        return;
+      }
     }
 
-    const currentAdvisor = assignedAdvisor || getActiveAdvisor();
-
-    // 1. Si hay un asesor asignado por link / cookie, abrir directo su WhatsApp
+    // 1. Si hay un asesor o canal de inmobiliaria asignado por link / cookie, abrir directo su WhatsApp
     if (currentAdvisor) {
       const waUrl = buildLotWhatsAppUrl(
         {
@@ -773,7 +277,17 @@ export default function LoomLotPanel({
       );
       window.open(waUrl, "_blank");
     } else if (currentRef === "chichaus") {
-      window.open("https://www.loomalmabeach.com/#contacto", "_blank");
+      const waUrl = buildLotWhatsAppUrl(
+        {
+          id: lot.id,
+          rawId: lot.rawId,
+          price: lot.totalPrice,
+          area: lot.area,
+        },
+        "LOOM Luxury Residence",
+        ADVISORS_REGISTRY["chichaus"]
+      );
+      window.open(waUrl, "_blank");
     } else {
       setShowReferralModal(true);
     }
@@ -1420,13 +934,17 @@ export default function LoomLotPanel({
             <div className="bg-[#B35F27]/15 border border-[#B35F27]/35 rounded-xl p-2.5 text-[0.625rem] text-[#0A0D0B] leading-relaxed uppercase tracking-wider text-center font-semibold flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
               <span>
-                {isEn ? "Your Advisor:" : "Tu Asesor:"} <strong>{assignedAdvisor.name}</strong> &bull; {assignedAdvisor.agency}
+                {getAdvisorPanelPrefix(assignedAdvisor, isEn)}{" "}
+                <strong>{assignedAdvisor.name}</strong>
+                {!isInstitutionalAdvisor(assignedAdvisor) && (
+                  <> &bull; {assignedAdvisor.agency}</>
+                )}
               </span>
             </div>
           ) : referrer ? (
             <div className="bg-[#B35F27]/10 border border-[#B35F27]/30 rounded-xl p-2.5 text-[0.5625rem] sm:text-[0.625rem] text-[#0A0D0B]/80 leading-relaxed uppercase tracking-wider text-center font-medium">
-              {isEn ? "Official advisory by " : "Asesoría comercializada por "}
-              <strong className="text-[#0A0D0B] font-bold">{referrer === "patrimofy" ? "Patrimofy" : "Chichaus"}</strong>
+              {isEn ? "Agency: " : "Inmobiliaria: "}
+              <strong className="text-[#0A0D0B] font-bold">{referrer === "patrimofy" ? "Patrimofy" : "Chic Haus"}</strong>
             </div>
           ) : null}
         </div>
@@ -1475,9 +993,7 @@ export default function LoomLotPanel({
                 {assignedAdvisor ? <MessageCircle className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 text-[#25D366] shrink-0" /> : <Phone className="h-4 w-4 max-lg:landscape:h-3.5 max-lg:landscape:w-3.5 text-[#B35F27] shrink-0" />}
                 <span className="truncate">
                   {assignedAdvisor
-                    ? isEn
-                      ? `WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
-                      : `WhatsApp (${assignedAdvisor.name.split(" ")[0]})`
+                    ? `WhatsApp (${getAdvisorDisplayLabel(assignedAdvisor)})`
                     : isEn
                     ? "Reserve Lot"
                     : "Separar Lote"}
@@ -1678,6 +1194,12 @@ export default function LoomLotPanel({
         isOpen={showReferralModal}
         onClose={() => setShowReferralModal(false)}
         lotRawId={lot.rawId}
+        lotContext={{
+          id: lot.id,
+          rawId: lot.rawId,
+          price: lot.totalPrice,
+          area: lot.area,
+        }}
       />
     </>
   );

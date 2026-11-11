@@ -14,19 +14,7 @@ import {
   parseSquareMeters,
 } from "@/lib/loomI18n";
 import { AREA_TIERS, getAreaTier, AreaTierKey } from "@/lib/loomLotTelemetry";
-
-interface Lot {
-  id: string;
-  rawId: string;
-  area: string;
-  location: string;
-  status: string;
-  statusRaw: string;
-  totalPrice: string;
-  downPayment: string;
-  financing: string;
-  finalPayment: string;
-}
+import type { Lot } from "@/types/lots";
 
 function decodeSvgNumber(g: HTMLElement): number | null {
   const paths = Array.from(g.querySelectorAll("path"));
@@ -327,16 +315,30 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
   // Cache en memoria RAM para cargar todas las etapas instantáneamente (0ms de retraso)
   const svgCacheRef = useRef<Record<string, { svgText: string; pins: ParsedPin[] }>>({});
 
-  // Pre-cargar todas las imágenes WebP de todas las etapas en segundo plano al montar el componente
+  // Pre-cargar de forma inteligente únicamente las etapas vecinas cuando el navegador esté libre (ahorra ~16.7 MB iniciales en móvil)
   useEffect(() => {
-    activeStages.forEach((stId) => {
-      const cfg = STAGE_CONFIGS[stId];
-      if (cfg) {
-        const img = new Image();
-        img.src = cfg.bgImage;
-      }
-    });
-  }, []);
+    const neighbors = [prevStageId, nextStageId].filter(Boolean) as string[];
+    if (neighbors.length === 0) return;
+
+    const preloadNeighbors = () => {
+      neighbors.forEach((stId) => {
+        const cfg = STAGE_CONFIGS[stId];
+        if (cfg) {
+          const img = new Image();
+          img.decoding = "async";
+          img.src = cfg.bgImage;
+        }
+      });
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(preloadNeighbors, { timeout: 2000 });
+      return () => window.cancelIdleCallback(idleId);
+    } else {
+      const timer = setTimeout(preloadNeighbors, 900);
+      return () => clearTimeout(timer);
+    }
+  }, [stageId, prevStageId, nextStageId]);
 
   // Cargar y procesar el SVG de la etapa (usando caché RAM si ya fue procesado)
   useEffect(() => {
@@ -1541,10 +1543,12 @@ export default function LoomStageViewer({ stageId, lots, selectedLot, onSelectLo
         </div>
       )}
 
-      {/* Leyenda de Brújula (Flotante a la Derecha) */}
+      {/* Leyenda de Brújula (Flotante a la Derecha — Calibrada con Plano A001) */}
       <div className="absolute bottom-5 right-5 z-20 hidden xl:flex items-center gap-2 text-[#0A0D0B]/75 text-[0.5625rem] uppercase tracking-widest font-semibold bg-[#EDE7E0]/90 border border-[#0A0D0B]/10 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-sm">
-        <Compass className="h-3.5 w-3.5 text-[#B35F27] rotate-[45deg]" />
-        {isEn ? "North oriented towards the sea (Right / Beach)" : "Norte orientado hacia el mar (Derecha / Playa)"}
+        <Compass className="h-3.5 w-3.5 text-[#B35F27] rotate-[73deg]" />
+        {isEn
+          ? "Plan A001 Compass • Sun: East (Inland) → West (Caribbean Sea)"
+          : "Brújula Plano A001 • Sol: Este (Carretera) → Oeste (Mar Caribe)"}
       </div>
 
     </div>
